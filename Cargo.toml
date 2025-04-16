@@ -3,4 +3,11 @@ name = "yet-another-gb-rust-emulator"
 version = "0.1.0"
 edition = "2024"
 
+[workspace]
+members = [
+    # oficial components of this emulator
+    "crates/cpu"
+]
+
 [dependencies]
+yet-another-gb-rust-emulator_cpu = { path = "crates/cpu" }
