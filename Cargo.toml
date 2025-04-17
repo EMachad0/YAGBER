@@ -11,3 +11,12 @@ members = [
 
 [dependencies]
 yet-another-gb-rust-emulator_cpu = { path = "crates/cpu" }
+tracing-subscriber = { workspace = true, features = ["env-filter"] }
+dotenv = { workspace = true }
+
+[workspace.dependencies]
+anyhow = { version = "1.0.98" }
+arbitrary-int = { version = "1.3.0" }
+dotenv = { version = "0.15.0" }
+tracing = { version = "0.1.41" }
+tracing-subscriber = { version = "0.3.19" }

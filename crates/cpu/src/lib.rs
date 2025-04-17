@@ -1,8 +1,8 @@
-pub struct Cpu {
-    pub pc: u16,
-    pub sp: u16,
-}
+mod cpu;
+mod instruction;
+mod registers;
 
-pub fn from_rom(p0: Vec<u8>) -> Cpu {
-    todo!()
-}
+#[macro_use]
+extern crate tracing;
+
+pub use cpu::Cpu;

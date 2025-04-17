@@ -1,3 +1,3 @@
 fn main() {
-    println!("Hello, world!");
+    yet_another_gb_rust_emulator::init_tracing();
 }
