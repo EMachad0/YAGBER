@@ -1,4 +1,5 @@
-use arbitrary_int::u2;
+use crate::instruction::InstructionType::{DecR8, IncR8, LdR8Imm8};
+use arbitrary_int::{u2, u3};
 
 pub struct ConditionCode(u2);
 
@@ -27,6 +28,10 @@ impl ConditionCode {
 /// see [Cpu Instruction Set](https://gbdev.io/pandocs/CPU_Instruction_Set.html) for more details
 #[derive(Debug, Default)]
 pub struct Instruction {
+    /// Cb prefix
+    cb_prefix: bool,
+    /// The instruction opcode
+    opcode: u8,
     /// The instruction type
     instruction_type: InstructionType,
     /// The 8-bit immediate value, if applicable
@@ -40,25 +45,24 @@ impl Instruction {
     pub fn new(opcode: u8) -> Self {
         Self {
             instruction_type: InstructionType::from_opcode(opcode),
-            imm8: None,
-            imm16: None,
+            ..Self::default()
         }
     }
-    
+
     /// Create a new instruction from the CB prefix opcode
     pub fn new_cb_prefix(opcode: u8) -> Self {
         Self {
+            cb_prefix: true,
             instruction_type: InstructionType::from_opcode_cb_prefix(opcode),
-            imm8: None,
-            imm16: None,
+            ..Self::default()
         }
     }
-    
+
     /// Get the instruction type
     pub fn instruction_type(&self) -> &InstructionType {
         &self.instruction_type
     }
-    
+
     /// Set the 8-bit immediate value
     pub fn set_imm8(&mut self, imm8: u8) {
         self.imm8 = Some(imm8);
@@ -114,15 +118,108 @@ impl Instruction {
             | LdAImm16
         )
     }
-    
+
     /// Get the 8-bit immediate value
     pub fn imm8(&self) -> Option<u8> {
         self.imm8
     }
-    
+
     /// Get the 16-bit immediate value
     pub fn imm16(&self) -> Option<u16> {
         self.imm16
+    }
+
+    /// Get the r8 from instructions that use it
+    /// r8: 3-bit, one of the 8-bit register
+    pub fn r8(&self) -> Option<u3> {
+        if self.cb_prefix {
+            return Some(self.opcode & 0b111).map(u3::from_u8);
+        }
+        use InstructionType::*;
+        match self.opcode >> 6 {
+            0b10 => Some(self.opcode & 0b111),
+            0b00 => match self.instruction_type {
+                // 0b00??_?000
+                IncR8 | DecR8 | LdR8Imm8 => Some((self.opcode >> 3) & 0b111),
+                _ => None,
+            },
+            _ => None,
+        }
+        .map(u3::from_u8)
+    }
+
+    /// LdR8R8 instructions use two 3-bit registers
+    pub fn r8_pair(&self) -> Option<(u3, u3)> {
+        use InstructionType::*;
+        match self.instruction_type {
+            // 0b01??_????
+            LdR8R8 => Some(((self.opcode >> 3) & 0b111, self.opcode & 0b111)),
+            _ => None,
+        }
+        .map(|(a, b)| (u3::from_u8(a), u3::from_u8(b)))
+    }
+
+    /// Get the r16 from instructions that use it
+    /// r16: 2-bit, one of the 16-bit registers
+    /// r16stk: 2-bit, one of the 16-bit registers of the stack
+    /// r16mem: 2-bit, one of the 16-bit registers of the memory
+    pub fn r16(&self) -> Option<u2> {
+        use InstructionType::*;
+
+        if matches!(
+            self.instruction_type,
+            // 0b00??_0000
+            LdR16Imm16
+                | LdR16memA
+                | LdAR16mem
+                | IncR16
+                | DecR16
+                | AddHLR16
+                | PopR16stk
+                | PushR16stk
+        ) {
+            Some(u2::from_u8((self.opcode >> 4) & 0b11))
+        } else {
+            None
+        }
+    }
+
+    /// Get the condition code from instructions that use it
+    /// cond: condition code (z, nz, c, nc)
+    /// The condition code is a 2-bit value
+    pub fn cond(&self) -> Option<ConditionCode> {
+        use InstructionType::*;
+        match self.instruction_type {
+            // 0b001?_?000
+            JrCondImm8 | RetCond | JpCondImm16 | CallCondImm16 => {
+                Some(ConditionCode::new(u2::from_u8((self.opcode >> 3) & 0b11)))
+            }
+            _ => None,
+        }
+    }
+
+    /// Get the b3 from instructions that use it
+    /// b3: 3-bit bit index
+    /// The b3 is a 3-bit value
+    pub fn b3(&self) -> Option<u3> {
+        use InstructionType::*;
+        match self.instruction_type {
+            // 0b01??_????
+            BitB3R8 | ResB3R8 | SetB3R8 => Some(u3::from_u8((self.opcode >> 3) & 0b111)),
+            _ => None,
+        }
+    }
+
+    /// Get the target 3 from instructions that use it
+    /// tgt3: rst target address, divided by 8
+    /// The tgt3 is a 3-bit value
+    pub fn tgt3(&self) -> Option<u3> {
+        use InstructionType::*;
+        match self.instruction_type {
+            // 0b11??_?111
+            RstTgt3 => Some(u3::from_u8(self.opcode & 0b111)),
+            _ => None,
+        }
     }
 }
 
