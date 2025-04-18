@@ -43,7 +43,10 @@ impl Cpu {
         // Fetch the next instruction
         let instruction = self.read_next_instruction();
 
-        info!("instruction: {:?}", instruction);
+        trace!("{:?}", instruction);
+
+        // Execute the instruction
+        self.execute_instruction(&instruction);
     }
 
     pub fn read_next_instruction(&mut self) -> Instruction {
@@ -172,13 +175,31 @@ impl Cpu {
 
     pub fn stack_push(&mut self, value: u16) {
         self.sp = self.sp.wrapping_sub(2);
+        // Game Boy stack must stay in WRAM/echo region (0xC000–0xFDFF)
+        if self.sp < 0xC000 {
+            panic!(
+                "Stack overflow! SP went into invalid memory: {:#06X}",
+                self.sp
+            );
+        }
         self.ram.write_u16(self.sp, value);
     }
 
     pub fn stack_pop(&mut self) -> u16 {
+        // optionally guard underflow on pop
+        if self.sp > 0xFFFE {
+            panic!("Stack underflow! SP is already at {:#06X}", self.sp);
+        }
         let value = self.ram.read_u16(self.sp);
         self.sp = self.sp.wrapping_add(2);
         value
+    }
+
+    pub fn serial_data_transfer(&mut self) {
+        if self.ram.read(0xFF02) == 0x81 {
+            let ch = self.ram.read(0xFF01);
+            debug!("{}", ch as char);
+        }
     }
 
     pub fn execute_instruction(&mut self, instruction: &Instruction) {
@@ -471,6 +492,104 @@ impl Cpu {
                 let r_val = self.read_r8(instruction.r8().unwrap());
                 let r_a = self.registers.a();
                 let result = Alu8::sub(r_a, r_val);
+                self.registers
+                    .flags_mut()
+                    .set_z_if_zero(*result)
+                    .set_n(true)
+                    .set_h(result.cb3)
+                    .set_c(result.cb7);
+            }
+            // Block 0b11
+            AddAImm8 => {
+                let a = self.registers.a();
+                let imm8 = instruction.imm8().unwrap();
+                let result = Alu8::add(a, imm8);
+                self.registers.set_a(*result);
+                self.registers
+                    .flags_mut()
+                    .set_z_if_zero(*result)
+                    .set_n(false)
+                    .set_h(result.cb3)
+                    .set_c(result.cb7);
+            }
+            AdcAImm8 => {
+                let a = self.registers.a();
+                let imm8 = instruction.imm8().unwrap();
+                let carry = self.registers.flags().c_u8();
+                let result = Alu8::adc(a, imm8, carry);
+                self.registers.set_a(*result);
+                self.registers
+                    .flags_mut()
+                    .set_z_if_zero(*result)
+                    .set_n(false)
+                    .set_h(result.cb3)
+                    .set_c(result.cb7);
+            }
+            SubAImm8 => {
+                let a = self.registers.a();
+                let imm8 = instruction.imm8().unwrap();
+                let result = Alu8::sub(a, imm8);
+                self.registers.set_a(*result);
+                self.registers
+                    .flags_mut()
+                    .set_z_if_zero(*result)
+                    .set_n(true)
+                    .set_h(result.cb3)
+                    .set_c(result.cb7);
+            }
+            SbcAImm8 => {
+                let a = self.registers.a();
+                let imm8 = instruction.imm8().unwrap();
+                let carry = self.registers.flags().c_u8();
+                let result = Alu8::sbc(a, imm8, carry);
+                self.registers.set_a(*result);
+                self.registers
+                    .flags_mut()
+                    .set_z_if_zero(*result)
+                    .set_n(true)
+                    .set_h(result.cb3)
+                    .set_c(result.cb7);
+            }
+            AndAImm8 => {
+                let a = self.registers.a();
+                let imm8 = instruction.imm8().unwrap();
+                let result = a & imm8;
+                self.registers.set_a(result);
+                self.registers
+                    .flags_mut()
+                    .set_z_if_zero(result)
+                    .set_n(false)
+                    .set_h(true)
+                    .set_c(false);
+            }
+            XorAImm8 => {
+                let a = self.registers.a();
+                let imm8 = instruction.imm8().unwrap();
+                let result = a ^ imm8;
+                self.registers.set_a(result);
+                self.registers
+                    .flags_mut()
+                    .set_z_if_zero(result)
+                    .set_n(false)
+                    .set_h(false)
+                    .set_c(false);
+            }
+            OrAImm8 => {
+                let a = self.registers.a();
+                let imm8 = instruction.imm8().unwrap();
+                let result = a | imm8;
+                self.registers.set_a(result);
+                self.registers
+                    .flags_mut()
+                    .set_z_if_zero(result)
+                    .set_n(false)
+                    .set_h(false)
+                    .set_c(false);
+            }
+            CpAImm8 => {
+                let a = self.registers.a();
+                let imm8 = instruction.imm8().unwrap();
+                let result = Alu8::sub(a, imm8);
                 self.registers
                     .flags_mut()
                     .set_z_if_zero(*result)

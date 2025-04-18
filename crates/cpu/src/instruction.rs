@@ -1,5 +1,8 @@
+use std::fmt::Debug;
+
 use arbitrary_int::{u2, u3};
 
+#[derive(Debug, Default, Clone, Copy)]
 pub struct ConditionCode(u2);
 
 impl ConditionCode {
@@ -19,7 +22,7 @@ impl ConditionCode {
 /// later by the instruction decoder
 ///
 /// see [Cpu Instruction Set](https://gbdev.io/pandocs/CPU_Instruction_Set.html) for more details
-#[derive(Debug, Default)]
+#[derive(Default)]
 pub struct Instruction {
     /// Cb prefix
     cb_prefix: bool,
@@ -37,6 +40,7 @@ impl Instruction {
     /// Create a new instruction from the opcode
     pub fn new(opcode: u8) -> Self {
         Self {
+            opcode,
             instruction_type: InstructionType::from_opcode(opcode),
             ..Self::default()
         }
@@ -45,6 +49,7 @@ impl Instruction {
     /// Create a new instruction from the CB prefix opcode
     pub fn new_cb_prefix(opcode: u8) -> Self {
         Self {
+            opcode,
             cb_prefix: true,
             instruction_type: InstructionType::from_opcode_cb_prefix(opcode),
             ..Self::default()
@@ -213,6 +218,42 @@ impl Instruction {
             RstTgt3 => Some(u3::from_u8(self.opcode & 0b111)),
             _ => None,
         }
+    }
+}
+
+impl Debug for Instruction {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut dbg = f.debug_struct("Instruction");
+
+        dbg.field("opcode", &format_args!("0x{:02X}", self.opcode))
+            .field("type", &self.instruction_type);
+
+        if self.cb_prefix {
+            dbg.field("cb_prefix", &self.cb_prefix);
+        }
+        if let Some(imm8) = self.imm8 {
+            dbg.field("imm8", &format_args!("0x{:02X}", imm8));
+        }
+        if let Some(imm16) = self.imm16 {
+            dbg.field("imm16", &format_args!("0x{:04X}", imm16));
+        }
+        if let Some(r8) = self.r8() {
+            dbg.field("r8", &format_args!("0x{:02X}", r8));
+        }
+        if let Some(r16) = self.r16() {
+            dbg.field("r16", &format_args!("0x{:02X}", r16));
+        }
+        if let Some(cond) = self.cond() {
+            dbg.field("cond", &format_args!("{:?}", cond));
+        }
+        if let Some(b3) = self.b3() {
+            dbg.field("b3", &format_args!("0x{:02X}", b3));
+        }
+        if let Some(tgt3) = self.tgt3() {
+            dbg.field("tgt3", &format_args!("0x{:02X}", tgt3));
+        }
+
+        dbg.finish_non_exhaustive()
     }
 }
 
@@ -386,23 +427,23 @@ impl InstructionType {
             InstructionType::Nop
         } else if match_mask(opcode, 0b0000_0001, 0b1100_1110) {
             InstructionType::LdR16Imm16
-        } else if match_mask(opcode, 0b0000_0010, 0b1100_1110) {
+        } else if match_mask(opcode, 0b0000_0010, 0b1100_1101) {
             InstructionType::LdR16memA
-        } else if match_mask(opcode, 0b0000_1010, 0b1100_0011) {
+        } else if match_mask(opcode, 0b0000_1010, 0b1100_0101) {
             InstructionType::LdAR16mem
-        } else if match_mask(opcode, 0b0000_1000, 0b1100_0011) {
+        } else if match_mask(opcode, 0b0000_1000, 0b1100_0111) {
             InstructionType::LdImm16Sp
         } else if match_mask(opcode, 0b0000_0011, 0b1100_1100) {
             InstructionType::IncR16
-        } else if match_mask(opcode, 0b0000_1011, 0b1100_1100) {
+        } else if match_mask(opcode, 0b0000_1011, 0b1100_0100) {
             InstructionType::DecR16
-        } else if match_mask(opcode, 0b0000_1001, 0b1100_1100) {
+        } else if match_mask(opcode, 0b0000_1001, 0b1100_0110) {
             InstructionType::AddHlR16
-        } else if match_mask(opcode, 0b0000_0100, 0b1100_1011) {
+        } else if match_mask(opcode, 0b0000_0100, 0b1100_0011) {
             InstructionType::IncR8
-        } else if match_mask(opcode, 0b0000_0101, 0b1100_1011) {
+        } else if match_mask(opcode, 0b0000_0101, 0b1100_0010) {
             InstructionType::DecR8
-        } else if match_mask(opcode, 0b0000_0110, 0b1100_1001) {
+        } else if match_mask(opcode, 0b0000_0110, 0b1100_0001) {
             InstructionType::LdR8Imm8
         } else if opcode == 0x07 {
             InstructionType::RlCA
@@ -422,31 +463,31 @@ impl InstructionType {
             InstructionType::Ccf
         } else if opcode == 0x18 {
             InstructionType::JrImm8
-        } else if match_mask(opcode, 0b0010_1000, 0b1101_0000) {
+        } else if match_mask(opcode, 0b0010_0000, 0b1100_0111) {
             InstructionType::JrCondImm8
         } else if opcode == 0x10 {
             InstructionType::Stop
         // Block 0b01
-        } else if match_mask(opcode, 0b0100_0000, 0b1100_0000) {
+        } else if match_mask(opcode, 0b0100_0000, 0b1000_0000) {
             InstructionType::LdR8R8
         } else if opcode == 0x76 {
             InstructionType::Halt
         // Block 0b10
-        } else if match_mask(opcode, 0b1000_0000, 0b1100_0000) {
+        } else if match_mask(opcode, 0b1000_0000, 0b0111_1000) {
             InstructionType::AddAR8
-        } else if match_mask(opcode, 0b1000_0100, 0b1100_0000) {
+        } else if match_mask(opcode, 0b1000_1000, 0b0111_0000) {
             InstructionType::AdcAR8
-        } else if match_mask(opcode, 0b1000_1000, 0b1100_0000) {
+        } else if match_mask(opcode, 0b1001_0000, 0b0110_1000) {
             InstructionType::SubAR8
-        } else if match_mask(opcode, 0b1000_1100, 0b1100_0000) {
+        } else if match_mask(opcode, 0b1001_1000, 0b0110_0000) {
             InstructionType::SbcAR8
-        } else if match_mask(opcode, 0b1001_0000, 0b1100_0000) {
+        } else if match_mask(opcode, 0b1010_0000, 0b0101_1000) {
             InstructionType::AndAR8
-        } else if match_mask(opcode, 0b1001_0100, 0b1100_0000) {
+        } else if match_mask(opcode, 0b1010_1000, 0b0101_0000) {
             InstructionType::XorAR8
-        } else if match_mask(opcode, 0b1001_1000, 0b1100_0000) {
+        } else if match_mask(opcode, 0b1011_0000, 0b0100_1000) {
             InstructionType::OrAR8
-        } else if match_mask(opcode, 0b1001_1100, 0b1100_0000) {
+        } else if match_mask(opcode, 0b1011_1000, 0b0100_0000) {
             InstructionType::CpAR8
         // Block 0b11
         } else if opcode == 0xC6 {
@@ -465,27 +506,27 @@ impl InstructionType {
             InstructionType::OrAImm8
         } else if opcode == 0xFE {
             InstructionType::CpAImm8
-        } else if match_mask(opcode, 0b1100_0000, 0b1101_1000) {
+        } else if match_mask(opcode, 0b1100_0000, 0b0010_0111) {
             InstructionType::RetCond
         } else if opcode == 0xC9 {
             InstructionType::Ret
         } else if opcode == 0xD9 {
             InstructionType::RetI
-        } else if match_mask(opcode, 0b1100_0010, 0b1101_0000) {
+        } else if match_mask(opcode, 0b1100_0010, 0b0010_0101) {
             InstructionType::JpCondImm16
         } else if opcode == 0xC3 {
             InstructionType::JpImm16
         } else if opcode == 0xE9 {
             InstructionType::JpHl
-        } else if match_mask(opcode, 0b1100_0100, 0b1101_0000) {
+        } else if match_mask(opcode, 0b1100_0100, 0b0010_0011) {
             InstructionType::CallCondImm16
         } else if opcode == 0xCD {
             InstructionType::CallImm16
-        } else if match_mask(opcode, 0b1100_0111, 0b1100_1001) {
+        } else if match_mask(opcode, 0b1100_0111, 0b0000_0000) {
             InstructionType::RstTgt3
-        } else if match_mask(opcode, 0b1100_0001, 0b1100_1011) {
+        } else if match_mask(opcode, 0b1100_0001, 0b0000_1110) {
             InstructionType::PopR16stk
-        } else if match_mask(opcode, 0b1100_0101, 0b1100_1011) {
+        } else if match_mask(opcode, 0b1100_0101, 0b0000_1010) {
             InstructionType::PushR16stk
         } else if opcode == 0xCB {
             // CB‐prefix: call from_opcode_cb_prefix on the next byte

@@ -1,4 +1,4 @@
-const RAM_SIZE: usize = 0xFFFF;
+const RAM_SIZE: usize = 0x10000; // 64 KiB (0x0000–0xFFFF)
 
 pub struct Ram {
     pub data: [u8; RAM_SIZE],

@@ -12,11 +12,7 @@ fn test_blargg_cpu_instrs() {
     let mut emu = Cpu::from_rom(rom);
 
     // Run emulation for some steps
-    for _ in 0..10 {
+    for _ in 0..100_000_000 {
         emu.step();
     }
-
-    // Inspect memory or output for test success
-    // let result = emu.memory.read_byte(0xFF02);
-    // assert_eq!(result, 0x01, "Blargg test failed!");
 }
