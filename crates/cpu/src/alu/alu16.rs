@@ -15,11 +15,7 @@ pub struct Alu16Result {
 
 impl Alu16Result {
     pub fn new(result: u16, cb11: bool, cb15: bool) -> Self {
-        Self {
-            result,
-            cb11,
-            cb15,
-        }
+        Self { result, cb11, cb15 }
     }
 }
 
@@ -39,17 +35,6 @@ impl Alu16 {
         let sum = a.wrapping_add(b);
         let carry_11 = (a & 0x0FFF) + (b & 0x0FFF) > 0x0FFF;
         let carry_15 = a.checked_add(b).is_none();
-        Alu16Result::new(sum, carry_11, carry_15)
-    }
-
-    /// Adds two 16-bit numbers with carry and returns the result.
-    pub fn adc(a: u16, b: u16, carry: u8) -> Alu16Result {
-        let sum = a.wrapping_add(b).wrapping_add(carry as u16);
-        let carry_11 = (a & 0x0FFF) + (b & 0x0FFF) + (carry as u16) > 0x0FFF;
-        let carry_15 = a
-            .checked_add(b)
-            .and_then(|s| s.checked_add(carry as u16))
-            .is_none();
         Alu16Result::new(sum, carry_11, carry_15)
     }
 }

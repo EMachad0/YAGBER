@@ -115,4 +115,29 @@ impl Alu8 {
         let result = (value >> 1) | (carry << 7);
         Alu8Result::new(result, false, new_carry != 0)
     }
+
+    /// Shifts an 8-bit number left and returns the result.
+    /// arithmetic shift left.
+    pub fn sla(value: u8) -> Alu8Result {
+        let result = value << 1;
+        let carry = value & 0x80 != 0;
+        Alu8Result::new(result, false, carry)
+    }
+
+    /// Shifts an 8-bit number right and returns the result.
+    /// arithmetic shift right.
+    /// The most significant bit is preserved.
+    pub fn sra(value: u8) -> Alu8Result {
+        let result = value >> 1 | (value & 0x80);
+        let carry = value & 0x01 != 0;
+        Alu8Result::new(result, false, carry)
+    }
+
+    /// Shifts an 8-bit number right and returns the result.
+    /// logical shift right.
+    pub fn srl(value: u8) -> Alu8Result {
+        let result = value >> 1;
+        let carry = value & 0x01 != 0;
+        Alu8Result::new(result, false, carry)
+    }
 }

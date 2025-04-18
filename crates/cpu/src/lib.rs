@@ -1,8 +1,9 @@
+mod alu;
 mod cpu;
 mod instruction;
-mod registers;
+mod interrupt;
 mod ram;
-mod alu;
+mod registers;
 
 #[macro_use]
 extern crate tracing;

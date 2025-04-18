@@ -1,5 +1,6 @@
 use crate::alu::{Alu8, Alu16};
 use crate::instruction::{ConditionCode, Instruction, InstructionType};
+use crate::interrupt::Ime;
 use crate::ram::Ram;
 use crate::registers::Registers;
 use arbitrary_int::{u2, u3};
@@ -10,6 +11,7 @@ pub struct Cpu {
     pub registers: Registers,
     pub ram: Ram,
     pub cartridge: Vec<u8>,
+    pub ime: Ime,
 }
 
 impl Default for Cpu {
@@ -21,11 +23,12 @@ impl Default for Cpu {
 impl Cpu {
     pub fn new() -> Self {
         Self {
-            pc: 0x0100, // starts at 0x0100
-            sp: 0,
+            pc: 0x0100, // program counter starts at 0x0100
+            sp: 0xFFFE, // stack pointer starts at 0xFFFE
             registers: Registers::default(),
             ram: Ram::default(),
             cartridge: Vec::default(),
+            ime: Ime::default(),
         }
     }
 
@@ -165,6 +168,17 @@ impl Cpu {
             3 => !self.registers.flags().c(),
             _ => unreachable!(),
         }
+    }
+
+    pub fn stack_push(&mut self, value: u16) {
+        self.sp = self.sp.wrapping_sub(2);
+        self.ram.write_u16(self.sp, value);
+    }
+
+    pub fn stack_pop(&mut self) -> u16 {
+        let value = self.ram.read_u16(self.sp);
+        self.sp = self.sp.wrapping_add(2);
+        value
     }
 
     pub fn execute_instruction(&mut self, instruction: &Instruction) {
@@ -465,13 +479,20 @@ impl Cpu {
                     .set_c(result.cb7);
             }
             RetCond => {
-                todo!("Implement RetCond");
+                let condition = instruction.cond().unwrap();
+                if self.check_condition(condition) {
+                    let value = self.stack_pop();
+                    self.pc = value;
+                }
             }
             Ret => {
-                todo!("Implement Ret");
+                let value = self.stack_pop();
+                self.pc = value;
             }
             RetI => {
-                todo!("Implement RetI");
+                let value = self.stack_pop();
+                self.pc = value;
+                self.ime.set_ime();
             }
             JpCondImm16 => {
                 let imm16 = instruction.imm16().unwrap();
@@ -490,10 +511,220 @@ impl Cpu {
             CallCondImm16 => {
                 let imm16 = instruction.imm16().unwrap();
                 if self.check_condition(instruction.cond().unwrap()) {
-                    self.sp = self.sp.wrapping_sub(2);
-                    self.ram.write_u16(self.sp, self.pc);
+                    self.stack_push(self.pc);
                     self.pc = imm16;
                 }
+            }
+            CallImm16 => {
+                let imm16 = instruction.imm16().unwrap();
+                self.stack_push(self.pc);
+                self.pc = imm16;
+            }
+            RstTgt3 => {
+                let tgt = instruction.tgt3().unwrap();
+                let addr = (tgt.value() as u16) << 3;
+                self.stack_push(self.pc);
+                self.pc = addr;
+            }
+            PopR16stk => {
+                let r16 = instruction.r16().unwrap();
+                let value = self.stack_pop();
+                self.write_r16stk(r16, value);
+            }
+            PushR16stk => {
+                let r16 = instruction.r16().unwrap();
+                let value = self.read_r16stk(r16);
+                self.stack_push(value);
+            }
+            Prefix => info!("Prefix instruction encountered"),
+            LdhCA => {
+                let a = self.registers.a();
+                let c = self.registers.c() as u16;
+                let address = 0xFF00 + c;
+                self.ram.write(address, a);
+            }
+            LdhImm8A => {
+                let a = self.registers.a();
+                let imm8 = instruction.imm8().unwrap() as u16;
+                let address = 0xFF00 + imm8;
+                self.ram.write(address, a);
+            }
+            LdImm16A => {
+                let a = self.registers.a();
+                let imm16 = instruction.imm16().unwrap();
+                self.ram.write(imm16, a);
+            }
+            LdhAC => {
+                let c = self.registers.c() as u16;
+                let address = 0xFF00 + c;
+                let a = self.ram.read(address);
+                self.registers.set_a(a);
+            }
+            LdhAImm8 => {
+                let imm8 = instruction.imm8().unwrap() as u16;
+                let address = 0xFF00 + imm8;
+                let a = self.ram.read(address);
+                self.registers.set_a(a);
+            }
+            LdAImm16 => {
+                let imm16 = instruction.imm16().unwrap();
+                let a = self.ram.read(imm16);
+                self.registers.set_a(a);
+            }
+            AddSpImm8 => {
+                let imm8 = instruction.imm8().unwrap();
+                let sp = self.sp;
+                let result = Alu16::add(sp, imm8 as u16);
+                self.sp = *result;
+
+                self.registers
+                    .flags_mut()
+                    .set_z(false)
+                    .set_n(false)
+                    .set_h(result.cb11)
+                    .set_c(result.cb15);
+            }
+            LdSpHl => {
+                let hl = self.registers.hl();
+                self.sp = hl;
+            }
+            Di => {
+                self.ime.set_ime();
+            }
+            Ei => {
+                self.ime.reset_ime();
+            }
+            // CB Prefix instructions
+            RlcR8 => {
+                let r8 = instruction.r8().unwrap();
+                let r_val = self.read_r8(r8);
+                let result = Alu8::rlc(r_val);
+                self.write_r8(r8, *result);
+
+                self.registers
+                    .flags_mut()
+                    .set_z_if_zero(*result)
+                    .set_n(false)
+                    .set_h(false)
+                    .set_c(result.cb7);
+            }
+            RrcR8 => {
+                let r8 = instruction.r8().unwrap();
+                let r_val = self.read_r8(r8);
+                let result = Alu8::rrc(r_val);
+                self.write_r8(r8, *result);
+
+                self.registers
+                    .flags_mut()
+                    .set_z_if_zero(*result)
+                    .set_n(false)
+                    .set_h(false)
+                    .set_c(result.cb7);
+            }
+            RlR8 => {
+                let r8 = instruction.r8().unwrap();
+                let r_val = self.read_r8(r8);
+                let carry = self.registers.flags().c_u8();
+                let result = Alu8::rl(r_val, carry);
+                self.write_r8(r8, *result);
+
+                self.registers
+                    .flags_mut()
+                    .set_z_if_zero(*result)
+                    .set_n(false)
+                    .set_h(false)
+                    .set_c(result.cb7);
+            }
+            RrR8 => {
+                let r8 = instruction.r8().unwrap();
+                let r_val = self.read_r8(r8);
+                let carry = self.registers.flags().c_u8();
+                let result = Alu8::rr(r_val, carry);
+                self.write_r8(r8, *result);
+
+                self.registers
+                    .flags_mut()
+                    .set_z_if_zero(*result)
+                    .set_n(false)
+                    .set_h(false)
+                    .set_c(result.cb7);
+            }
+            SlaR8 => {
+                let r8 = instruction.r8().unwrap();
+                let r_val = self.read_r8(r8);
+                let result = Alu8::sla(r_val);
+                self.write_r8(r8, *result);
+
+                self.registers
+                    .flags_mut()
+                    .set_z_if_zero(*result)
+                    .set_n(false)
+                    .set_h(false)
+                    .set_c(result.cb7);
+            }
+            SraR8 => {
+                let r8 = instruction.r8().unwrap();
+                let r_val = self.read_r8(r8);
+                let result = Alu8::sra(r_val);
+                self.write_r8(r8, *result);
+
+                self.registers
+                    .flags_mut()
+                    .set_z_if_zero(*result)
+                    .set_n(false)
+                    .set_h(false)
+                    .set_c(result.cb7);
+            }
+            SwapR8 => {
+                let r8 = instruction.r8().unwrap();
+                let r_val = self.read_r8(r8);
+                let result = r_val.rotate_right(4);
+                self.write_r8(r8, result);
+
+                self.registers
+                    .flags_mut()
+                    .set_z_if_zero(result)
+                    .set_n(false)
+                    .set_h(false)
+                    .set_c(false);
+            }
+            SrlR8 => {
+                let r8 = instruction.r8().unwrap();
+                let r_val = self.read_r8(r8);
+                let result = Alu8::srl(r_val);
+                self.write_r8(r8, *result);
+
+                self.registers
+                    .flags_mut()
+                    .set_z_if_zero(*result)
+                    .set_n(false)
+                    .set_h(false)
+                    .set_c(result.cb7);
+            }
+            BitB3R8 => {
+                let r8 = instruction.r8().unwrap();
+                let r_val = self.read_r8(r8);
+                let bit = instruction.b3().unwrap();
+                let result = r_val & (1 << bit.value());
+                self.registers
+                    .flags_mut()
+                    .set_z_if_zero(result)
+                    .set_n(false)
+                    .set_h(true);
+            }
+            ResB3R8 => {
+                let r8 = instruction.r8().unwrap();
+                let r_val = self.read_r8(r8);
+                let bit = instruction.b3().unwrap();
+                let result = r_val & !(1 << bit.value());
+                self.write_r8(r8, result);
+            }
+            SetB3R8 => {
+                let r8 = instruction.r8().unwrap();
+                let r_val = self.read_r8(r8);
+                let bit = instruction.b3().unwrap();
+                let result = r_val | (1 << bit.value());
+                self.write_r8(r8, result);
             }
             _ => unreachable!(),
         }
