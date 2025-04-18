@@ -1,4 +1,3 @@
-use crate::instruction::InstructionType::{DecR8, IncR8, LdR8Imm8};
 use arbitrary_int::{u2, u3};
 
 pub struct ConditionCode(u2);
@@ -7,18 +6,12 @@ impl ConditionCode {
     pub fn new(value: u2) -> Self {
         Self(value)
     }
+
+    pub fn value(&self) -> u8 {
+        self.0.value()
+    }
 }
 
-/// r8: 3-bit, one of the 8-bit register
-/// r16: 2-bit, one of the 16-bit registers
-/// r16stk: 2-bit, one of the 16-bit registers of the stack
-/// r16mem: 2-bit, one of the 16-bit registers of the memory
-/// cond: condition code (z, nz, c, nc)
-/// b3: 3-bit bit index
-/// tgt3: rst target address, divided by 8
-/// imm8: 8-bit immediate value
-/// imm16: 16-bit immediate value
-///
 /// Almost all instructions are 1 byte long and the extras are present in the same as the opcode
 /// imm8 and imm16 work a bit differently than the others, they are not present in the opcode
 /// but in the next one and two bytes respectively
@@ -133,7 +126,7 @@ impl Instruction {
     /// r8: 3-bit, one of the 8-bit register
     pub fn r8(&self) -> Option<u3> {
         if self.cb_prefix {
-            return Some(self.opcode & 0b111).map(u3::from_u8);
+            return Some(u3::from_u8(self.opcode & 0b111));
         }
         use InstructionType::*;
         match self.opcode >> 6 {
@@ -174,7 +167,7 @@ impl Instruction {
                 | LdAR16mem
                 | IncR16
                 | DecR16
-                | AddHLR16
+                | AddHlR16
                 | PopR16stk
                 | PushR16stk
         ) {
@@ -246,7 +239,7 @@ pub enum InstructionType {
     /// binary: 0b00??_1011
     DecR16,
     /// binary: 0b00??_1001
-    AddHLR16,
+    AddHlR16,
     /// binary: 0b00??_?100
     IncR8,
     /// binary: 0b00??_?101
@@ -404,7 +397,7 @@ impl InstructionType {
         } else if match_mask(opcode, 0b0000_1011, 0b1100_1100) {
             InstructionType::DecR16
         } else if match_mask(opcode, 0b0000_1001, 0b1100_1100) {
-            InstructionType::AddHLR16
+            InstructionType::AddHlR16
         } else if match_mask(opcode, 0b0000_0100, 0b1100_1011) {
             InstructionType::IncR8
         } else if match_mask(opcode, 0b0000_0101, 0b1100_1011) {
