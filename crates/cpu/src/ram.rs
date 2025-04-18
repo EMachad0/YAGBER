@@ -6,9 +6,18 @@ pub struct Ram {
 
 impl Ram {
     pub fn new() -> Self {
-        Self {
+        let mut ram = Self {
             data: [0; RAM_SIZE],
-        }
+        };
+
+        // mirror I/O defaults in RAM
+        ram.write(0xFF05, 0x00); // TIMA
+        ram.write(0xFF06, 0x00); // TMA
+        ram.write(0xFF07, 0x00); // TAC
+        ram.write(0xFF0F, 0xE1); // IF
+        ram.write(0xFFFF, 0x00); // IE
+
+        ram
     }
 
     pub fn read(&self, address: u16) -> u8 {

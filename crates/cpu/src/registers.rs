@@ -1,4 +1,4 @@
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct Registers {
     a: u8,
     b: u8,
@@ -12,7 +12,16 @@ pub struct Registers {
 
 impl Registers {
     pub fn new() -> Self {
-        Self::default()
+        Self {
+            a: 0x01,
+            b: 0x00,
+            c: 0x13,
+            d: 0x00,
+            e: 0xD8,
+            f: 0xB0,
+            h: 0x01,
+            l: 0x4D,
+        }
     }
 
     pub fn a(&self) -> u8 {
@@ -140,6 +149,12 @@ impl Registers {
     }
 }
 
+impl Default for Registers {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 /// A “view” onto a single byte.
 #[derive(Debug)]
 pub struct FlagRegister {
@@ -191,11 +206,7 @@ impl<'r> FlagRegisterMut<'r> {
     }
 
     pub fn set_z_if_zero(self, value: u8) -> Self {
-        if value == 0 {
-            self.set_z(true)
-        } else {
-            self.set_z(false)
-        }
+        self.set_z(value == 0)
     }
 
     pub fn set_n(self, value: bool) -> Self {

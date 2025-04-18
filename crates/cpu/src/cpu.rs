@@ -10,7 +10,6 @@ pub struct Cpu {
     pub sp: u16,
     pub registers: Registers,
     pub ram: Ram,
-    pub cartridge: Vec<u8>,
     pub ime: Ime,
 }
 
@@ -27,19 +26,19 @@ impl Cpu {
             sp: 0xFFFE, // stack pointer starts at 0xFFFE
             registers: Registers::default(),
             ram: Ram::default(),
-            cartridge: Vec::default(),
             ime: Ime::default(),
         }
     }
 
-    pub fn from_rom(rom: Vec<u8>) -> Self {
-        Self {
-            cartridge: rom,
-            ..Self::default()
-        }
+    pub fn with_rom(mut self, rom: &[u8]) -> Self {
+        // Load the ROM into ram
+        self.ram.data[0x0000..rom.len()].copy_from_slice(rom);
+        self
     }
 
     pub fn step(&mut self) {
+        trace!("CPU Step: PC = {:#06X}", self.pc);
+
         // Fetch the next instruction
         let instruction = self.read_next_instruction();
 
@@ -80,7 +79,7 @@ impl Cpu {
     }
 
     pub fn read_next_byte(&mut self) -> u8 {
-        let byte = self.cartridge[self.pc as usize];
+        let byte = self.ram.read(self.pc);
         self.pc += 1;
         byte
     }
@@ -165,10 +164,10 @@ impl Cpu {
 
     pub fn check_condition(&self, condition: ConditionCode) -> bool {
         match condition.value() {
-            0 => self.registers.flags().z(),
-            1 => !self.registers.flags().z(),
-            2 => self.registers.flags().c(),
-            3 => !self.registers.flags().c(),
+            0 => !self.registers.flags().z(), // NZ
+            1 => self.registers.flags().z(),  // Z
+            2 => !self.registers.flags().c(), // NC
+            3 => self.registers.flags().c(),  // C
             _ => unreachable!(),
         }
     }
@@ -256,7 +255,7 @@ impl Cpu {
                 let r8 = instruction.r8().unwrap();
                 let r_val = self.read_r8(r8);
                 let result = Alu8::inc(r_val);
-
+                self.write_r8(r8, *result);
                 self.registers
                     .flags_mut()
                     .set_z_if_zero(*result)
@@ -267,7 +266,7 @@ impl Cpu {
                 let r8 = instruction.r8().unwrap();
                 let r_val = self.read_r8(r8);
                 let result = Alu8::dec(r_val);
-
+                self.write_r8(r8, *result);
                 self.registers
                     .flags_mut()
                     .set_z_if_zero(*result)
@@ -383,11 +382,17 @@ impl Cpu {
                 let imm8 = instruction.imm8().unwrap();
                 let signed_imm = imm8 as i16;
                 self.pc = self.pc.wrapping_add_signed(signed_imm);
+                debug!("Jumping to {:#06X}", self.pc);
             }
             JrCondImm8 => {
                 let imm8 = instruction.imm8().unwrap();
-                let signed_imm = imm8 as i16;
-                self.pc = self.pc.wrapping_add_signed(signed_imm);
+                let cc = instruction.cond().unwrap();
+                if self.check_condition(cc) {
+                    // sign‐extend 8→16 and add to PC
+                    let offset = imm8 as i8 as i16;
+                    self.pc = self.pc.wrapping_add_signed(offset);
+                    debug!("Jumping to {:#06X}", self.pc);
+                }
             }
             Stop => {
                 panic!("STOP instruction encountered");
@@ -617,33 +622,39 @@ impl Cpu {
                 let imm16 = instruction.imm16().unwrap();
                 if self.check_condition(instruction.cond().unwrap()) {
                     self.pc = imm16;
+                    debug!("Jumping to {:#06X}", imm16);
                 }
             }
             JpImm16 => {
                 let imm16 = instruction.imm16().unwrap();
                 self.pc = imm16;
+                debug!("Jumping to {:#06X}", imm16);
             }
             JpHl => {
                 let hl = self.registers.hl();
                 self.pc = hl;
+                debug!("Jumping to HL: {:#06X}", hl);
             }
             CallCondImm16 => {
                 let imm16 = instruction.imm16().unwrap();
                 if self.check_condition(instruction.cond().unwrap()) {
                     self.stack_push(self.pc);
                     self.pc = imm16;
+                    debug!("Calling to {:#06X}", imm16);
                 }
             }
             CallImm16 => {
                 let imm16 = instruction.imm16().unwrap();
                 self.stack_push(self.pc);
                 self.pc = imm16;
+                debug!("Calling to {:#06X}", imm16);
             }
             RstTgt3 => {
                 let tgt = instruction.tgt3().unwrap();
                 let addr = (tgt.value() as u16) << 3;
                 self.stack_push(self.pc);
                 self.pc = addr;
+                debug!("Resetting to target {:#06X}", addr);
             }
             PopR16stk => {
                 let r16 = instruction.r16().unwrap();
