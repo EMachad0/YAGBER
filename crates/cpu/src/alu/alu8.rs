@@ -106,7 +106,7 @@ impl Alu8 {
         let result = (value << 1) | (carry);
         Alu8Result::new(result, false, new_carry != 0)
     }
-    
+
     /// Rotates an 8-bit number right through carry and returns the result.
     /// The least significant bit is rotated into the carry flag.
     /// The carry flag is rotated into the most significant bit.
