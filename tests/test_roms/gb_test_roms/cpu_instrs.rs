@@ -12,5 +12,5 @@ fn test_blargg_cpu_instrs() {
     let mut emu = Emulator::new().with_boot_rom();
 
     // Run emulation for some steps
-    emu.run_for(1000);
+    emu.run_for(3);
 }

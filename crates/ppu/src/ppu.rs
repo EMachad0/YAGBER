@@ -5,7 +5,7 @@ use crate::{dot_clock::DotClock, mode::Mode, scan_line::ScanLine};
 #[derive(Debug, Default, Clone, Copy)]
 pub struct Ppu {
     scan_line: ScanLine,
-    dot_clock: DotClock,
+    clock: DotClock,
 }
 
 impl Ppu {
@@ -18,13 +18,14 @@ impl Ppu {
     }
 
     pub fn tick(&mut self, ram: &mut Ram) {
-        self.dot_clock.tick();
+        self.clock.tick();
+        debug!("PPU steps: {}", self.clock.times_finished_this_tick());
 
         if !Self::enabled(ram) {
             return;
         }
 
-        for _ in 0..self.dot_clock.times_finished_this_tick() {
+        for _ in 0..self.clock.times_finished_this_tick() {
             self.step(ram);
         }
     }

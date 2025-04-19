@@ -9,9 +9,15 @@ pub struct Ram {
 
 impl Ram {
     pub fn new() -> Self {
-        Self {
+        let mut ram = Self {
             data: [None; RAM_SIZE],
-        }
+        };
+
+        // Initialize IO registers to 0x00
+        // These may be read before they are written to by the boot ROM
+        ram.copy_from_slice(0xFF00..0xFFFF, &[0; 0xFFFF - 0xFF00]);
+
+        ram
     }
 
     pub fn read(&self, address: u16) -> u8 {

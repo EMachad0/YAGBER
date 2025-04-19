@@ -4,22 +4,24 @@ use crate::time::TimeContext;
 
 #[derive(Debug, Copy, Clone)]
 pub struct WallClock {
-    pub last_update: Instant,
+    pub created: Instant,
+    pub last_update: Option<Instant>,
 }
 
 impl WallClock {
     pub fn new() -> Self {
         Self {
-            last_update: Instant::now(),
+            created: Instant::now(),
+            last_update: None,
         }
     }
 
     pub fn elapsed(&self) -> Duration {
-        self.last_update.elapsed()
+        self.last_update.map(|lu| lu.elapsed()).unwrap_or_default()
     }
 
     pub fn update(&mut self) {
-        self.last_update = Instant::now();
+        self.last_update = Some(Instant::now());
     }
 }
 

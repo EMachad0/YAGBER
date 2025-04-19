@@ -9,7 +9,7 @@ pub struct CycleClock {
 }
 
 impl CycleClock {
-    const CPU_FREQ_HZ: u64 = 4_194_304;
+    const CPU_FREQ_HZ: u64 = 4_194_304; // 4.194304 MHz
     const M_CYCLE_DURATION: u64 = (1_000_000_000 * 4) / Self::CPU_FREQ_HZ; // ≃ 953 ns
 
     pub fn new() -> Self {
@@ -25,6 +25,7 @@ impl CycleClock {
     pub fn tick(&mut self) {
         let elapsed = self.wall_clock.elapsed();
         self.timer.tick(elapsed);
+        self.wall_clock.update();
     }
 
     pub fn times_finished_this_tick(&self) -> u32 {

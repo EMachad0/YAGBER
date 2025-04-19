@@ -36,6 +36,7 @@ impl Cpu {
 
     pub fn tick(&mut self, ram: &mut Ram) {
         self.clock.tick();
+        debug!("CPU steps: {}", self.clock.times_finished_this_tick());
         for _ in 0..self.clock.times_finished_this_tick() {
             // Perform a step
             self.busy = match self.busy {
@@ -51,7 +52,7 @@ impl Cpu {
         // Fetch the next instruction
         let instruction = self.read_next_instruction(ram);
 
-        trace!("{:?}", instruction);
+        // trace!("{:?}", instruction);
 
         // Execute the instruction
         self.execute_instruction(ram, &instruction);

@@ -25,6 +25,7 @@ impl DotClock {
     pub fn tick(&mut self) {
         let elapsed = self.wall_clock.elapsed();
         self.timer.tick(elapsed);
+        self.wall_clock.update();
     }
 
     pub fn times_finished_this_tick(&self) -> u32 {
