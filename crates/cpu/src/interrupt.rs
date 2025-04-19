@@ -4,10 +4,6 @@ pub struct Ime {
 }
 
 impl Ime {
-    pub fn new() -> Self {
-        Self { ime: false }
-    }
-
     pub fn set_ime(&mut self) {
         self.ime = true;
     }

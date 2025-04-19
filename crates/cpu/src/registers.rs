@@ -44,10 +44,6 @@ impl Registers {
         self.e
     }
 
-    pub fn f(&self) -> u8 {
-        self.f
-    }
-
     pub fn h(&self) -> u8 {
         self.h
     }
@@ -82,10 +78,6 @@ impl Registers {
 
     pub fn set_e(&mut self, value: u8) {
         self.e = value;
-    }
-
-    pub fn set_f(&mut self, value: u8) {
-        self.f = value;
     }
 
     pub fn set_h(&mut self, value: u8) {
