@@ -9,7 +9,7 @@ fn test_blargg_cpu_instrs() {
     assert!(fs::metadata(rom_path).is_ok(), "Test ROM not found!");
 
     let rom = fs::read(rom_path).expect("Failed to read ROM");
-    let mut emu = Cpu::new().with_rom(&rom);
+    let mut emu = Cpu::new();
 
     // Run emulation for some steps
     for _ in 0..100_000 {

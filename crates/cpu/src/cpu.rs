@@ -21,24 +21,40 @@ impl Default for Cpu {
 
 impl Cpu {
     pub fn new() -> Self {
-        Self {
-            pc: 0x0100, // program counter starts at 0x0100
-            sp: 0xFFFE, // stack pointer starts at 0xFFFE
+        let mut cpu = Self {
+            pc: 0x0000,
+            sp: 0x0000,
             registers: Registers::default(),
             ram: Ram::default(),
             ime: Ime::default(),
-        }
+        };
+        cpu.initialize_boot_rom();
+        cpu
     }
 
-    pub fn with_rom(mut self, rom: &[u8]) -> Self {
+    pub fn with_cartridge(mut self, rom: &[u8]) -> Self {
         // Load the ROM into ram
-        self.ram.data[0x0000..rom.len()].copy_from_slice(rom);
+
+        // copy rom header
+        self.ram.copy_from_slice(0x0100..0x014F, &rom[0x0100..0x014F]);
         self
     }
 
-    pub fn step(&mut self) {
-        trace!("CPU Step: PC = {:#06X}", self.pc);
+    pub fn initialize_boot_rom(&mut self) {
+        // Initialize the CPU with the boot ROM
+        let path = "resources/cgb_boot.bin";
+        let boot_rom =
+            std::fs::read(path).unwrap_or_else(|_| panic!("Failed to read boot ROM from {}", path));
+        
+        // CGB boot ROM is split into two parts
+        // 0x0000–0x00FF: CGB boot ROM
+        // 0x0100–0x08FF: CGB boot ROM (bank 0)
+        // The cartridge Header is at 0x0100–0x014F (which is in the middle of the boot ROM)
+        // On this boot room, the cartridge header starts as zeroes
+        self.ram.copy_from_slice(0x0000..0x08FF, &boot_rom[0x0000..0x08FF]);
+    }
 
+    pub fn step(&mut self) {
         // Fetch the next instruction
         let instruction = self.read_next_instruction();
 
@@ -214,7 +230,7 @@ impl Cpu {
             }
             LdR16memA => {
                 let r16 = instruction.r16().unwrap();
-                let hl = self.read_r16(r16);
+                let hl = self.read_r16mem(r16);
                 let a = self.registers.a();
                 self.ram.write(hl, a);
             }

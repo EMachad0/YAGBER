@@ -13,14 +13,14 @@ pub struct Registers {
 impl Registers {
     pub fn new() -> Self {
         Self {
-            a: 0x01,
-            b: 0x00,
-            c: 0x13,
-            d: 0x00,
-            e: 0xD8,
-            f: 0xB0,
-            h: 0x01,
-            l: 0x4D,
+            a: 0,
+            b: 0,
+            c: 0,
+            d: 0,
+            e: 0,
+            f: 0,
+            h: 0,
+            l: 0,
         }
     }
 
@@ -97,53 +97,53 @@ impl Registers {
     }
 
     pub fn af(&self) -> u16 {
-        u16::from_le_bytes([self.a, self.f])
+        u16::from_le_bytes([self.f, self.a])
     }
 
     pub fn bc(&self) -> u16 {
-        u16::from_le_bytes([self.b, self.c])
+        u16::from_le_bytes([self.c, self.b])
     }
 
     pub fn de(&self) -> u16 {
-        u16::from_le_bytes([self.d, self.e])
+        u16::from_le_bytes([self.e, self.d])
     }
 
     pub fn hl(&self) -> u16 {
-        u16::from_le_bytes([self.h, self.l])
+        u16::from_le_bytes([self.l, self.h])
     }
 
     pub fn hl_inc(&mut self) -> u16 {
         let hl = self.hl();
-        self.h = self.h.wrapping_add(1);
+        self.set_hl(hl.wrapping_add(1));
         hl
     }
 
     pub fn hl_dec(&mut self) -> u16 {
         let hl = self.hl();
-        self.h = self.h.wrapping_sub(1);
+        self.set_hl(hl.wrapping_sub(1));
         hl
     }
 
     pub fn set_af(&mut self, value: u16) {
-        let [a, f] = value.to_le_bytes();
+        let [f, a] = value.to_le_bytes();
         self.a = a;
         self.f = f;
     }
 
     pub fn set_bc(&mut self, value: u16) {
-        let [b, c] = value.to_le_bytes();
+        let [c, b] = value.to_le_bytes();
         self.b = b;
         self.c = c;
     }
 
     pub fn set_de(&mut self, value: u16) {
-        let [d, e] = value.to_le_bytes();
+        let [e, d] = value.to_le_bytes();
         self.d = d;
         self.e = e;
     }
 
     pub fn set_hl(&mut self, value: u16) {
-        let [h, l] = value.to_le_bytes();
+        let [l, h] = value.to_le_bytes();
         self.h = h;
         self.l = l;
     }

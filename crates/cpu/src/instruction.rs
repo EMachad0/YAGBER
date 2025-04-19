@@ -431,7 +431,7 @@ impl InstructionType {
             InstructionType::LdR16memA
         } else if match_mask(opcode, 0b0000_1010, 0b1100_0101) {
             InstructionType::LdAR16mem
-        } else if match_mask(opcode, 0b0000_1000, 0b1100_0111) {
+        } else if match_mask(opcode, 0b0000_1000, 0b1111_0111) {
             InstructionType::LdImm16Sp
         } else if match_mask(opcode, 0b0000_0011, 0b1100_1100) {
             InstructionType::IncR16
