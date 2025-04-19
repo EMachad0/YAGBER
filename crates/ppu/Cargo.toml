@@ -1,0 +1,8 @@
+[package]
+name = "ppu"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+clock = { workspace = true }
+tracing = { workspace = true }

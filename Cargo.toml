@@ -20,4 +20,6 @@ arbitrary-int = { version = "1.3.0" }
 dotenv = { version = "0.15.0" }
 tracing = { version = "0.1.41" }
 tracing-subscriber = { version = "0.3.19" }
+cpu = { path = "crates/cpu" }
 clock = { path = "crates/clock" }
+ppu = { path = "crates/ppu" }
