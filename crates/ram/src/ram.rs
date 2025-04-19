@@ -1,5 +1,6 @@
 const RAM_SIZE: usize = 0x10000; // 64 KiB (0x0000–0xFFFF)
 
+#[derive(Debug, Clone, Copy)]
 pub struct Ram {
     data: [Option<u8>; RAM_SIZE],
 }

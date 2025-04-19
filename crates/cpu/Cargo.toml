@@ -1,13 +1,10 @@
 [package]
-name = "yet-another-gb-rust-emulator_cpu"
+name = "yagber_cpu"
 version = "0.1.0"
 edition = "2024"
-
-[features]
-default = ["break_on_unitialized_ram_read"]
-break_on_unitialized_ram_read = []
 
 [dependencies]
 arbitrary-int = { workspace = true }
 tracing = { workspace = true }
-clock = { workspace = true }
+yagber_clock = { workspace = true }
+yagber_ram = { workspace = true }

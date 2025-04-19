@@ -2,7 +2,7 @@ use std::time::Duration;
 
 use crate::stopwatch::Stopwatch;
 
-#[derive(Debug, Clone, Copy, Eq, PartialEq, Hash, Default)]
+#[derive(Debug, Default, Clone, Copy, Eq, PartialEq, Hash)]
 pub enum TimerMode {
     /// Run once and stop.
     #[default]
@@ -11,7 +11,7 @@ pub enum TimerMode {
     Repeating,
 }
 
-#[derive(Clone, Debug, Default, PartialEq, Eq)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 pub struct Timer {
     stopwatch: Stopwatch,
     duration: Duration,

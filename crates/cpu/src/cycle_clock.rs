@@ -1,7 +1,8 @@
-use clock::{Timer, WallClock};
+use yagber_clock::{Timer, TimerMode, WallClock};
 
 /// CPU clock module
 /// Duration of 1 M-cycle
+#[derive(Debug, Clone, Copy)]
 pub struct CycleClock {
     wall_clock: WallClock,
     timer: Timer,
@@ -16,7 +17,7 @@ impl CycleClock {
             wall_clock: WallClock::new(),
             timer: Timer::new(
                 std::time::Duration::from_nanos(Self::M_CYCLE_DURATION),
-                clock::TimerMode::Repeating,
+                TimerMode::Repeating,
             ),
         }
     }

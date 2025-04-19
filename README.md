@@ -1,1 +1,3 @@
-# Yet Another Game Boy Emulator in Rust
+# YAGBER
+
+### Yet Another Game Boy Emulator in Rust

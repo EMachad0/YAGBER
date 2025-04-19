@@ -1,0 +1,10 @@
+[package]
+name = "yagber_ram"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+
+[features]
+default = ["break_on_unitialized_ram_read"]
+break_on_unitialized_ram_read = []

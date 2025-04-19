@@ -1,8 +1,10 @@
 [package]
-name = "ppu"
+name = "yagber_ppu"
 version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-clock = { workspace = true }
 tracing = { workspace = true }
+
+yagber_clock = { workspace = true }
+yagber_ram = { workspace = true }
