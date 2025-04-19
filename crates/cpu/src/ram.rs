@@ -12,10 +12,9 @@ impl Ram {
     }
 
     pub fn read(&self, address: u16) -> u8 {
-        if cfg!(feature = "break_on_unitialized_ram_read") {
-            if self.data[address as usize].is_none() {
-                panic!("Uninitialized RAM read at address: {:#X}", address);
-            }
+        if cfg!(feature = "break_on_unitialized_ram_read") && self.data[address as usize].is_none()
+        {
+            panic!("Uninitialized RAM read at address: {:#X}", address);
         }
         self.data[address as usize].unwrap_or_default()
     }
