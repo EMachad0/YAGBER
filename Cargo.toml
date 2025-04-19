@@ -4,9 +4,9 @@ version = "0.1.0"
 edition = "2024"
 
 [workspace]
-members = [ "crates/clock",
+members = [
     # oficial components of this emulator
-    "crates/cpu"
+    "crates/*",
 ]
 
 [dependencies]
@@ -20,3 +20,4 @@ arbitrary-int = { version = "1.3.0" }
 dotenv = { version = "0.15.0" }
 tracing = { version = "0.1.41" }
 tracing-subscriber = { version = "0.3.19" }
+clock = { path = "crates/clock" }

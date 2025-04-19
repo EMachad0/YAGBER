@@ -1,4 +1,5 @@
 mod alu;
+mod clock;
 mod cpu;
 mod instruction;
 mod interrupt;

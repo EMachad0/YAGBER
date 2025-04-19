@@ -10,3 +10,4 @@ break_on_unitialized_ram_read = []
 [dependencies]
 arbitrary-int = { workspace = true }
 tracing = { workspace = true }
+clock = { workspace = true }

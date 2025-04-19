@@ -1,4 +1,5 @@
 use crate::alu::{Alu8, Alu16};
+use crate::clock::CpuClock;
 use crate::instruction::{ConditionCode, Instruction, InstructionType};
 use crate::interrupt::Ime;
 use crate::ram::Ram;
@@ -11,6 +12,8 @@ pub struct Cpu {
     pub registers: Registers,
     pub ram: Ram,
     pub ime: Ime,
+    pub clock: CpuClock,
+    pub busy: u16,
 }
 
 impl Default for Cpu {
@@ -27,6 +30,8 @@ impl Cpu {
             registers: Registers::default(),
             ram: Ram::default(),
             ime: Ime::default(),
+            clock: CpuClock::default(),
+            busy: Default::default(),
         };
         cpu.initialize_boot_rom();
         cpu
@@ -36,7 +41,8 @@ impl Cpu {
         // Load the ROM into ram
 
         // copy rom header
-        self.ram.copy_from_slice(0x0100..0x014F, &rom[0x0100..0x014F]);
+        self.ram
+            .copy_from_slice(0x0100..0x014F, &rom[0x0100..0x014F]);
         self
     }
 
@@ -45,16 +51,33 @@ impl Cpu {
         let path = "resources/cgb_boot.bin";
         let boot_rom =
             std::fs::read(path).unwrap_or_else(|_| panic!("Failed to read boot ROM from {}", path));
-        
+
         // CGB boot ROM is split into two parts
         // 0x0000–0x00FF: CGB boot ROM
         // 0x0100–0x08FF: CGB boot ROM (bank 0)
         // The cartridge Header is at 0x0100–0x014F (which is in the middle of the boot ROM)
         // On this boot room, the cartridge header starts as zeroes
-        self.ram.copy_from_slice(0x0000..0x08FF, &boot_rom[0x0000..0x08FF]);
+        self.ram
+            .copy_from_slice(0x0000..0x08FF, &boot_rom[0x0000..0x08FF]);
     }
 
-    pub fn step(&mut self) {
+    pub fn tick(&mut self) {
+        // Tick the CPU clock
+        self.clock.tick();
+
+        // Check if the timer has finished
+        for _ in 0..self.clock.times_finished_this_tick() {
+            // Perform a step
+            self.busy = match self.busy {
+                0 => self.step() - 1,
+                _ => self.busy - 1,
+            }
+        }
+    }
+
+    /// Perform a single CPU step
+    /// returns the number of M-cycles taken by the instruction
+    pub fn step(&mut self) -> u16 {
         // Fetch the next instruction
         let instruction = self.read_next_instruction();
 
@@ -62,6 +85,9 @@ impl Cpu {
 
         // Execute the instruction
         self.execute_instruction(&instruction);
+
+        // return the number of M-cycles taken by the instruction
+        instruction.cycles()
     }
 
     pub fn read_next_instruction(&mut self) -> Instruction {

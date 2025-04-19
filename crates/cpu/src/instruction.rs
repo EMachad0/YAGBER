@@ -219,6 +219,70 @@ impl Instruction {
             _ => None,
         }
     }
+
+    /// Get the duration in M-cycles of the instruction
+    pub fn cycles(&self) -> u16 {
+        use InstructionType::*;
+        match self.instruction_type {
+            // 0b00xxxxxx
+            Nop => 1,
+            LdR16Imm16 => 3,
+            LdR16memA => 2,
+            LdAR16mem => 2,
+            LdImm16Sp => 3,
+            IncR16 => 2,
+            DecR16 => 2,
+            AddHlR16 => 2,
+            IncR8 => 1,
+            DecR8 => 1,
+            LdR8Imm8 => 2,
+            RlCA | RrCA => 1,
+            RlA | RrA => 1,
+            Daa => 1,
+            Cpl => 1,
+            Scf => 1,
+            Ccf => 1,
+            JrImm8 => 2,
+            JrCondImm8 => 3, // taken
+            Stop => 1,
+            // 0b01xxxxxx
+            LdR8R8 => 1,
+            Halt => 1,
+            // 0b10xxxxxx
+            AddAR8 | AdcAR8 | SubAR8 | SbcAR8 | AndAR8 | XorAR8 | OrAR8 | CpAR8 => 1,
+            // 0b11xxxxxx
+            AddAImm8 | AdcAImm8 | SubAImm8 | SbcAImm8 | AndAImm8 | XorAImm8 | OrAImm8 | CpAImm8 => {
+                2
+            }
+            RetCond => 5, // taken
+            Ret => 4,
+            RetI => 4,
+            JpCondImm16 => 4, // taken
+            JpImm16 => 4,
+            JpHl => 1,
+            CallCondImm16 => 6, // taken
+            CallImm16 => 6,
+            RstTgt3 => 4,
+            PopR16stk => 3,
+            PushR16stk => 4,
+            // CB‑prefix group (Prefix itself costs 1)
+            Prefix => 1,
+            RlcR8 | RrcR8 | RlR8 | RrR8 | SlaR8 | SraR8 | SwapR8 | SrlR8 => 2,
+            BitB3R8 | ResB3R8 | SetB3R8 => 2,
+            // High‑page / I/O style loads
+            LdhCA | LdhAC => 2,
+            LdhImm8A | LdhAImm8 => 3,
+            // Absolute 16‑bit loads
+            LdImm16A | LdAImm16 => 4,
+            // SP/HL adjustments
+            AddSpImm8 => 4,
+            LdHlSpImm8 => 3,
+            LdSpHl => 2,
+            // DI/EI
+            Di => 1,
+            Ei => 1,
+        }
+    }
 }
 
 impl Debug for Instruction {
