@@ -1,4 +1,4 @@
-use yagber_clock::WallClock;
+use yagber_clock::{Time, WallClock};
 use yagber_cpu::Cpu;
 use yagber_ppu::Ppu;
 use yagber_ram::Ram;
@@ -8,7 +8,7 @@ pub struct Emulator {
     cpu: Cpu,
     ppu: Ppu,
     ram: Ram,
-    _clock: WallClock,
+    time: Time<WallClock>,
 }
 
 impl Emulator {
@@ -43,8 +43,9 @@ impl Emulator {
     }
 
     fn step(&mut self) {
-        self.cpu.tick(&mut self.ram);
-        self.ppu.tick(&mut self.ram);
+        self.time.advance();
+        self.cpu.tick(self.time.delta()).run(&mut self.ram);
+        self.ppu.tick(self.time.delta()).run(&mut self.ram);
     }
 
     pub fn run(&mut self) {

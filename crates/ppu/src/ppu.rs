@@ -17,13 +17,17 @@ impl Ppu {
         Self::default()
     }
 
-    pub fn tick(&mut self, ram: &mut Ram) {
-        self.clock.tick();
-        debug!("PPU steps: {}", self.clock.times_finished_this_tick());
+    pub fn tick(mut self, delta: std::time::Duration) -> Self {
+        self.clock.tick(delta);
+        self
+    }
 
+    pub fn run(&mut self, ram: &mut Ram) {
         if !Self::enabled(ram) {
             return;
         }
+
+        debug!("PPU steps: {}", self.clock.times_finished_this_tick());
 
         for _ in 0..self.clock.times_finished_this_tick() {
             self.step(ram);
@@ -78,6 +82,7 @@ impl Ppu {
             Mode::PixelTransfer => {}
             Mode::HBlank => {}
             Mode::VBlank => {
+                trace!("VBlank interrupt");
                 ram.request_interrupt(yagber_ram::InterruptType::VBlank);
             }
         }

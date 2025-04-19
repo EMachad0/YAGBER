@@ -32,7 +32,15 @@ impl Default for WallClock {
 }
 
 impl TimeContext for WallClock {
-    fn elapsed(&self) -> std::time::Duration {
+    fn delta(&self) -> std::time::Duration {
         self.elapsed()
+    }
+
+    fn update(&mut self) {
+        self.update();
+    }
+
+    fn elapsed(&self) -> std::time::Duration {
+        self.created.elapsed()
     }
 }

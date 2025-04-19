@@ -1,10 +1,9 @@
-use yagber_clock::{Timer, TimerMode, WallClock};
+use yagber_clock::{Timer, TimerMode};
 
 /// CPU clock module
 /// Duration of 1 Dot
 #[derive(Debug, Clone, Copy)]
 pub struct DotClock {
-    wall_clock: WallClock,
     timer: Timer,
 }
 
@@ -14,7 +13,6 @@ impl DotClock {
 
     pub fn new() -> Self {
         Self {
-            wall_clock: WallClock::new(),
             timer: Timer::new(
                 std::time::Duration::from_nanos(Self::DOT_DURATION),
                 TimerMode::Repeating,
@@ -22,10 +20,8 @@ impl DotClock {
         }
     }
 
-    pub fn tick(&mut self) {
-        let elapsed = self.wall_clock.elapsed();
-        self.timer.tick(elapsed);
-        self.wall_clock.update();
+    pub fn tick(&mut self, delta: std::time::Duration) {
+        self.timer.tick(delta);
     }
 
     pub fn times_finished_this_tick(&self) -> u32 {

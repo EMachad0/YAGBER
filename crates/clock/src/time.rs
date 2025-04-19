@@ -1,6 +1,8 @@
 use std::time::Duration;
 
 pub trait TimeContext: Default + Copy + Clone {
+    fn delta(&self) -> Duration;
+    fn update(&mut self);
     fn elapsed(&self) -> Duration;
 }
 
@@ -30,7 +32,8 @@ impl<T: TimeContext> Time<T> {
     }
 
     pub fn advance(&mut self) {
-        let delta = self.context.elapsed();
+        let delta = self.context.delta();
+        self.context.update();
         self.advance_by(delta);
     }
 

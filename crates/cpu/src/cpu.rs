@@ -34,8 +34,12 @@ impl Cpu {
         }
     }
 
-    pub fn tick(&mut self, ram: &mut Ram) {
-        self.clock.tick();
+    pub fn tick(mut self, delta: std::time::Duration) -> Self {
+        self.clock.tick(delta);
+        self
+    }
+
+    pub fn run(&mut self, ram: &mut Ram) {
         debug!("CPU steps: {}", self.clock.times_finished_this_tick());
         for _ in 0..self.clock.times_finished_this_tick() {
             // Perform a step
@@ -52,7 +56,7 @@ impl Cpu {
         // Fetch the next instruction
         let instruction = self.read_next_instruction(ram);
 
-        // trace!("{:?}", instruction);
+        trace!("{:?}", instruction);
 
         // Execute the instruction
         self.execute_instruction(ram, &instruction);
