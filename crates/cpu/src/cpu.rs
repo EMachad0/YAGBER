@@ -1,5 +1,5 @@
 use crate::alu::{Alu8, Alu16};
-use crate::clock::CpuClock;
+use crate::cycle_clock::CpuClock;
 use crate::instruction::{ConditionCode, Instruction, InstructionType};
 use crate::interrupt::Ime;
 use crate::ram::Ram;
