@@ -2,12 +2,12 @@ use clock::{Timer, WallClock};
 
 /// CPU clock module
 /// Duration of 1 M-cycle
-pub struct CpuClock {
+pub struct CycleClock {
     wall_clock: WallClock,
     timer: Timer,
 }
 
-impl CpuClock {
+impl CycleClock {
     const CPU_FREQ_HZ: u64 = 4_194_304;
     const M_CYCLE_DURATION: u64 = (1_000_000_000 * 4) / Self::CPU_FREQ_HZ; // ≃ 953 ns
 
@@ -31,7 +31,7 @@ impl CpuClock {
     }
 }
 
-impl Default for CpuClock {
+impl Default for CycleClock {
     fn default() -> Self {
         Self::new()
     }

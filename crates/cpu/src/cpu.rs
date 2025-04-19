@@ -1,5 +1,5 @@
 use crate::alu::{Alu8, Alu16};
-use crate::cycle_clock::CpuClock;
+use crate::cycle_clock::CycleClock;
 use crate::instruction::{ConditionCode, Instruction, InstructionType};
 use crate::interrupt::Ime;
 use crate::ram::Ram;
@@ -12,7 +12,7 @@ pub struct Cpu {
     pub registers: Registers,
     pub ram: Ram,
     pub ime: Ime,
-    pub clock: CpuClock,
+    pub clock: CycleClock,
     pub busy: u16,
 }
 
@@ -30,7 +30,7 @@ impl Cpu {
             registers: Registers::default(),
             ram: Ram::default(),
             ime: Ime::default(),
-            clock: CpuClock::default(),
+            clock: CycleClock::default(),
             busy: Default::default(),
         };
         cpu.initialize_boot_rom();
