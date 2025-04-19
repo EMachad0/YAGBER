@@ -143,3 +143,53 @@ impl Timer {
         self
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_timer_non_repeating() {
+        let mut timer = Timer::new(Duration::from_secs(1), TimerMode::Once);
+        assert_eq!(timer.finished(), false);
+        assert_eq!(timer.just_finished(), false);
+
+        timer.tick(Duration::from_millis(500));
+        assert_eq!(timer.finished(), false);
+        assert_eq!(timer.just_finished(), false);
+
+        timer.tick(Duration::from_millis(600));
+        assert_eq!(timer.finished(), true);
+        assert_eq!(timer.just_finished(), true);
+
+        timer.reset();
+        assert_eq!(timer.finished(), false);
+    }
+
+    #[test]
+    fn test_timer_repeating() {
+        let mut timer = Timer::new(Duration::from_secs(1), TimerMode::Repeating);
+        assert_eq!(timer.finished(), false);
+        assert_eq!(timer.just_finished(), false);
+
+        timer.tick(Duration::from_millis(500));
+        assert_eq!(timer.finished(), false);
+        assert_eq!(timer.just_finished(), false);
+
+        timer.tick(Duration::from_millis(600));
+        assert_eq!(timer.finished(), true);
+        assert_eq!(timer.just_finished(), true);
+
+        timer.tick(Duration::from_millis(600));
+        assert_eq!(timer.finished(), true);
+        assert_eq!(timer.just_finished(), false);
+
+        timer.tick(Duration::from_millis(600));
+        assert_eq!(timer.finished(), true);
+        assert_eq!(timer.just_finished(), true);
+
+        timer.reset();
+        assert_eq!(timer.finished(), false);
+        assert_eq!(timer.just_finished(), false);
+    }
+}
