@@ -44,7 +44,7 @@ impl Mbc1 {
         };
 
         let secondary_bank = self.ram_bank_number.value() as usize;
-        let bank = bank & (secondary_bank << 5);
+        let bank = bank | (secondary_bank << 5);
         let bank = bank & mask;
 
         let offset = address as usize;
