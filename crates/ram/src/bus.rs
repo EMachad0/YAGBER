@@ -1,14 +1,13 @@
 use crate::{
-    InterruptType, io_registers::IORegisters, memory::Memory, ram::Ram, register::Register,
-    rom::Rom,
+    InterruptType, boot_rom::BootRom, cartridge::Cartridge, io_registers::IORegisters,
+    memory::Memory, ram::Ram, register::Register,
 };
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct Bus {
-    boot_rom: Rom,
-    rom: Rom,
+    boot_rom: BootRom,
+    cartridge: Cartridge,
     vram: Ram,
-    ext_ram: Ram,
     wram: Ram,
     oam: Ram,
     io_registers: IORegisters,
@@ -19,10 +18,9 @@ pub struct Bus {
 impl Bus {
     pub fn new() -> Self {
         Self {
-            boot_rom: Rom::boot_rom(),
-            rom: Rom::new(),
+            boot_rom: BootRom::new(),
+            cartridge: Cartridge::empty(),
             vram: Ram::new(0x2000, 0x8000),
-            ext_ram: Ram::new(0x2000, 0xA000),
             wram: Ram::new(0x2000, 0xC000),
             oam: Ram::new(0xA0, 0xFE00),
             io_registers: IORegisters::new(),
@@ -34,15 +32,11 @@ impl Bus {
     pub fn read(&self, address: u16) -> u8 {
         match address {
             // May be a boot ROM
-            0x0000..=0x00FF => self.read_rom(address),
-            // Cartridge Header
-            0x0100..=0x01FF => self.rom.read(address),
-            // May be a boot ROM
-            0x0200..=0x7FFF => self.read_rom(address),
+            0x0000..=0x7FFF => self.read_rom(address),
             // VRAM
             0x8000..=0x9FFF => self.vram.read(address),
             // External RAM
-            0xA000..=0xBFFF => self.ext_ram.read(address),
+            0xA000..=0xBFFF => self.cartridge.read(address),
             // WRAM
             0xC000..=0xDFFF => self.wram.read(address),
             // Echo RAM
@@ -63,11 +57,11 @@ impl Bus {
     pub fn write(&mut self, address: u16, value: u8) {
         match address {
             // ROM
-            0x0000..=0x7FFF => self.rom.write(address, value),
+            0x0000..=0x7FFF => self.write_rom(address, value),
             // VRAM
             0x8000..=0x9FFF => self.vram.write(address, value),
             // External RAM
-            0xA000..=0xBFFF => self.ext_ram.write(address, value),
+            0xA000..=0xBFFF => self.cartridge.write(address, value),
             // WRAM
             0xC000..=0xDFFF => self.wram.write(address, value),
             // Echo RAM
@@ -94,15 +88,19 @@ impl Bus {
     }
 
     pub fn load_rom(&mut self, data: &[u8]) {
-        self.rom.load(data);
+        self.cartridge = Cartridge::new(data);
     }
 
     pub fn read_rom(&self, address: u16) -> u8 {
-        if self.booting() {
-            self.boot_rom.read(address)
+        if self.booting() && !(0x0100..0x014F).contains(&address) {
+            self.boot_rom.read(address as usize)
         } else {
-            self.rom.read(address)
+            self.cartridge.read(address)
         }
+    }
+
+    pub fn write_rom(&mut self, address: u16, value: u8) {
+        self.cartridge.write(address, value);
     }
 }
 
