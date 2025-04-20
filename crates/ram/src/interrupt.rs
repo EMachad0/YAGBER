@@ -22,4 +22,12 @@ impl InterruptType {
     pub fn to_u8(self) -> u8 {
         self as u8
     }
+
+    pub fn if_address(self) -> u16 {
+        0xFF0F
+    }
+
+    pub fn ie_address(self) -> u16 {
+        0xFFFF
+    }
 }

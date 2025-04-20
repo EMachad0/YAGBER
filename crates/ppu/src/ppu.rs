@@ -1,4 +1,4 @@
-use yagber_ram::Ram;
+use yagber_ram::{Memory, Ram};
 
 use crate::{dot_clock::DotClock, mode::Mode, scan_line::ScanLine};
 

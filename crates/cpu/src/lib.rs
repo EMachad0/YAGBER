@@ -1,8 +1,8 @@
 mod alu;
 mod cpu;
 mod cycle_clock;
+mod ime;
 mod instruction;
-mod interrupt;
 mod registers;
 
 #[macro_use]

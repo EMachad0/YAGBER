@@ -18,8 +18,7 @@ impl Emulator {
     /// Load the ram with the cartridge
     pub fn with_cartridge(mut self, rom: &[u8]) -> Self {
         // copy rom header
-        let size = rom.len() as u16;
-        self.ram.copy_from_slice(0..size, rom);
+        self.ram.load_rom(rom);
         self
     }
 
