@@ -55,8 +55,11 @@ impl Cpu {
     pub fn step(&mut self, ram: &mut Ram) -> u16 {
         // Fetch the next instruction
         let instruction = self.read_next_instruction(ram);
-
         trace!("{:?}", instruction);
+
+        if self.pc == 0x0100 {
+            info!("Boot Rom Completed, Starting cartridge");
+        }
 
         // Execute the instruction
         self.execute_instruction(ram, &instruction);
@@ -409,7 +412,7 @@ impl Cpu {
             }
             // Block 0b01
             LdR8R8 => {
-                let (r8_src, r8_dst) = instruction.r8_pair().unwrap();
+                let (r8_dst, r8_src) = instruction.r8_pair().unwrap();
                 let r_val = self.read_r8(r8_src, ram);
                 self.write_r8(r8_dst, r_val, ram);
             }

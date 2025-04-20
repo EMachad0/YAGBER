@@ -147,6 +147,7 @@ impl Instruction {
     }
 
     /// LdR8R8 instructions use two 3-bit registers
+    /// returns the pair (dst, src)
     pub fn r8_pair(&self) -> Option<(u3, u3)> {
         use InstructionType::*;
         match self.instruction_type {
@@ -215,7 +216,7 @@ impl Instruction {
         use InstructionType::*;
         match self.instruction_type {
             // 0b11??_?111
-            RstTgt3 => Some(u3::from_u8(self.opcode & 0b111)),
+            RstTgt3 => Some(u3::from_u8((self.opcode >> 3) & 0b111)),
             _ => None,
         }
     }

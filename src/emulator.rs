@@ -1,14 +1,13 @@
-use yagber_clock::{Time, WallClock};
 use yagber_cpu::Cpu;
 use yagber_ppu::Ppu;
 use yagber_ram::Ram;
 
 #[derive(Debug, Default)]
 pub struct Emulator {
+    cycles: u64,
     cpu: Cpu,
     ppu: Ppu,
     ram: Ram,
-    time: Time<WallClock>,
 }
 
 impl Emulator {
@@ -43,9 +42,12 @@ impl Emulator {
     }
 
     fn step(&mut self) {
-        self.time.advance();
-        self.cpu.tick(self.time.delta()).run(&mut self.ram);
-        self.ppu.tick(self.time.delta()).run(&mut self.ram);
+        let ram = &mut self.ram;
+        if self.cycles % 4 == 0 {
+            self.cpu.step(ram);
+        }
+        self.ppu.step(ram);
+        self.cycles += 1;
     }
 
     pub fn run(&mut self) {
@@ -54,8 +56,8 @@ impl Emulator {
         }
     }
 
-    pub fn run_for(&mut self, cycles: u32) {
-        for _ in 0..cycles {
+    pub fn run_for(&mut self, cycles: u64) {
+        while self.cycles < cycles {
             self.step();
         }
     }

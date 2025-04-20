@@ -38,7 +38,7 @@ impl Ppu {
         self.scan_line.step(ram);
         if self.scan_line.finished() {
             let scan_line_index = Self::scan_line_index(ram);
-            if scan_line_index >= 154 {
+            if scan_line_index >= 153 {
                 Self::set_scan_line_index(ram, 0);
             } else {
                 Self::set_scan_line_index(ram, scan_line_index + 1);
