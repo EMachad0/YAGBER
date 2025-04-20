@@ -46,7 +46,7 @@ impl Bus {
             // WRAM
             0xC000..=0xDFFF => self.wram.read(address),
             // Echo RAM
-            0xE000..=0xFDFF => self.wram.read(address),
+            0xE000..=0xFDFF => self.wram.read(address - 0x2000),
             // OAM
             0xFE00..=0xFE9F => self.oam.read(address),
             // Unusable

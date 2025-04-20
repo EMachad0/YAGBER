@@ -26,8 +26,7 @@ impl IORegisters {
     }
 
     pub fn request_interrupt(&mut self, interrupt: InterruptType) {
-        let address = interrupt.if_address() - IO_REGISTERS_OFFSET;
-        self.set_bit(address, interrupt.to_u8());
+        self.set_bit(interrupt.if_address(), interrupt.to_u8());
     }
 }
 

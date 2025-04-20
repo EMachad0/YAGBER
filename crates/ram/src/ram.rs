@@ -13,12 +13,11 @@ impl Ram {
     }
 
     pub fn read(&self, address: u16) -> u8 {
-        if cfg!(feature = "break_on_unitialized_ram_read") && self.data[address as usize].is_none()
-        {
+        let uaddress = address.wrapping_sub(self.offset) as usize;
+        if cfg!(feature = "break_on_unitialized_ram_read") && self.data[uaddress].is_none() {
             panic!("Uninitialized RAM read at address: {:#X}", address);
         }
-        let address = address.wrapping_sub(self.offset) as usize;
-        self.data[address].unwrap_or(0xFF)
+        self.data[uaddress].unwrap_or(0xFF)
     }
 
     pub fn write(&mut self, address: u16, value: u8) {
