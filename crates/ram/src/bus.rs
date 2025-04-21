@@ -92,11 +92,14 @@ impl Bus {
     }
 
     pub fn read_rom(&self, address: u16) -> u8 {
-        if self.booting() && !(0x0100..0x014F).contains(&address) {
-            self.boot_rom.read(address as usize)
-        } else {
-            self.cartridge.read(address)
+        if self.booting() {
+            // On the game boy color, the boot ROM is split into two parts:
+            // 0x0000..=0x00FF and 0x0200..=0x08FF
+            if let 0x0000..=0x00FF | 0x0200..=0x08FF = address {
+                return self.boot_rom.read(address as usize);
+            }
         }
+        self.cartridge.read(address)
     }
 
     pub fn write_rom(&mut self, address: u16, value: u8) {

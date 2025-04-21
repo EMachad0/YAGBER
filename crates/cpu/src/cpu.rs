@@ -349,7 +349,6 @@ impl Cpu {
                     }
                     if self.registers.flags().c() {
                         adj += 0x60;
-                        self.registers.flags_mut().set_c(false);
                     }
                     let a = self.registers.a();
                     Alu8::sub(a, adj)
@@ -393,7 +392,7 @@ impl Cpu {
             }
             JrImm8 => {
                 let imm8 = instruction.imm8().unwrap();
-                let signed_imm = imm8 as i16;
+                let signed_imm = (imm8 as i8) as i16;
                 self.pc = self.pc.wrapping_add_signed(signed_imm);
                 debug!("Jumping to {:#06X}", self.pc);
             }
@@ -402,7 +401,7 @@ impl Cpu {
                 let cc = instruction.cond().unwrap();
                 if self.check_condition(cc) {
                     // sign‐extend 8→16 and add to PC
-                    let offset = imm8 as i8 as i16;
+                    let offset = (imm8 as i8) as i16;
                     self.pc = self.pc.wrapping_add_signed(offset);
                     debug!("Jumping to {:#06X}", self.pc);
                 }
@@ -732,10 +731,10 @@ impl Cpu {
                 self.sp = hl;
             }
             Di => {
-                self.ime.set_ime();
+                self.ime.reset_ime();
             }
             Ei => {
-                self.ime.reset_ime();
+                self.ime.set_ime();
             }
             // CB Prefix instructions
             RlcR8 => {

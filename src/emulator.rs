@@ -26,6 +26,7 @@ impl Emulator {
         let ram = &mut self.ram;
         if self.cycles % 4 == 0 {
             self.cpu.step(ram);
+            check_serial_output(ram);
         }
         self.ppu.step(ram);
         self.cycles += 1;
@@ -41,5 +42,15 @@ impl Emulator {
         while self.cycles < cycles {
             self.step();
         }
+    }
+}
+
+pub fn check_serial_output(ram: &mut Ram) {
+    let serial_output = ram.read(0xFF01);
+    let serial_control = ram.read(0xFF02);
+    if serial_control & 0x81 != 0 {
+        tracing::info!("Serial output: {}", serial_output as char);
+        ram.write(0xFF02, serial_control & !0x81);
+        ram.request_interrupt(yagber_ram::InterruptType::Serial);
     }
 }

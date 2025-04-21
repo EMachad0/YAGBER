@@ -11,6 +11,7 @@ members = [
 
 [dependencies]
 tracing-subscriber = { workspace = true, features = ["env-filter"] }
+tracing = { workspace = true }
 dotenv = { workspace = true }
 yagber_ram = { path = "crates/ram" }
 yagber_cpu = { path = "crates/cpu" }

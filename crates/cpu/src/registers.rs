@@ -119,7 +119,7 @@ impl Registers {
     pub fn set_af(&mut self, value: u16) {
         let [f, a] = value.to_le_bytes();
         self.a = a;
-        self.f = f;
+        self.f = f & 0xF0;
     }
 
     pub fn set_bc(&mut self, value: u16) {
