@@ -112,5 +112,5 @@ Cargo.lock
 
 # Roms
 roms/
-test_roms/
+/test_roms/
 
