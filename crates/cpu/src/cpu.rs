@@ -1,5 +1,4 @@
 use crate::alu::{Alu8, Alu16};
-use crate::cycle_clock::CycleClock;
 use crate::ime::Ime;
 use crate::instruction::{ConditionCode, Instruction, InstructionType};
 use crate::registers::Registers;
@@ -12,7 +11,6 @@ pub struct Cpu {
     sp: u16,
     registers: Registers,
     ime: Ime,
-    clock: CycleClock,
     busy: u16,
 }
 
@@ -29,30 +27,24 @@ impl Cpu {
             sp: 0x0000,
             registers: Registers::default(),
             ime: Ime::default(),
-            clock: CycleClock::default(),
             busy: Default::default(),
         }
     }
 
-    pub fn tick(mut self, delta: std::time::Duration) -> Self {
-        self.clock.tick(delta);
-        self
-    }
-
-    pub fn run(&mut self, ram: &mut Ram) {
-        debug!("CPU steps: {}", self.clock.times_finished_this_tick());
-        for _ in 0..self.clock.times_finished_this_tick() {
-            // Perform a step
-            self.busy = match self.busy {
-                0 => self.step(ram) - 1,
-                _ => self.busy - 1,
-            }
+    /// Perform a single CPU step
+    /// Respects instruction timing
+    /// Represents a single M-cycle
+    pub fn step(&mut self, ram: &mut Ram) {
+        // Perform a step
+        self.busy = match self.busy {
+            0 => self.step_inner(ram) - 1,
+            _ => self.busy - 1,
         }
     }
 
     /// Perform a single CPU step
     /// returns the number of M-cycles taken by the instruction
-    pub fn step(&mut self, ram: &mut Ram) -> u16 {
+    fn step_inner(&mut self, ram: &mut Ram) -> u16 {
         // Fetch the next instruction
         let instruction = self.read_next_instruction(ram);
         trace!("{:?}", instruction);

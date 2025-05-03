@@ -1,11 +1,10 @@
 use yagber_ram::{Memory, Ram};
 
-use crate::{dot_clock::DotClock, mode::Mode, scan_line::ScanLine};
+use crate::{mode::Mode, scan_line::ScanLine};
 
 #[derive(Debug, Default, Clone, Copy)]
 pub struct Ppu {
     scan_line: ScanLine,
-    clock: DotClock,
 }
 
 impl Ppu {
@@ -15,23 +14,6 @@ impl Ppu {
 
     pub fn new() -> Self {
         Self::default()
-    }
-
-    pub fn tick(mut self, delta: std::time::Duration) -> Self {
-        self.clock.tick(delta);
-        self
-    }
-
-    pub fn run(&mut self, ram: &mut Ram) {
-        if !Self::enabled(ram) {
-            return;
-        }
-
-        debug!("PPU steps: {}", self.clock.times_finished_this_tick());
-
-        for _ in 0..self.clock.times_finished_this_tick() {
-            self.step(ram);
-        }
     }
 
     pub fn step(&mut self, ram: &mut Ram) {
