@@ -24,7 +24,7 @@ impl Emulator {
         self
     }
 
-    fn step(&mut self) {
+    pub fn step(&mut self) {
         let ram = &mut self.ram;
 
         if self.cycles % 4 == 0 {
@@ -65,5 +65,9 @@ impl Emulator {
 
     pub fn get_serial_output_buffer(&self) -> Option<&[u8]> {
         self.link_cable.get_buffer()
+    }
+
+    pub fn get_cycles(&self) -> u64 {
+        self.cycles
     }
 }

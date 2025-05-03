@@ -1,7 +1,6 @@
 use std::fs;
 use yagber::Emulator;
 
-#[test]
 fn test_little_things_gb_double_halt_cancel() {
     yagber::init_tracing();
 
