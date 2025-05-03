@@ -1,7 +1,7 @@
 mod alu;
 mod cpu;
 mod ime;
-mod instruction;
+mod instructions;
 mod registers;
 
 #[macro_use]
