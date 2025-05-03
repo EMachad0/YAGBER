@@ -2,6 +2,7 @@
 /// Contains the result of the operation and flags indicating
 /// if there was a carry from the 3rd and 7th bits.
 /// Or, for subtraction, if there was a borrow from the 4th and 8th bits.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Alu8Result {
     /// The result of the operation.
     /// Accessed by derefing the struct.
@@ -56,18 +57,18 @@ impl Alu8 {
     /// a - b
     pub fn sub(a: u8, b: u8) -> Alu8Result {
         let diff = a.wrapping_sub(b);
-        let carry_3 = (a & 0x0F) < (b & 0x0F);
-        let carry_7 = a < b;
-        Alu8Result::new(diff, carry_3, carry_7)
+        let borrow_3 = (a & 0x0F) < (b & 0x0F);
+        let borrow_7 = a < b;
+        Alu8Result::new(diff, borrow_3, borrow_7)
     }
 
     /// Subtracts two 8-bit numbers with borrow and returns the result.
     /// a - (b + borrow)
     pub fn sbc(a: u8, b: u8, borrow: u8) -> Alu8Result {
         let res = a.wrapping_sub(b).wrapping_sub(borrow);
-        let carry_3 = (a & 0x0F) < (b & 0x0F) + borrow;
-        let carry_7 = a < b + borrow;
-        Alu8Result::new(res, carry_3, carry_7)
+        let borrow_3 = (a & 0x0F) < (b & 0x0F) + borrow;
+        let borrow_7 = a < b + borrow;
+        Alu8Result::new(res, borrow_3, borrow_7)
     }
 
     /// Increments an 8-bit number and returns the result.

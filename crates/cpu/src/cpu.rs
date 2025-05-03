@@ -342,33 +342,36 @@ impl Cpu {
                     .set_c(result.cb7);
             }
             Daa => {
-                let result = if self.registers.flags().n() {
+                let a = self.registers.a();
+                let flags = self.registers.flags();
+                let mut carry = false;
+                let result = if !flags.n() {
                     let mut adj = 0;
-                    if self.registers.flags().h() {
+                    if flags.c() || a > 0x99 {
+                        adj += 0x60;
+                        carry = true;
+                    }
+                    if flags.h() || (a & 0x0F) > 0x09 {
                         adj += 0x06;
                     }
-                    if self.registers.flags().c() {
-                        adj += 0x60;
-                    }
-                    let a = self.registers.a();
-                    Alu8::sub(a, adj)
+                    Alu8::add(a, adj)
                 } else {
                     let mut adj = 0;
-                    if self.registers.flags().h() || (self.registers.a() & 0x0F) > 0x09 {
+                    if flags.c() {
+                        adj += 0x60;
+                        carry = true;
+                    }
+                    if flags.h() {
                         adj += 0x06;
                     }
-                    if self.registers.flags().c() || self.registers.a() > 0x99 {
-                        adj += 0x60;
-                        self.registers.flags_mut().set_c(true);
-                    }
-                    let a = self.registers.a();
-                    Alu8::add(a, adj)
+                    Alu8::sub(a, adj)
                 };
                 self.registers.set_a(*result);
                 self.registers
                     .flags_mut()
                     .set_z_if_zero(*result)
-                    .set_h(false);
+                    .set_h(false)
+                    .set_c(carry);
             }
             Cpl => {
                 let a = self.registers.a();
@@ -726,6 +729,18 @@ impl Cpu {
                     .set_h(result.cb11)
                     .set_c(result.cb15);
             }
+            LdHlSpImm8 => {
+                let imm8 = instruction.imm8().unwrap() as i8;
+                let sp = self.sp;
+                let result = Alu16::add(sp, imm8 as u16);
+                self.registers.set_hl(*result);
+                self.registers
+                    .flags_mut()
+                    .set_z(false)
+                    .set_n(false)
+                    .set_h(result.cb11)
+                    .set_c(result.cb15);
+            }
             LdSpHl => {
                 let hl = self.registers.hl();
                 self.sp = hl;
@@ -868,7 +883,6 @@ impl Cpu {
                 let result = r_val | (1 << bit.value());
                 self.write_r8(r8, result, ram);
             }
-            _ => unreachable!(),
         }
     }
 }

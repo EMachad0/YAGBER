@@ -1,3 +1,5 @@
+use std::fmt::Debug;
+
 #[derive(Debug, Clone, Copy)]
 pub struct Registers {
     a: u8,
@@ -26,6 +28,11 @@ impl Registers {
 
     pub fn a(&self) -> u8 {
         self.a
+    }
+
+    #[allow(dead_code)]
+    pub fn f(&self) -> u8 {
+        self.f
     }
 
     pub fn b(&self) -> u8 {
@@ -148,7 +155,6 @@ impl Default for Registers {
 }
 
 /// A “view” onto a single byte.
-#[derive(Debug)]
 pub struct FlagRegister {
     reg: u8,
 }
@@ -176,6 +182,17 @@ impl FlagRegister {
 
     pub fn c_u8(&self) -> u8 {
         self.reg & 0b0001_0000
+    }
+}
+
+impl Debug for FlagRegister {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("FlagRegister")
+            .field("z", &self.z())
+            .field("n", &self.n())
+            .field("h", &self.h())
+            .field("c", &self.c())
+            .finish()
     }
 }
 

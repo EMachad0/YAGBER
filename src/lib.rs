@@ -9,8 +9,8 @@ pub use yagber_ram as ram;
 
 pub fn init_tracing() {
     dotenv::dotenv().ok();
-    tracing_subscriber::fmt()
+    let _ = tracing_subscriber::fmt()
         .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
         .event_format(tracing_subscriber::fmt::format().compact())
-        .init();
+        .try_init();
 }

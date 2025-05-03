@@ -1,4 +1,5 @@
 use yagber_cpu::Cpu;
+use yagber_link_cable::LinkCable;
 use yagber_ppu::Ppu;
 use yagber_ram::Ram;
 
@@ -8,6 +9,7 @@ pub struct Emulator {
     cpu: Cpu,
     ppu: Ppu,
     ram: Ram,
+    link_cable: LinkCable,
 }
 
 impl Emulator {
@@ -24,11 +26,13 @@ impl Emulator {
 
     fn step(&mut self) {
         let ram = &mut self.ram;
+
         if self.cycles % 4 == 0 {
             self.cpu.step(ram);
-            check_serial_output(ram);
         }
         self.ppu.step(ram);
+        self.link_cable.step(ram);
+
         self.cycles += 1;
     }
 
@@ -43,14 +47,23 @@ impl Emulator {
             self.step();
         }
     }
-}
 
-pub fn check_serial_output(ram: &mut Ram) {
-    let serial_output = ram.read(0xFF01);
-    let serial_control = ram.read(0xFF02);
-    if serial_control & 0x81 != 0 {
-        tracing::info!("Serial output: {}", serial_output as char);
-        ram.write(0xFF02, serial_control & !0x81);
-        ram.request_interrupt(yagber_ram::InterruptType::Serial);
+    pub fn with_serial_output_file(mut self, path: &str) -> Self {
+        self.link_cable.to_file(path);
+        self
+    }
+
+    pub fn with_serial_output_buffer(mut self) -> Self {
+        self.link_cable.to_buffer();
+        self
+    }
+
+    pub fn with_serial_output_stdout(mut self) -> Self {
+        self.link_cable.to_stdout();
+        self
+    }
+
+    pub fn get_serial_output_buffer(&self) -> Option<&[u8]> {
+        self.link_cable.get_buffer()
     }
 }

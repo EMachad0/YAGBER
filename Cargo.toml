@@ -17,6 +17,7 @@ yagber_ram = { path = "crates/ram" }
 yagber_cpu = { path = "crates/cpu" }
 yagber_ppu = { path = "crates/ppu" }
 yagber_clock = { path = "crates/clock" }
+yagber_link_cable = { path = "crates/link_cable" }
 
 [workspace.dependencies]
 anyhow = { version = "1.0.98" }
@@ -28,3 +29,4 @@ yagber_cpu = { path = "crates/cpu" }
 yagber_clock = { path = "crates/clock" }
 yagber_ppu = { path = "crates/ppu" }
 yagber_ram = { path = "crates/ram" }
+yagber_link_cable = { path = "crates/link_cable" }
