@@ -50,7 +50,7 @@ impl Cpu {
         trace!("{:?}", instruction);
 
         if self.pc == 0x0100 {
-            info!("Boot Rom Completed, Starting cartridge");
+            trace!("Boot Rom Completed, Starting cartridge");
         }
 
         // Execute the instruction
@@ -364,6 +364,7 @@ impl Cpu {
                     .set_z_if_zero(*result)
                     .set_h(false)
                     .set_c(carry);
+                // debug!("{:?} {:?} -> {:?} {:?}", a, flags, *result, self.registers.flags());
             }
             Cpl => {
                 let a = self.registers.a();
@@ -389,7 +390,7 @@ impl Cpu {
                 let imm8 = instruction.imm8().unwrap();
                 let signed_imm = (imm8 as i8) as i16;
                 self.pc = self.pc.wrapping_add_signed(signed_imm);
-                debug!("Jumping to {:#06X}", self.pc);
+                trace!("Jumping to {:#06X}", self.pc);
             }
             JrCondImm8 => {
                 let imm8 = instruction.imm8().unwrap();
@@ -398,7 +399,7 @@ impl Cpu {
                     // sign‐extend 8→16 and add to PC
                     let offset = (imm8 as i8) as i16;
                     self.pc = self.pc.wrapping_add_signed(offset);
-                    debug!("Jumping to {:#06X}", self.pc);
+                    trace!("Jumping to {:#06X}", self.pc);
                 }
             }
             Stop => {
@@ -629,39 +630,39 @@ impl Cpu {
                 let imm16 = instruction.imm16().unwrap();
                 if self.check_condition(instruction.cond().unwrap()) {
                     self.pc = imm16;
-                    debug!("Jumping to {:#06X}", imm16);
+                    trace!("Jumping to {:#06X}", imm16);
                 }
             }
             JpImm16 => {
                 let imm16 = instruction.imm16().unwrap();
                 self.pc = imm16;
-                debug!("Jumping to {:#06X}", imm16);
+                trace!("Jumping to {:#06X}", imm16);
             }
             JpHl => {
                 let hl = self.registers.hl();
                 self.pc = hl;
-                debug!("Jumping to HL: {:#06X}", hl);
+                trace!("Jumping to HL: {:#06X}", hl);
             }
             CallCondImm16 => {
                 let imm16 = instruction.imm16().unwrap();
                 if self.check_condition(instruction.cond().unwrap()) {
                     self.stack_push(ram, self.pc);
                     self.pc = imm16;
-                    debug!("Calling to {:#06X}", imm16);
+                    trace!("Calling to {:#06X}", imm16);
                 }
             }
             CallImm16 => {
                 let imm16 = instruction.imm16().unwrap();
                 self.stack_push(ram, self.pc);
                 self.pc = imm16;
-                debug!("Calling to {:#06X}", imm16);
+                trace!("Calling to {:#06X}", imm16);
             }
             RstTgt3 => {
                 let tgt = instruction.tgt3().unwrap();
                 let addr = (tgt.value() as u16) << 3;
                 self.stack_push(ram, self.pc);
                 self.pc = addr;
-                debug!("Resetting to target {:#06X}", addr);
+                trace!("Resetting to target {:#06X}", addr);
             }
             PopR16stk => {
                 let r16 = instruction.r16().unwrap();

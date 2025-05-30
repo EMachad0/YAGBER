@@ -154,7 +154,7 @@ impl Default for Registers {
     }
 }
 
-/// A “view” onto a single byte.
+/// A "view" onto a single byte.
 pub struct FlagRegister {
     reg: u8,
 }
@@ -181,7 +181,7 @@ impl FlagRegister {
     }
 
     pub fn c_u8(&self) -> u8 {
-        self.reg & 0b0001_0000
+        (self.reg & 0b0001_0000) >> 4
     }
 }
 
