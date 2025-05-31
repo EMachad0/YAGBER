@@ -1,6 +1,8 @@
 use std::fs;
 use yagber::Emulator;
 
+// This test is not run currently because it requires a screen
+#[allow(dead_code)]
 fn test_little_things_gb_double_halt_cancel() {
     yagber::init_tracing();
 

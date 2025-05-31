@@ -1,4 +1,5 @@
 mod cpu_instrs;
+mod halt_bug;
 
 use crate::utils::{MAX_CYCLES, TestResult};
 
