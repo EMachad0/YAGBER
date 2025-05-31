@@ -1,9 +1,9 @@
 use std::fs;
 use yagber::Emulator;
 
-use crate::gb_test_roms::run_emulator;
+use crate::blargg::run_emulator;
 
-const ROM_PATH: &str = "test_roms/gb-test-roms/halt_bug.gb";
+const ROM_PATH: &str = "test_roms/blargg/halt_bug.gb";
 
 // This test is not run currently because it does not have source code
 #[allow(dead_code)]

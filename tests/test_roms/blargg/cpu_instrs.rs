@@ -1,10 +1,10 @@
 use std::{fs, path::PathBuf};
 use yagber::Emulator;
 
-use crate::gb_test_roms::run_emulator;
+use crate::blargg::run_emulator;
 
-const ROM_PATH: &str = "test_roms/gb-test-roms/cpu_instrs/cpu_instrs.gb";
-const INDV_ROM_PATH: &str = "test_roms/gb-test-roms/cpu_instrs/individual/";
+const ROM_PATH: &str = "test_roms/blargg/cpu_instrs/cpu_instrs.gb";
+const INDV_ROM_PATH: &str = "test_roms/blargg/cpu_instrs/individual/";
 
 #[test]
 fn test_blargg_cpu_instrs() {
