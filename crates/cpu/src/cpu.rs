@@ -35,18 +35,34 @@ impl Cpu {
     /// Respects instruction timing
     /// Represents a single M-cycle
     pub fn step(&mut self, ram: &mut Ram) {
-        // Perform a step
-        self.busy = match self.busy {
-            0 => self.step_inner(ram) - 1,
-            _ => self.busy - 1,
+        // If the CPU is busy, decrement the busy counter
+        if self.busy > 0 {
+            self.busy -= 1;
+            return;
         }
+
+        // Check for interrupts
+        self.check_interrupt(ram);
+        if self.busy != 0 {
+            return;
+        }
+
+        // Handle interrupts
+        if self.ime.interrupt_handling() {
+            self.handle_interrupt(ram);
+            self.ime.reset_interrupt_handling();
+            return;
+        }
+
+        // Perform a step
+        self.instruction_step(ram);
     }
 
     /// Perform a single CPU step
     /// returns the number of M-cycles taken by the instruction
-    fn step_inner(&mut self, ram: &mut Ram) -> u16 {
+    fn instruction_step(&mut self, ram: &mut Ram) {
         // Fetch the next instruction
-        let instruction = self.read_next_instruction(ram);
+        let instruction = self.read_instruction(ram);
         trace!("{:?}", instruction);
 
         if self.pc == 0x0100 {
@@ -56,11 +72,14 @@ impl Cpu {
         // Execute the instruction
         self.execute_instruction(ram, &instruction);
 
-        // return the number of M-cycles taken by the instruction
-        instruction.cycles()
+        // Update the IME
+        self.ime.update_ime();
+
+        // number of M-cycles taken by the instruction
+        self.busy = instruction.cycles() - 1;
     }
 
-    pub fn read_next_instruction(&mut self, ram: &mut Ram) -> Instruction {
+    fn read_instruction(&mut self, ram: &mut Ram) -> Instruction {
         // Fetch the next instruction
         let opcode = self.read_next_byte(ram);
 
@@ -90,13 +109,13 @@ impl Cpu {
         instruction
     }
 
-    pub fn read_next_byte(&mut self, ram: &mut Ram) -> u8 {
+    fn read_next_byte(&mut self, ram: &mut Ram) -> u8 {
         let byte = ram.read(self.pc);
         self.pc += 1;
         byte
     }
 
-    pub fn read_r8(&self, r8: u3, ram: &mut Ram) -> u8 {
+    fn read_r8(&self, r8: u3, ram: &mut Ram) -> u8 {
         match r8.value() {
             0 => self.registers.b(),
             1 => self.registers.c(),
@@ -110,7 +129,7 @@ impl Cpu {
         }
     }
 
-    pub fn write_r8(&mut self, r8: u3, value: u8, ram: &mut Ram) {
+    fn write_r8(&mut self, r8: u3, value: u8, ram: &mut Ram) {
         match r8.value() {
             0 => self.registers.set_b(value),
             1 => self.registers.set_c(value),
@@ -124,7 +143,7 @@ impl Cpu {
         }
     }
 
-    pub fn read_r16(&self, r16: u2) -> u16 {
+    fn read_r16(&self, r16: u2) -> u16 {
         match r16.value() {
             0 => self.registers.bc(),
             1 => self.registers.de(),
@@ -134,7 +153,7 @@ impl Cpu {
         }
     }
 
-    pub fn write_r16(&mut self, r16: u2, value: u16) {
+    fn write_r16(&mut self, r16: u2, value: u16) {
         match r16.value() {
             0 => self.registers.set_bc(value),
             1 => self.registers.set_de(value),
@@ -144,7 +163,7 @@ impl Cpu {
         }
     }
 
-    pub fn read_r16stk(&self, r16: u2) -> u16 {
+    fn read_r16stk(&self, r16: u2) -> u16 {
         match r16.value() {
             0 => self.registers.bc(),
             1 => self.registers.de(),
@@ -154,7 +173,7 @@ impl Cpu {
         }
     }
 
-    pub fn write_r16stk(&mut self, r16: u2, value: u16) {
+    fn write_r16stk(&mut self, r16: u2, value: u16) {
         match r16.value() {
             0 => self.registers.set_bc(value),
             1 => self.registers.set_de(value),
@@ -164,7 +183,7 @@ impl Cpu {
         }
     }
 
-    pub fn read_r16mem(&mut self, r16: u2) -> u16 {
+    fn read_r16mem(&mut self, r16: u2) -> u16 {
         match r16.value() {
             0 => self.registers.bc(),
             1 => self.registers.de(),
@@ -174,7 +193,7 @@ impl Cpu {
         }
     }
 
-    pub fn check_condition(&self, condition: ConditionCode) -> bool {
+    fn check_condition(&self, condition: ConditionCode) -> bool {
         match condition.value() {
             0 => !self.registers.flags().z(), // NZ
             1 => self.registers.flags().z(),  // Z
@@ -184,7 +203,7 @@ impl Cpu {
         }
     }
 
-    pub fn stack_push(&mut self, ram: &mut Ram, value: u16) {
+    fn stack_push(&mut self, ram: &mut Ram, value: u16) {
         self.sp = self.sp.wrapping_sub(2);
         // Game Boy stack must stay in WRAM/echo region (0xC000–0xFDFF)
         if self.sp < 0xC000 {
@@ -196,7 +215,7 @@ impl Cpu {
         ram.write_u16(self.sp, value);
     }
 
-    pub fn stack_pop(&mut self, ram: &mut Ram) -> u16 {
+    fn stack_pop(&mut self, ram: &mut Ram) -> u16 {
         // optionally guard underflow on pop
         if self.sp > 0xFFFE {
             panic!("Stack underflow! SP is already at {:#06X}", self.sp);
@@ -206,7 +225,38 @@ impl Cpu {
         value
     }
 
-    pub fn execute_instruction(&mut self, ram: &mut Ram, instruction: &Instruction) {
+    fn call(&mut self, ram: &mut Ram, address: u16) {
+        trace!("Calling to {:#06X}", address);
+        self.stack_push(ram, self.pc);
+        self.pc = address;
+    }
+
+    fn check_interrupt(&mut self, ram: &mut Ram) {
+        if !self.ime.ime() {
+            return;
+        }
+
+        let ei = ram.read(0xFFFF);
+        let fi = ram.read(0xFF0F);
+        if ei & fi != 0 {
+            self.busy = 2; // 2 M-Cycles of NOP
+            self.ime.set_interrupt_handling();
+        }
+    }
+
+    fn handle_interrupt(&mut self, ram: &mut Ram) {
+        let interrupt = ram.get_priority_interrupt();
+        if let Some(interrupt) = interrupt {
+            trace!("Handling interrupt: {:?}", interrupt);
+            ram.clear_interrupt(interrupt);
+            self.call(ram, interrupt.address());
+            self.busy = 2; // 2 more M-Cycles of NOP
+        } else {
+            warn!("Requested interrupt handling but no interrupt is pending");
+        }
+    }
+
+    fn execute_instruction(&mut self, ram: &mut Ram, instruction: &Instruction) {
         // Execute the instruction
         use InstructionType::*;
         match instruction.instruction_type() {
@@ -364,7 +414,6 @@ impl Cpu {
                     .set_z_if_zero(*result)
                     .set_h(false)
                     .set_c(carry);
-                // debug!("{:?} {:?} -> {:?} {:?}", a, flags, *result, self.registers.flags());
             }
             Cpl => {
                 let a = self.registers.a();
@@ -646,16 +695,12 @@ impl Cpu {
             CallCondImm16 => {
                 let imm16 = instruction.imm16().unwrap();
                 if self.check_condition(instruction.cond().unwrap()) {
-                    self.stack_push(ram, self.pc);
-                    self.pc = imm16;
-                    trace!("Calling to {:#06X}", imm16);
+                    self.call(ram, imm16);
                 }
             }
             CallImm16 => {
                 let imm16 = instruction.imm16().unwrap();
-                self.stack_push(ram, self.pc);
-                self.pc = imm16;
-                trace!("Calling to {:#06X}", imm16);
+                self.call(ram, imm16);
             }
             RstTgt3 => {
                 let tgt = instruction.tgt3().unwrap();
@@ -674,7 +719,7 @@ impl Cpu {
                 let value = self.read_r16stk(r16);
                 self.stack_push(ram, value);
             }
-            Prefix => info!("Prefix instruction encountered"),
+            Prefix => trace!("Prefix instruction encountered"),
             LdhCA => {
                 let a = self.registers.a();
                 let c = self.registers.c() as u16;
@@ -726,6 +771,7 @@ impl Cpu {
                 let imm8 = instruction.imm8().unwrap() as i8;
                 let sp = self.sp;
                 let result = Alu16::add(sp, imm8 as u16);
+                debug!("LD HL, {} + {} -> {:?}", sp, imm8, *result);
                 self.registers.set_hl(*result);
                 self.registers
                     .flags_mut()

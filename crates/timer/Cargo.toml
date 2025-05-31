@@ -1,0 +1,9 @@
+[package]
+name = "yagber_timer"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+arbitrary-int = { workspace = true }
+tracing = { workspace = true }
+yagber_ram = { workspace = true }

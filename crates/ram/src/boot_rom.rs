@@ -1,5 +1,11 @@
 use crate::memory::Memory;
 
+// ../../ is "go up from crates/ram to the workspace root"
+const CGB_BOOT_ROM: &[u8] = include_bytes!(concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/../../resources/cgb_boot.bin"
+));
+
 #[derive(Debug, Clone)]
 pub struct BootRom {
     data: Box<[Option<u8>]>,
@@ -7,17 +13,13 @@ pub struct BootRom {
 
 impl BootRom {
     pub fn new() -> Self {
-        let path = "resources/cgb_boot.bin";
-        let data =
-            std::fs::read(path).unwrap_or_else(|_| panic!("Failed to read boot ROM from {}", path));
-
         // CGB boot ROM is split into two parts
         // 0x0000–0x00FF: CGB boot ROM
         // 0x0100–0x08FF: CGB boot ROM (bank 0)
         // The cartridge Header is at 0x0100–0x014F (which is in the middle of the boot ROM)
         // On this boot room, the cartridge header starts as zeroes
 
-        Self::from_bytes(&data)
+        Self::from_bytes(CGB_BOOT_ROM)
     }
 
     pub fn from_bytes(data: &[u8]) -> Self {

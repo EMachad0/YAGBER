@@ -2,6 +2,7 @@ use yagber_cpu::Cpu;
 use yagber_link_cable::LinkCable;
 use yagber_ppu::Ppu;
 use yagber_ram::Ram;
+use yagber_timer::Timer;
 
 #[derive(Debug, Default)]
 pub struct Emulator {
@@ -10,6 +11,7 @@ pub struct Emulator {
     ppu: Ppu,
     ram: Ram,
     link_cable: LinkCable,
+    timer: Timer,
 }
 
 impl Emulator {
@@ -25,13 +27,21 @@ impl Emulator {
     }
 
     pub fn step(&mut self) {
+        let is_m_cycle = self.is_m_cycle();
         let ram = &mut self.ram;
 
-        if self.cycles % 4 == 0 {
+        if is_m_cycle {
             self.cpu.step(ram);
         }
+        // PPU runs every T-Cycle or dot
         self.ppu.step(ram);
+
         self.link_cable.step(ram);
+
+        if is_m_cycle {
+            // Timer must be ticked after executing the instruction
+            self.timer.tick(ram);
+        }
 
         self.cycles += 1;
     }
@@ -69,5 +79,9 @@ impl Emulator {
 
     pub fn get_cycles(&self) -> u64 {
         self.cycles
+    }
+
+    fn is_m_cycle(&self) -> bool {
+        self.cycles % 4 == 0
     }
 }

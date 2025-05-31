@@ -36,4 +36,10 @@ pub trait Memory {
         let new_value = value | (1 << bit);
         self.write(address, new_value);
     }
+
+    fn clear_bit(&mut self, address: u16, bit: u8) {
+        let value = self.read(address);
+        let new_value = value & !(1 << bit);
+        self.write(address, new_value);
+    }
 }

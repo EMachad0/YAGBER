@@ -5,7 +5,7 @@ edition = "2024"
 
 [workspace]
 members = [
-    # oficial components of this emulator
+    # Official components of this emulator
     "crates/*",
 ]
 
@@ -18,6 +18,7 @@ yagber_cpu = { path = "crates/cpu" }
 yagber_ppu = { path = "crates/ppu" }
 yagber_clock = { path = "crates/clock" }
 yagber_link_cable = { path = "crates/link_cable" }
+yagber_timer = { path = "crates/timer" }
 
 [dev-dependencies]
 pretty_assertions = { workspace = true }
@@ -34,3 +35,4 @@ yagber_clock = { path = "crates/clock" }
 yagber_ppu = { path = "crates/ppu" }
 yagber_ram = { path = "crates/ram" }
 yagber_link_cable = { path = "crates/link_cable" }
+yagber_timer = { path = "crates/timer" }

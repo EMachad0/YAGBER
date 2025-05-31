@@ -26,7 +26,11 @@ impl IORegisters {
     }
 
     pub fn request_interrupt(&mut self, interrupt: InterruptType) {
-        self.set_bit(interrupt.if_address(), interrupt.to_u8());
+        self.set_bit(InterruptType::IF_ADDRESS, interrupt.to_u8());
+    }
+
+    pub fn clear_interrupt(&mut self, interrupt: InterruptType) {
+        self.clear_bit(InterruptType::IF_ADDRESS, interrupt.to_u8());
     }
 }
 

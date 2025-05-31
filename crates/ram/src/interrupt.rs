@@ -1,4 +1,4 @@
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Ord, PartialOrd)]
 pub enum InterruptType {
     VBlank = 0,
     Lcd = 1,
@@ -8,6 +8,9 @@ pub enum InterruptType {
 }
 
 impl InterruptType {
+    pub const IF_ADDRESS: u16 = 0xFF0F;
+    pub const IE_ADDRESS: u16 = 0xFFFF;
+
     pub fn from_u8(value: u8) -> Self {
         match value {
             0 => Self::VBlank,
@@ -23,11 +26,13 @@ impl InterruptType {
         self as u8
     }
 
-    pub fn if_address(self) -> u16 {
-        0xFF0F
-    }
-
-    pub fn ie_address(self) -> u16 {
-        0xFFFF
+    pub fn address(self) -> u16 {
+        match self {
+            Self::VBlank => 0x0040,
+            Self::Lcd => 0x0048,
+            Self::Timer => 0x0050,
+            Self::Serial => 0x0058,
+            Self::Joypad => 0x0060,
+        }
     }
 }

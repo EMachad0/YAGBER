@@ -83,6 +83,22 @@ impl Bus {
         self.io_registers.request_interrupt(interrupt);
     }
 
+    pub fn clear_interrupt(&mut self, interrupt: InterruptType) {
+        self.io_registers.clear_interrupt(interrupt);
+    }
+
+    pub fn get_priority_interrupt(&self) -> Option<InterruptType> {
+        let ei = self.read(InterruptType::IE_ADDRESS);
+        let fi = self.read(InterruptType::IF_ADDRESS);
+        let interrupts = ei & fi;
+        for interrupt in 0..=4 {
+            if interrupts & (1 << interrupt) != 0 {
+                return Some(InterruptType::from_u8(interrupt));
+            }
+        }
+        None
+    }
+
     pub fn booting(&self) -> bool {
         self.io_registers.read(0xFF50) == 0
     }
