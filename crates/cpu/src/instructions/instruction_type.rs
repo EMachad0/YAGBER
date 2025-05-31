@@ -211,7 +211,7 @@ impl InstructionType {
         } else if opcode == 0x10 {
             InstructionType::Stop
         // Block 0b01
-        } else if match_mask(opcode, 0b0100_0000, 0b1000_0000) {
+        } else if opcode != 0x76 && match_mask(opcode, 0b0100_0000, 0b1000_0000) {
             InstructionType::LdR8R8
         } else if opcode == 0x76 {
             InstructionType::Halt

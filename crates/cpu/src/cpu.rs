@@ -3,7 +3,7 @@ use crate::ime::Ime;
 use crate::instructions::{ConditionCode, Instruction, InstructionType};
 use crate::registers::Registers;
 use arbitrary_int::{u2, u3};
-use yagber_ram::{Memory, Ram};
+use yagber_ram::{InterruptType, Memory, Ram};
 
 #[derive(Debug, Clone, Copy)]
 pub struct Cpu {
@@ -12,6 +12,8 @@ pub struct Cpu {
     registers: Registers,
     ime: Ime,
     busy: u16,
+    halt: bool,
+    halt_bug: bool,
 }
 
 impl Default for Cpu {
@@ -28,6 +30,8 @@ impl Cpu {
             registers: Registers::default(),
             ime: Ime::default(),
             busy: Default::default(),
+            halt: false,
+            halt_bug: false,
         }
     }
 
@@ -38,6 +42,16 @@ impl Cpu {
         // If the CPU is busy, decrement the busy counter
         if self.busy > 0 {
             self.busy -= 1;
+            return;
+        }
+
+        // If an interrupt is pending, the CPU wakes up from halt
+        if self.any_interrupt_pending(ram) {
+            self.halt = false;
+        }
+
+        // If the CPU is halted, do nothing
+        if self.halt {
             return;
         }
 
@@ -111,7 +125,12 @@ impl Cpu {
 
     fn read_next_byte(&mut self, ram: &mut Ram) -> u8 {
         let byte = ram.read(self.pc);
-        self.pc += 1;
+        // If the halt bug is triggered the cpu fails to increment the PC
+        if self.halt_bug {
+            self.halt_bug = false;
+        } else {
+            self.pc += 1;
+        }
         byte
     }
 
@@ -231,14 +250,14 @@ impl Cpu {
         self.pc = address;
     }
 
-    fn check_interrupt(&mut self, ram: &mut Ram) {
-        if !self.ime.ime() {
-            return;
-        }
+    fn any_interrupt_pending(&self, ram: &Ram) -> bool {
+        let ei = ram.read(InterruptType::IE_ADDRESS);
+        let fi = ram.read(InterruptType::IF_ADDRESS);
+        ei & fi != 0
+    }
 
-        let ei = ram.read(0xFFFF);
-        let fi = ram.read(0xFF0F);
-        if ei & fi != 0 {
+    fn check_interrupt(&mut self, ram: &mut Ram) {
+        if self.any_interrupt_pending(ram) && self.ime.ime() {
             self.busy = 2; // 2 M-Cycles of NOP
             self.ime.set_interrupt_handling();
         }
@@ -461,7 +480,11 @@ impl Cpu {
                 self.write_r8(r8_dst, r_val, ram);
             }
             Halt => {
-                panic!("HALT instruction encountered");
+                if !self.ime.ime() && self.any_interrupt_pending(ram) {
+                    self.halt_bug = true;
+                } else {
+                    self.halt = true;
+                }
             }
             // Block 0b10
             AddAR8 => {
@@ -705,9 +728,7 @@ impl Cpu {
             RstTgt3 => {
                 let tgt = instruction.tgt3().unwrap();
                 let addr = (tgt.value() as u16) << 3;
-                self.stack_push(ram, self.pc);
-                self.pc = addr;
-                trace!("Resetting to target {:#06X}", addr);
+                self.call(ram, addr);
             }
             PopR16stk => {
                 let r16 = instruction.r16().unwrap();
