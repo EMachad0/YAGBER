@@ -23,7 +23,7 @@ Also refered as `gb-test-roms`.
 
 | Test ROM               | Status |
 |------------------------|--------|
-| cpu_instrs.gb          | 2/11   |
+| cpu_instrs.gb          | :+1:   |
 | instr_timing.gb        |        |
 | interrupt_time.gb      |        |
 | mem_timing.gb          |        |

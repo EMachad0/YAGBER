@@ -785,29 +785,40 @@ impl Cpu {
                 self.registers.set_a(a);
             }
             AddSpImm8 => {
-                let imm8 = instruction.imm8().unwrap();
                 let sp = self.sp;
-                let result = Alu16::add(sp, imm8 as u16);
-                self.sp = *result;
+                let imm8 = instruction.imm8().unwrap();
+                let val_u16 = imm8 as i8 as u16; // sign-extend into 16-bit two's-complement
 
+                // This does not use the Alu16::add function because it uses 8-bit flags
+                let result = sp.wrapping_add(val_u16);
+                let half_carry = ((sp & 0x0F) + (val_u16 & 0x0F)) > 0x0F;
+                let carry = ((sp & 0xFF) + (val_u16 & 0xFF)) > 0xFF;
+
+                self.sp = result;
                 self.registers
                     .flags_mut()
                     .set_z(false)
                     .set_n(false)
-                    .set_h(result.cb11)
-                    .set_c(result.cb15);
+                    .set_h(half_carry)
+                    .set_c(carry);
             }
             LdHlSpImm8 => {
-                let imm8 = instruction.imm8().unwrap() as i8;
                 let sp = self.sp;
-                let result = Alu16::add(sp, imm8 as u16);
-                self.registers.set_hl(*result);
+                let imm8 = instruction.imm8().unwrap();
+                let val_u16 = imm8 as i8 as u16; // sign-extend into 16-bit two's-complement
+
+                // This does not use the Alu16::add function because it uses 8-bit flags
+                let result = sp.wrapping_add(val_u16);
+                let half_carry = ((sp & 0x0F) + (val_u16 & 0x0F)) > 0x0F;
+                let carry = ((sp & 0xFF) + (val_u16 & 0xFF)) > 0xFF;
+
+                self.registers.set_hl(result);
                 self.registers
                     .flags_mut()
                     .set_z(false)
                     .set_n(false)
-                    .set_h(result.cb11)
-                    .set_c(result.cb15);
+                    .set_h(half_carry)
+                    .set_c(carry);
             }
             LdSpHl => {
                 let hl = self.registers.hl();
