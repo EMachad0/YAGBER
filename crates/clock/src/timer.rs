@@ -151,45 +151,45 @@ mod tests {
     #[test]
     fn test_timer_non_repeating() {
         let mut timer = Timer::new(Duration::from_secs(1), TimerMode::Once);
-        assert_eq!(timer.finished(), false);
-        assert_eq!(timer.just_finished(), false);
+        assert!(!timer.finished());
+        assert!(!timer.just_finished());
 
         timer.tick(Duration::from_millis(500));
-        assert_eq!(timer.finished(), false);
-        assert_eq!(timer.just_finished(), false);
+        assert!(!timer.finished());
+        assert!(!timer.just_finished());
 
         timer.tick(Duration::from_millis(600));
-        assert_eq!(timer.finished(), true);
-        assert_eq!(timer.just_finished(), true);
+        assert!(timer.finished());
+        assert!(timer.just_finished());
 
         timer.reset();
-        assert_eq!(timer.finished(), false);
+        assert!(!timer.finished());
     }
 
     #[test]
     fn test_timer_repeating() {
         let mut timer = Timer::new(Duration::from_secs(1), TimerMode::Repeating);
-        assert_eq!(timer.finished(), false);
-        assert_eq!(timer.just_finished(), false);
+        assert!(!timer.finished());
+        assert!(!timer.just_finished());
 
         timer.tick(Duration::from_millis(500));
-        assert_eq!(timer.finished(), false);
-        assert_eq!(timer.just_finished(), false);
+        assert!(!timer.finished());
+        assert!(!timer.just_finished());
 
         timer.tick(Duration::from_millis(600));
-        assert_eq!(timer.finished(), true);
-        assert_eq!(timer.just_finished(), true);
+        assert!(timer.finished());
+        assert!(timer.just_finished());
 
         timer.tick(Duration::from_millis(600));
-        assert_eq!(timer.finished(), true);
-        assert_eq!(timer.just_finished(), false);
+        assert!(timer.finished());
+        assert!(!timer.just_finished());
 
         timer.tick(Duration::from_millis(600));
-        assert_eq!(timer.finished(), true);
-        assert_eq!(timer.just_finished(), true);
+        assert!(timer.finished());
+        assert!(timer.just_finished());
 
         timer.reset();
-        assert_eq!(timer.finished(), false);
-        assert_eq!(timer.just_finished(), false);
+        assert!(!timer.finished());
+        assert!(!timer.just_finished());
     }
 }
