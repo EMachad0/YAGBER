@@ -471,7 +471,16 @@ impl Cpu {
                 }
             }
             Stop => {
-                panic!("STOP instruction encountered");
+                // Speed switch
+                if ram.read_bit(0xFF4D, 0) {
+                    let current_speed = ram.read_bit(0xFF4D, 7);
+                    if current_speed {
+                        ram.clear_bit(0xFF4D, 7);
+                    } else {
+                        ram.set_bit(0xFF4D, 7);
+                    }
+                }
+                trace!("STOP instruction encountered");
             }
             // Block 0b01
             LdR8R8 => {
