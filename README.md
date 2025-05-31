@@ -2,6 +2,7 @@
 
 [![Rust](https://img.shields.io/badge/Rust-000000?style=flat&logo=rust&logoColor=white)](https://www.rust-lang.org/)
 [![Tests](https://img.shields.io/github/actions/workflow/status/EMachad0/YAGBER/tests.yml)](https://github.com/EMachad0/YAGBER/actions/workflows/tests.yml)
+[![Clippy](https://img.shields.io/github/actions/workflow/status/EMachad0/YAGBER/clippy.yml)](https://github.com/EMachad0/YAGBER/actions/workflows/clippy.yml)
 [![License](https://img.shields.io/github/license/EMachad0/YAGBER)](https://github.com/EMachad0/YAGBER/blob/main/LICENSE)
 
 ### Yet Another Game Boy Emulator in Rust
