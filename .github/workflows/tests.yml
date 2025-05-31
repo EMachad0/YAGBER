@@ -1,0 +1,33 @@
+name: Rust tests
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain (stable)
+        uses: dtolnay/rust-toolchain@v1
+        with:
+          toolchain: stable
+          profile: minimal
+
+      - name: Install cargo-script
+        run: |
+          cargo install cargo-script --locked --version ^0.5
+
+      - name: Fetch test ROMs
+        run: |
+          cargo script scripts/fetch_test_roms.rs
+
+      - name: Run tests (release)
+        run: |
+          cargo test --release --all 
