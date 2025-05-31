@@ -67,7 +67,7 @@ impl Alu8 {
     pub fn sbc(a: u8, b: u8, borrow: u8) -> Alu8Result {
         let res = a.wrapping_sub(b).wrapping_sub(borrow);
         let borrow_3 = (a & 0x0F) < (b & 0x0F) + borrow;
-        let borrow_7 = a < b + borrow;
+        let borrow_7 = (a as u16) < (b as u16) + (borrow as u16);
         Alu8Result::new(res, borrow_3, borrow_7)
     }
 

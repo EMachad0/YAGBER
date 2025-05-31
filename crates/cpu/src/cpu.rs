@@ -801,7 +801,6 @@ impl Cpu {
                 let imm8 = instruction.imm8().unwrap() as i8;
                 let sp = self.sp;
                 let result = Alu16::add(sp, imm8 as u16);
-                debug!("LD HL, {} + {} -> {:?}", sp, imm8, *result);
                 self.registers.set_hl(*result);
                 self.registers
                     .flags_mut()

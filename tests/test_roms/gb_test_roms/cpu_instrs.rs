@@ -29,11 +29,9 @@ fn test_blargg_cpu_instrs() {
     );
 }
 
-#[test]
-fn test_blargg_cpu_instrs_01_special() {
+fn cpu_instrs_individual_test(test_name: &str) {
     yagber::init_tracing();
 
-    let test_name = "01-special.gb";
     let rom_path = PathBuf::from(INDV_ROM_PATH).join(test_name);
     assert!(rom_path.exists(), "Test ROM {rom_path:?} not found!");
 
@@ -58,29 +56,56 @@ fn test_blargg_cpu_instrs_01_special() {
 }
 
 #[test]
+fn test_blargg_cpu_instrs_01_special() {
+    cpu_instrs_individual_test("01-special.gb");
+}
+
+#[test]
 fn test_blargg_cpu_instrs_02_interrupts() {
-    yagber::init_tracing();
+    cpu_instrs_individual_test("02-interrupts.gb");
+}
 
-    let test_name = "02-interrupts.gb";
-    let rom_path = PathBuf::from(INDV_ROM_PATH).join(test_name);
-    assert!(rom_path.exists(), "Test ROM {rom_path:?} not found!");
+#[test]
+fn test_blargg_cpu_instrs_03_op_sp_hl() {
+    cpu_instrs_individual_test("03-op sp,hl.gb");
+}
 
-    let out_log_path = PathBuf::from("out")
-        .join(INDV_ROM_PATH)
-        .join(format!("{test_name}.log"));
+#[test]
+fn test_blargg_cpu_instrs_04_op_r_imm() {
+    cpu_instrs_individual_test("04-op r,imm.gb");
+}
 
-    let rom = fs::read(rom_path).expect("Failed to read ROM");
-    let mut emu = Emulator::new()
-        .with_cartridge(&rom)
-        .with_serial_output_file(out_log_path.to_str().unwrap())
-        .with_serial_output_buffer();
+#[test]
+fn test_blargg_cpu_instrs_05_op_rp() {
+    cpu_instrs_individual_test("05-op rp.gb");
+}
 
-    let status = run_emulator(&mut emu);
+#[test]
+fn test_blargg_cpu_instrs_06_ld_r_r() {
+    cpu_instrs_individual_test("06-ld r,r.gb");
+}
 
-    let output_buffer = emu.get_serial_output_buffer().unwrap();
-    assert!(
-        status.is_success(),
-        "Output buffer:\n{}",
-        String::from_utf8_lossy(output_buffer)
-    );
+#[test]
+fn test_blargg_cpu_instrs_07_jr_jp_call_ret_rst() {
+    cpu_instrs_individual_test("07-jr,jp,call,ret,rst.gb");
+}
+
+#[test]
+fn test_blargg_cpu_instrs_08_misc_instrs() {
+    cpu_instrs_individual_test("08-misc instrs.gb");
+}
+
+#[test]
+fn test_blargg_cpu_instrs_09_op_r_r() {
+    cpu_instrs_individual_test("09-op r,r.gb");
+}
+
+#[test]
+fn test_blargg_cpu_instrs_10_bit_ops() {
+    cpu_instrs_individual_test("10-bit ops.gb");
+}
+
+#[test]
+fn test_blargg_cpu_instrs_11_op_a_hl_() {
+    cpu_instrs_individual_test("11-op a,(hl).gb");
 }
