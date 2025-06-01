@@ -1,4 +1,4 @@
-use yagber_ram::Ram;
+use yagber_memory::Bus;
 
 use crate::{ppu::Ppu, ppu_mode::PpuMode};
 
@@ -16,14 +16,14 @@ impl ScanLine {
         }
     }
 
-    pub fn step(&mut self, ram: &mut Ram) {
+    pub fn step(&mut self, bus: &mut Bus) {
         self.dots += 1;
-        let mode = Ppu::get_mode(ram);
+        let mode = Ppu::get_mode(bus);
         if self.dots >= mode.duration() {
             self.dots = 0;
             match mode {
-                PpuMode::OamScan => Ppu::set_mode(ram, PpuMode::PixelTransfer),
-                PpuMode::PixelTransfer => Ppu::set_mode(ram, PpuMode::HBlank),
+                PpuMode::OamScan => Ppu::set_mode(bus, PpuMode::PixelTransfer),
+                PpuMode::PixelTransfer => Ppu::set_mode(bus, PpuMode::HBlank),
                 PpuMode::HBlank => self.finished = true,
                 PpuMode::VBlank => self.finished = true,
             }

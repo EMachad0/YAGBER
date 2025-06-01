@@ -11,7 +11,7 @@ mod ram;
 mod register;
 mod vram;
 
-pub use bus::Bus as Ram;
+pub use bus::Bus;
 pub use interrupt::InterruptType;
 pub use memory::Memory;
 pub use observer::MemoryObserver;

@@ -3,7 +3,7 @@ use crate::ime::Ime;
 use crate::instructions::{ConditionCode, Instruction, InstructionType};
 use crate::registers::Registers;
 use arbitrary_int::{u2, u3};
-use yagber_ram::{InterruptType, Memory, Ram};
+use yagber_memory::{Bus, InterruptType, Memory};
 
 #[derive(Debug, Clone, Copy)]
 pub struct Cpu {
@@ -38,7 +38,7 @@ impl Cpu {
     /// Perform a single CPU step
     /// Respects instruction timing
     /// Represents a single M-cycle
-    pub fn step(&mut self, ram: &mut Ram) {
+    pub fn step(&mut self, bus: &mut Bus) {
         // If the CPU is busy, decrement the busy counter
         if self.busy > 0 {
             self.busy -= 1;
@@ -46,7 +46,7 @@ impl Cpu {
         }
 
         // If an interrupt is pending, the CPU wakes up from halt
-        if self.any_interrupt_pending(ram) {
+        if self.any_interrupt_pending(bus) {
             self.halt = false;
         }
 
@@ -56,27 +56,27 @@ impl Cpu {
         }
 
         // Check for interrupts
-        self.check_interrupt(ram);
+        self.check_interrupt(bus);
         if self.busy != 0 {
             return;
         }
 
         // Handle interrupts
         if self.ime.interrupt_handling() {
-            self.handle_interrupt(ram);
+            self.handle_interrupt(bus);
             self.ime.reset_interrupt_handling();
             return;
         }
 
         // Perform a step
-        self.instruction_step(ram);
+        self.instruction_step(bus);
     }
 
     /// Perform a single CPU step
     /// returns the number of M-cycles taken by the instruction
-    fn instruction_step(&mut self, ram: &mut Ram) {
+    fn instruction_step(&mut self, bus: &mut Bus) {
         // Fetch the next instruction
-        let instruction = self.read_instruction(ram);
+        let instruction = self.read_instruction(bus);
         trace!("{:?}", instruction);
 
         if self.pc == 0x0100 {
@@ -84,7 +84,7 @@ impl Cpu {
         }
 
         // Execute the instruction
-        self.execute_instruction(ram, &instruction);
+        self.execute_instruction(bus, &instruction);
 
         // Update the IME
         self.ime.update_ime();
@@ -93,29 +93,29 @@ impl Cpu {
         self.busy = instruction.cycles() - 1;
     }
 
-    fn read_instruction(&mut self, ram: &mut Ram) -> Instruction {
+    fn read_instruction(&mut self, bus: &mut Bus) -> Instruction {
         // Fetch the next instruction
-        let opcode = self.read_next_byte(ram);
+        let opcode = self.read_next_byte(bus);
 
         // Decode the instruction
         let mut instruction = Instruction::new(opcode);
         if *instruction.instruction_type() == InstructionType::Prefix {
             // Handle prefix instructions
-            let prefix_opcode = self.read_next_byte(ram);
+            let prefix_opcode = self.read_next_byte(bus);
             instruction = Instruction::new_cb_prefix(prefix_opcode)
         }
 
         // Check if the instruction needs more bytes
         if instruction.requires_imm8() {
             // Read the immediate value
-            let imm8 = self.read_next_byte(ram);
+            let imm8 = self.read_next_byte(bus);
             instruction.set_imm8(imm8);
         }
 
         if instruction.requires_imm16() {
             // Read the immediate value
-            let lo = self.read_next_byte(ram);
-            let hi = self.read_next_byte(ram);
+            let lo = self.read_next_byte(bus);
+            let hi = self.read_next_byte(bus);
             let imm16 = u16::from_le_bytes([lo, hi]);
             instruction.set_imm16(imm16);
         }
@@ -123,8 +123,8 @@ impl Cpu {
         instruction
     }
 
-    fn read_next_byte(&mut self, ram: &mut Ram) -> u8 {
-        let byte = ram.read(self.pc);
+    fn read_next_byte(&mut self, bus: &mut Bus) -> u8 {
+        let byte = bus.read(self.pc);
         // If the halt bug is triggered the cpu fails to increment the PC
         if self.halt_bug {
             self.halt_bug = false;
@@ -134,7 +134,7 @@ impl Cpu {
         byte
     }
 
-    fn read_r8(&self, r8: u3, ram: &mut Ram) -> u8 {
+    fn read_r8(&self, r8: u3, bus: &mut Bus) -> u8 {
         match r8.value() {
             0 => self.registers.b(),
             1 => self.registers.c(),
@@ -142,13 +142,13 @@ impl Cpu {
             3 => self.registers.e(),
             4 => self.registers.h(),
             5 => self.registers.l(),
-            6 => ram.read(self.registers.hl()),
+            6 => bus.read(self.registers.hl()),
             7 => self.registers.a(),
             _ => unreachable!(),
         }
     }
 
-    fn write_r8(&mut self, r8: u3, value: u8, ram: &mut Ram) {
+    fn write_r8(&mut self, r8: u3, value: u8, bus: &mut Bus) {
         match r8.value() {
             0 => self.registers.set_b(value),
             1 => self.registers.set_c(value),
@@ -156,7 +156,7 @@ impl Cpu {
             3 => self.registers.set_e(value),
             4 => self.registers.set_h(value),
             5 => self.registers.set_l(value),
-            6 => ram.write(self.registers.hl(), value),
+            6 => bus.write(self.registers.hl(), value),
             7 => self.registers.set_a(value),
             _ => unreachable!(),
         }
@@ -222,7 +222,7 @@ impl Cpu {
         }
     }
 
-    fn stack_push(&mut self, ram: &mut Ram, value: u16) {
+    fn stack_push(&mut self, bus: &mut Bus, value: u16) {
         self.sp = self.sp.wrapping_sub(2);
         // Game Boy stack must stay in WRAM/echo region (0xC000–0xFDFF)
         if self.sp < 0xC000 {
@@ -231,51 +231,51 @@ impl Cpu {
                 self.sp
             );
         }
-        ram.write_u16(self.sp, value);
+        bus.write_u16(self.sp, value);
     }
 
-    fn stack_pop(&mut self, ram: &mut Ram) -> u16 {
+    fn stack_pop(&mut self, bus: &mut Bus) -> u16 {
         // optionally guard underflow on pop
         if self.sp > 0xFFFE {
             panic!("Stack underflow! SP is already at {:#06X}", self.sp);
         }
-        let value = ram.read_u16(self.sp);
+        let value = bus.read_u16(self.sp);
         self.sp = self.sp.wrapping_add(2);
         value
     }
 
-    fn call(&mut self, ram: &mut Ram, address: u16) {
+    fn call(&mut self, bus: &mut Bus, address: u16) {
         trace!("Calling to {:#06X}", address);
-        self.stack_push(ram, self.pc);
+        self.stack_push(bus, self.pc);
         self.pc = address;
     }
 
-    fn any_interrupt_pending(&self, ram: &Ram) -> bool {
-        let ei = ram.read(InterruptType::IE_ADDRESS);
-        let fi = ram.read(InterruptType::IF_ADDRESS);
+    fn any_interrupt_pending(&self, bus: &mut Bus) -> bool {
+        let ei = bus.read(InterruptType::IE_ADDRESS);
+        let fi = bus.read(InterruptType::IF_ADDRESS);
         ei & fi != 0
     }
 
-    fn check_interrupt(&mut self, ram: &mut Ram) {
-        if self.any_interrupt_pending(ram) && self.ime.ime() {
+    fn check_interrupt(&mut self, bus: &mut Bus) {
+        if self.any_interrupt_pending(bus) && self.ime.ime() {
             self.busy = 2; // 2 M-Cycles of NOP
             self.ime.set_interrupt_handling();
         }
     }
 
-    fn handle_interrupt(&mut self, ram: &mut Ram) {
-        let interrupt = ram.get_priority_interrupt();
+    fn handle_interrupt(&mut self, bus: &mut Bus) {
+        let interrupt = bus.get_priority_interrupt();
         if let Some(interrupt) = interrupt {
             trace!("Handling interrupt: {:?}", interrupt);
-            ram.clear_interrupt(interrupt);
-            self.call(ram, interrupt.address());
+            bus.clear_interrupt(interrupt);
+            self.call(bus, interrupt.address());
             self.busy = 2; // 2 more M-Cycles of NOP
         } else {
             warn!("Requested interrupt handling but no interrupt is pending");
         }
     }
 
-    fn execute_instruction(&mut self, ram: &mut Ram, instruction: &Instruction) {
+    fn execute_instruction(&mut self, bus: &mut Bus, instruction: &Instruction) {
         // Execute the instruction
         use InstructionType::*;
         match instruction.instruction_type() {
@@ -290,17 +290,17 @@ impl Cpu {
                 let r16 = instruction.r16().unwrap();
                 let hl = self.read_r16mem(r16);
                 let a = self.registers.a();
-                ram.write(hl, a);
+                bus.write(hl, a);
             }
             LdAR16mem => {
                 let r16 = instruction.r16().unwrap();
                 let address = self.read_r16mem(r16);
-                let a = ram.read(address);
+                let a = bus.read(address);
                 self.registers.set_a(a);
             }
             LdImm16Sp => {
                 let imm16 = instruction.imm16().unwrap();
-                ram.write_u16(imm16, self.sp);
+                bus.write_u16(imm16, self.sp);
             }
             IncR16 => {
                 let r16 = instruction.r16().unwrap();
@@ -327,9 +327,9 @@ impl Cpu {
             }
             IncR8 => {
                 let r8 = instruction.r8().unwrap();
-                let r_val = self.read_r8(r8, ram);
+                let r_val = self.read_r8(r8, bus);
                 let result = Alu8::inc(r_val);
-                self.write_r8(r8, *result, ram);
+                self.write_r8(r8, *result, bus);
                 self.registers
                     .flags_mut()
                     .set_z_if_zero(*result)
@@ -338,9 +338,9 @@ impl Cpu {
             }
             DecR8 => {
                 let r8 = instruction.r8().unwrap();
-                let r_val = self.read_r8(r8, ram);
+                let r_val = self.read_r8(r8, bus);
                 let result = Alu8::dec(r_val);
-                self.write_r8(r8, *result, ram);
+                self.write_r8(r8, *result, bus);
                 self.registers
                     .flags_mut()
                     .set_z_if_zero(*result)
@@ -350,7 +350,7 @@ impl Cpu {
             LdR8Imm8 => {
                 let r8 = instruction.r8().unwrap();
                 let imm8 = instruction.imm8().unwrap();
-                self.write_r8(r8, imm8, ram);
+                self.write_r8(r8, imm8, bus);
             }
             RlCA => {
                 let a = self.registers.a();
@@ -472,12 +472,12 @@ impl Cpu {
             }
             Stop => {
                 // Speed switch
-                if ram.read_bit(0xFF4D, 0) {
-                    let current_speed = ram.read_bit(0xFF4D, 7);
+                if bus.read_bit(0xFF4D, 0) {
+                    let current_speed = bus.read_bit(0xFF4D, 7);
                     if current_speed {
-                        ram.clear_bit(0xFF4D, 7);
+                        bus.clear_bit(0xFF4D, 7);
                     } else {
-                        ram.set_bit(0xFF4D, 7);
+                        bus.set_bit(0xFF4D, 7);
                     }
                 }
                 trace!("STOP instruction encountered");
@@ -485,11 +485,11 @@ impl Cpu {
             // Block 0b01
             LdR8R8 => {
                 let (r8_dst, r8_src) = instruction.r8_pair().unwrap();
-                let r_val = self.read_r8(r8_src, ram);
-                self.write_r8(r8_dst, r_val, ram);
+                let r_val = self.read_r8(r8_src, bus);
+                self.write_r8(r8_dst, r_val, bus);
             }
             Halt => {
-                if !self.ime.ime() && self.any_interrupt_pending(ram) {
+                if !self.ime.ime() && self.any_interrupt_pending(bus) {
                     self.halt_bug = true;
                 } else {
                     self.halt = true;
@@ -497,7 +497,7 @@ impl Cpu {
             }
             // Block 0b10
             AddAR8 => {
-                let r_val = self.read_r8(instruction.r8().unwrap(), ram);
+                let r_val = self.read_r8(instruction.r8().unwrap(), bus);
                 let r_a = self.registers.a();
                 let result = Alu8::add(r_a, r_val);
                 self.registers.set_a(*result);
@@ -509,7 +509,7 @@ impl Cpu {
                     .set_c(result.cb7);
             }
             AdcAR8 => {
-                let r_val = self.read_r8(instruction.r8().unwrap(), ram);
+                let r_val = self.read_r8(instruction.r8().unwrap(), bus);
                 let r_a = self.registers.a();
                 let carry = self.registers.flags().c_u8();
                 let result = Alu8::adc(r_a, r_val, carry);
@@ -522,7 +522,7 @@ impl Cpu {
                     .set_c(result.cb7);
             }
             SubAR8 => {
-                let r_val = self.read_r8(instruction.r8().unwrap(), ram);
+                let r_val = self.read_r8(instruction.r8().unwrap(), bus);
                 let r_a = self.registers.a();
                 let result = Alu8::sub(r_a, r_val);
                 self.registers.set_a(*result);
@@ -534,7 +534,7 @@ impl Cpu {
                     .set_c(result.cb7);
             }
             SbcAR8 => {
-                let r_val = self.read_r8(instruction.r8().unwrap(), ram);
+                let r_val = self.read_r8(instruction.r8().unwrap(), bus);
                 let r_a = self.registers.a();
                 let carry = self.registers.flags().c_u8();
                 let result = Alu8::sbc(r_a, r_val, carry);
@@ -547,7 +547,7 @@ impl Cpu {
                     .set_c(result.cb7);
             }
             AndAR8 => {
-                let r_val = self.read_r8(instruction.r8().unwrap(), ram);
+                let r_val = self.read_r8(instruction.r8().unwrap(), bus);
                 let r_a = self.registers.a();
                 let result = r_val & r_a;
                 self.registers.set_a(result);
@@ -559,7 +559,7 @@ impl Cpu {
                     .set_c(false);
             }
             XorAR8 => {
-                let r_val = self.read_r8(instruction.r8().unwrap(), ram);
+                let r_val = self.read_r8(instruction.r8().unwrap(), bus);
                 let r_a = self.registers.a();
                 let result = r_val ^ r_a;
                 self.registers.set_a(result);
@@ -571,7 +571,7 @@ impl Cpu {
                     .set_c(false);
             }
             OrAR8 => {
-                let r_val = self.read_r8(instruction.r8().unwrap(), ram);
+                let r_val = self.read_r8(instruction.r8().unwrap(), bus);
                 let r_a = self.registers.a();
                 let result = r_val | r_a;
                 self.registers.set_a(result);
@@ -583,7 +583,7 @@ impl Cpu {
                     .set_c(false);
             }
             CpAR8 => {
-                let r_val = self.read_r8(instruction.r8().unwrap(), ram);
+                let r_val = self.read_r8(instruction.r8().unwrap(), bus);
                 let r_a = self.registers.a();
                 let result = Alu8::sub(r_a, r_val);
                 self.registers
@@ -694,16 +694,16 @@ impl Cpu {
             RetCond => {
                 let condition = instruction.cond().unwrap();
                 if self.check_condition(condition) {
-                    let value = self.stack_pop(ram);
+                    let value = self.stack_pop(bus);
                     self.pc = value;
                 }
             }
             Ret => {
-                let value = self.stack_pop(ram);
+                let value = self.stack_pop(bus);
                 self.pc = value;
             }
             RetI => {
-                let value = self.stack_pop(ram);
+                let value = self.stack_pop(bus);
                 self.pc = value;
                 self.ime.set_ime();
             }
@@ -727,61 +727,61 @@ impl Cpu {
             CallCondImm16 => {
                 let imm16 = instruction.imm16().unwrap();
                 if self.check_condition(instruction.cond().unwrap()) {
-                    self.call(ram, imm16);
+                    self.call(bus, imm16);
                 }
             }
             CallImm16 => {
                 let imm16 = instruction.imm16().unwrap();
-                self.call(ram, imm16);
+                self.call(bus, imm16);
             }
             RstTgt3 => {
                 let tgt = instruction.tgt3().unwrap();
                 let addr = (tgt.value() as u16) << 3;
-                self.call(ram, addr);
+                self.call(bus, addr);
             }
             PopR16stk => {
                 let r16 = instruction.r16().unwrap();
-                let value = self.stack_pop(ram);
+                let value = self.stack_pop(bus);
                 self.write_r16stk(r16, value);
             }
             PushR16stk => {
                 let r16 = instruction.r16().unwrap();
                 let value = self.read_r16stk(r16);
-                self.stack_push(ram, value);
+                self.stack_push(bus, value);
             }
             Prefix => trace!("Prefix instruction encountered"),
             LdhCA => {
                 let a = self.registers.a();
                 let c = self.registers.c() as u16;
                 let address = 0xFF00 + c;
-                ram.write(address, a);
+                bus.write(address, a);
             }
             LdhImm8A => {
                 let a = self.registers.a();
                 let imm8 = instruction.imm8().unwrap() as u16;
                 let address = 0xFF00 + imm8;
-                ram.write(address, a);
+                bus.write(address, a);
             }
             LdImm16A => {
                 let a = self.registers.a();
                 let imm16 = instruction.imm16().unwrap();
-                ram.write(imm16, a);
+                bus.write(imm16, a);
             }
             LdhAC => {
                 let c = self.registers.c() as u16;
                 let address = 0xFF00 + c;
-                let a = ram.read(address);
+                let a = bus.read(address);
                 self.registers.set_a(a);
             }
             LdhAImm8 => {
                 let imm8 = instruction.imm8().unwrap() as u16;
                 let address = 0xFF00 + imm8;
-                let a = ram.read(address);
+                let a = bus.read(address);
                 self.registers.set_a(a);
             }
             LdAImm16 => {
                 let imm16 = instruction.imm16().unwrap();
-                let a = ram.read(imm16);
+                let a = bus.read(imm16);
                 self.registers.set_a(a);
             }
             AddSpImm8 => {
@@ -833,9 +833,9 @@ impl Cpu {
             // CB Prefix instructions
             RlcR8 => {
                 let r8 = instruction.r8().unwrap();
-                let r_val = self.read_r8(r8, ram);
+                let r_val = self.read_r8(r8, bus);
                 let result = Alu8::rlc(r_val);
-                self.write_r8(r8, *result, ram);
+                self.write_r8(r8, *result, bus);
 
                 self.registers
                     .flags_mut()
@@ -846,9 +846,9 @@ impl Cpu {
             }
             RrcR8 => {
                 let r8 = instruction.r8().unwrap();
-                let r_val = self.read_r8(r8, ram);
+                let r_val = self.read_r8(r8, bus);
                 let result = Alu8::rrc(r_val);
-                self.write_r8(r8, *result, ram);
+                self.write_r8(r8, *result, bus);
 
                 self.registers
                     .flags_mut()
@@ -859,10 +859,10 @@ impl Cpu {
             }
             RlR8 => {
                 let r8 = instruction.r8().unwrap();
-                let r_val = self.read_r8(r8, ram);
+                let r_val = self.read_r8(r8, bus);
                 let carry = self.registers.flags().c_u8();
                 let result = Alu8::rl(r_val, carry);
-                self.write_r8(r8, *result, ram);
+                self.write_r8(r8, *result, bus);
 
                 self.registers
                     .flags_mut()
@@ -873,10 +873,10 @@ impl Cpu {
             }
             RrR8 => {
                 let r8 = instruction.r8().unwrap();
-                let r_val = self.read_r8(r8, ram);
+                let r_val = self.read_r8(r8, bus);
                 let carry = self.registers.flags().c_u8();
                 let result = Alu8::rr(r_val, carry);
-                self.write_r8(r8, *result, ram);
+                self.write_r8(r8, *result, bus);
 
                 self.registers
                     .flags_mut()
@@ -887,9 +887,9 @@ impl Cpu {
             }
             SlaR8 => {
                 let r8 = instruction.r8().unwrap();
-                let r_val = self.read_r8(r8, ram);
+                let r_val = self.read_r8(r8, bus);
                 let result = Alu8::sla(r_val);
-                self.write_r8(r8, *result, ram);
+                self.write_r8(r8, *result, bus);
 
                 self.registers
                     .flags_mut()
@@ -900,9 +900,9 @@ impl Cpu {
             }
             SraR8 => {
                 let r8 = instruction.r8().unwrap();
-                let r_val = self.read_r8(r8, ram);
+                let r_val = self.read_r8(r8, bus);
                 let result = Alu8::sra(r_val);
-                self.write_r8(r8, *result, ram);
+                self.write_r8(r8, *result, bus);
 
                 self.registers
                     .flags_mut()
@@ -913,9 +913,9 @@ impl Cpu {
             }
             SwapR8 => {
                 let r8 = instruction.r8().unwrap();
-                let r_val = self.read_r8(r8, ram);
+                let r_val = self.read_r8(r8, bus);
                 let result = r_val.rotate_right(4);
-                self.write_r8(r8, result, ram);
+                self.write_r8(r8, result, bus);
 
                 self.registers
                     .flags_mut()
@@ -926,9 +926,9 @@ impl Cpu {
             }
             SrlR8 => {
                 let r8 = instruction.r8().unwrap();
-                let r_val = self.read_r8(r8, ram);
+                let r_val = self.read_r8(r8, bus);
                 let result = Alu8::srl(r_val);
-                self.write_r8(r8, *result, ram);
+                self.write_r8(r8, *result, bus);
 
                 self.registers
                     .flags_mut()
@@ -939,7 +939,7 @@ impl Cpu {
             }
             BitB3R8 => {
                 let r8 = instruction.r8().unwrap();
-                let r_val = self.read_r8(r8, ram);
+                let r_val = self.read_r8(r8, bus);
                 let bit = instruction.b3().unwrap();
                 let result = r_val & (1 << bit.value());
                 self.registers
@@ -950,17 +950,17 @@ impl Cpu {
             }
             ResB3R8 => {
                 let r8 = instruction.r8().unwrap();
-                let r_val = self.read_r8(r8, ram);
+                let r_val = self.read_r8(r8, bus);
                 let bit = instruction.b3().unwrap();
                 let result = r_val & !(1 << bit.value());
-                self.write_r8(r8, result, ram);
+                self.write_r8(r8, result, bus);
             }
             SetB3R8 => {
                 let r8 = instruction.r8().unwrap();
-                let r_val = self.read_r8(r8, ram);
+                let r_val = self.read_r8(r8, bus);
                 let bit = instruction.b3().unwrap();
                 let result = r_val | (1 << bit.value());
-                self.write_r8(r8, result, ram);
+                self.write_r8(r8, result, bus);
             }
         }
     }

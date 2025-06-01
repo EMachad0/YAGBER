@@ -1,7 +1,7 @@
 use yagber_cpu::Cpu;
 use yagber_link_cable::LinkCable;
+use yagber_memory::Bus;
 use yagber_ppu::Ppu;
-use yagber_ram::Ram;
 use yagber_timer::Timer;
 
 #[derive(Debug)]
@@ -9,21 +9,21 @@ pub struct Emulator {
     cycles: u64,
     cpu: Cpu,
     ppu: Ppu,
-    ram: Ram,
+    bus: Bus,
     link_cable: LinkCable,
     timer: Timer,
 }
 
 impl Emulator {
     pub fn new() -> Self {
-        let mut ram = Ram::default();
+        let mut bus = Bus::default();
 
-        ram.add_observer(yagber_timer::RamObserver::new());
-        ram.add_observer(yagber_ppu::PpuModeObserver::new());
+        bus.add_observer(yagber_timer::DivObserver::new());
+        bus.add_observer(yagber_ppu::PpuModeObserver::new());
 
         Self {
             cycles: 0,
-            ram,
+            bus,
             cpu: Cpu::default(),
             ppu: Ppu::default(),
             link_cable: LinkCable::default(),
@@ -34,13 +34,13 @@ impl Emulator {
     /// Load the ram with the cartridge
     pub fn with_cartridge(mut self, rom: &[u8]) -> Self {
         // copy rom header
-        self.ram.load_rom(rom);
+        self.bus.load_rom(rom);
         self
     }
 
     pub fn step(&mut self) {
         let is_m_cycle = self.is_m_cycle();
-        let ram = &mut self.ram;
+        let ram = &mut self.bus;
 
         if is_m_cycle {
             self.cpu.step(ram);

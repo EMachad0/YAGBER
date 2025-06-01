@@ -7,4 +7,4 @@ edition = "2024"
 tracing = { workspace = true }
 
 yagber_clock = { workspace = true }
-yagber_ram = { workspace = true }
+yagber_memory = { workspace = true }

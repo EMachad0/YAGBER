@@ -1,4 +1,4 @@
-use yagber_ram::{InterruptType, Ram};
+use yagber_memory::{Bus, InterruptType};
 
 use crate::edge_detector::{EdgeDetector, EdgeMode};
 
@@ -77,7 +77,7 @@ impl Timer {
     /// Tick the timer.
     /// Represents a single M-Cycle.
     /// Meant to be called after executing the instruction.
-    pub fn tick(&mut self, ram: &mut Ram) {
+    pub fn tick(&mut self, ram: &mut Bus) {
         self.system_counter.tick();
         let div = self.system_counter.div();
         self.write_div(ram, div);
@@ -119,23 +119,23 @@ impl Timer {
         }
     }
 
-    fn read_tima(&self, ram: &Ram) -> u8 {
+    fn read_tima(&self, ram: &Bus) -> u8 {
         ram.read(TIMA_ADDR)
     }
 
-    fn read_tma(&self, ram: &Ram) -> u8 {
+    fn read_tma(&self, ram: &Bus) -> u8 {
         ram.read(TMA_ADDR)
     }
 
-    fn read_tac(&self, ram: &Ram) -> u8 {
+    fn read_tac(&self, ram: &Bus) -> u8 {
         ram.read(TAC_ADDR)
     }
 
-    fn write_tima(&mut self, ram: &mut Ram, value: u8) {
+    fn write_tima(&mut self, ram: &mut Bus, value: u8) {
         ram.write(TIMA_ADDR, value);
     }
 
-    fn write_div(&mut self, ram: &mut Ram, value: u8) {
+    fn write_div(&mut self, ram: &mut Bus, value: u8) {
         ram.write(DIV_ADDR, value);
     }
 
@@ -165,63 +165,63 @@ mod tests {
     fn timer_overflow_behavior() {
         let tac = 0xFD; // Timer ON, Every 4 M-Cycles
         let mut timer = Timer::from_cycles(0x2B, tac);
-        let mut ram = Ram::new();
+        let mut bus = Bus::default();
         let if_addr = 0xFF0F;
 
-        ram.write(TIMA_ADDR, 0xFE);
-        ram.write(TMA_ADDR, 0x23);
-        ram.write(TAC_ADDR, tac);
-        ram.write(if_addr, 0xE0); // IF
+        bus.write(TIMA_ADDR, 0xFE);
+        bus.write(TMA_ADDR, 0x23);
+        bus.write(TAC_ADDR, tac);
+        bus.write(if_addr, 0xE0); // IF
 
         assert_eq!(timer.cycles(), 0x2B);
-        assert_eq!(timer.read_tima(&ram), 0xFE);
-        assert_eq!(timer.read_tma(&ram), 0x23);
-        assert_eq!(ram.read(if_addr), 0xE0);
+        assert_eq!(timer.read_tima(&bus), 0xFE);
+        assert_eq!(timer.read_tma(&bus), 0x23);
+        assert_eq!(bus.read(if_addr), 0xE0);
 
         // first falling edge
-        timer.tick(&mut ram);
+        timer.tick(&mut bus);
 
         assert_eq!(timer.cycles(), 0x2C);
-        assert_eq!(timer.read_tima(&ram), 0xFF);
-        assert_eq!(ram.read(if_addr), 0xE0);
+        assert_eq!(timer.read_tima(&bus), 0xFF);
+        assert_eq!(bus.read(if_addr), 0xE0);
 
         // rising edge
-        timer.tick(&mut ram);
-        timer.tick(&mut ram);
+        timer.tick(&mut bus);
+        timer.tick(&mut bus);
 
         assert_eq!(timer.cycles(), 0x2E);
-        assert_eq!(timer.read_tima(&ram), 0xFF);
-        assert_eq!(ram.read(if_addr), 0xE0);
+        assert_eq!(timer.read_tima(&bus), 0xFF);
+        assert_eq!(bus.read(if_addr), 0xE0);
 
         // second falling edge
-        timer.tick(&mut ram);
-        timer.tick(&mut ram);
+        timer.tick(&mut bus);
+        timer.tick(&mut bus);
 
         assert_eq!(timer.cycles(), 0x30);
-        assert_eq!(timer.read_tima(&ram), 0x00);
-        assert_eq!(ram.read(if_addr), 0xE0);
+        assert_eq!(timer.read_tima(&bus), 0x00);
+        assert_eq!(bus.read(if_addr), 0xE0);
 
         // no edge
-        timer.tick(&mut ram);
+        timer.tick(&mut bus);
 
         assert_eq!(timer.cycles(), 0x31);
-        assert_eq!(timer.read_tima(&ram), 0x23);
-        assert_eq!(ram.read(if_addr), 0xE4);
+        assert_eq!(timer.read_tima(&bus), 0x23);
+        assert_eq!(bus.read(if_addr), 0xE4);
 
         // second rising edge
-        timer.tick(&mut ram);
+        timer.tick(&mut bus);
 
         assert_eq!(timer.cycles(), 0x32);
-        assert_eq!(timer.read_tima(&ram), 0x23);
-        assert_eq!(ram.read(if_addr), 0xE4);
+        assert_eq!(timer.read_tima(&bus), 0x23);
+        assert_eq!(bus.read(if_addr), 0xE4);
 
         // third falling edge
-        timer.tick(&mut ram);
-        timer.tick(&mut ram);
+        timer.tick(&mut bus);
+        timer.tick(&mut bus);
 
         assert_eq!(timer.cycles(), 0x34);
-        assert_eq!(timer.read_tima(&ram), 0x24);
-        assert_eq!(ram.read(if_addr), 0xE4);
-        assert_eq!(timer.read_tma(&ram), 0x23)
+        assert_eq!(timer.read_tima(&bus), 0x24);
+        assert_eq!(bus.read(if_addr), 0xE4);
+        assert_eq!(timer.read_tma(&bus), 0x23)
     }
 }

@@ -1,4 +1,4 @@
-use yagber_ram::{Memory, Ram};
+use yagber_memory::{Memory, Bus};
 
 use crate::dest::{Destination, DestinationCollector};
 
@@ -50,31 +50,31 @@ impl LinkCable {
             .add_dest(Destination::Stdout(std::io::stdout()));
     }
 
-    pub fn transfer_enabled(ram: &mut Ram) -> bool {
+    pub fn transfer_enabled(ram: &mut Bus) -> bool {
         ram.read_bit(Self::SC_ADDR, 7)
     }
 
-    pub fn clock_speed(ram: &mut Ram) -> bool {
+    pub fn clock_speed(ram: &mut Bus) -> bool {
         ram.read_bit(Self::SC_ADDR, 1)
     }
 
-    pub fn read_mode(ram: &mut Ram) -> LinkCableMode {
+    pub fn read_mode(ram: &mut Bus) -> LinkCableMode {
         let bit = ram.read_bit(Self::SC_ADDR, 0);
         LinkCableMode::from_bit(bit)
     }
 
-    pub fn read_data(ram: &mut Ram) -> u8 {
+    pub fn read_data(ram: &mut Bus) -> u8 {
         ram.read(Self::SB_ADDR)
     }
 
-    pub fn step(&mut self, ram: &mut Ram) {
+    pub fn step(&mut self, ram: &mut Bus) {
         if Self::transfer_enabled(ram) {
             let data = Self::read_data(ram);
             if let Err(e) = self.destinations.write(data) {
                 tracing::error!("Failed to write to destination: {}", e);
             }
             ram.write(Self::SC_ADDR, 0);
-            ram.request_interrupt(yagber_ram::InterruptType::Serial);
+            ram.request_interrupt(yagber_memory::InterruptType::Serial);
         }
     }
 

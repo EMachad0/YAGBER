@@ -5,4 +5,4 @@ edition = "2024"
 
 [dependencies]
 tracing = { workspace = true }
-yagber_ram = { workspace = true }
+yagber_memory = { workspace = true }
