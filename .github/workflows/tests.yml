@@ -25,6 +25,10 @@ jobs:
         run: |
           rust-script scripts/fetch_test_roms.rs
 
+      - name: Build the project
+        run: |
+          cargo build --release
+
       - name: Run tests
         run: |
           cargo test --release --workspace
