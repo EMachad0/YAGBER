@@ -4,7 +4,7 @@ use yagber_ppu::Ppu;
 use yagber_ram::Ram;
 use yagber_timer::Timer;
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct Emulator {
     cycles: u64,
     cpu: Cpu,
@@ -16,7 +16,18 @@ pub struct Emulator {
 
 impl Emulator {
     pub fn new() -> Self {
-        Self::default()
+        let mut ram = Ram::default();
+
+        ram.add_observer(yagber_timer::RamObserver);
+
+        Self {
+            cycles: 0,
+            ram,
+            cpu: Cpu::default(),
+            ppu: Ppu::default(),
+            link_cable: LinkCable::default(),
+            timer: Timer::default(),
+        }
     }
 
     /// Load the ram with the cartridge
@@ -83,5 +94,11 @@ impl Emulator {
 
     fn is_m_cycle(&self) -> bool {
         self.cycles % 4 == 0
+    }
+}
+
+impl Default for Emulator {
+    fn default() -> Self {
+        Self::new()
     }
 }

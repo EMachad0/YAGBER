@@ -2,10 +2,10 @@ use yagber_ram::{InterruptType, Ram};
 
 use crate::edge_detector::{EdgeDetector, EdgeMode};
 
-const DIV_ADDR: u16 = 0xFF04;
-const TIMA_ADDR: u16 = 0xFF05;
-const TMA_ADDR: u16 = 0xFF06;
-const TAC_ADDR: u16 = 0xFF07;
+pub const DIV_ADDR: u16 = 0xFF04;
+pub const TIMA_ADDR: u16 = 0xFF05;
+pub const TMA_ADDR: u16 = 0xFF06;
+pub const TAC_ADDR: u16 = 0xFF07;
 
 /// System Counter is a 16.777216 MHz clock.
 /// Incremented every M-Cycle.
