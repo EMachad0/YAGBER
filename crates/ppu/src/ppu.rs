@@ -1,6 +1,6 @@
 use yagber_ram::{Memory, Ram};
 
-use crate::{mode::Mode, scan_line::ScanLine};
+use crate::{ppu_mode::PpuMode, scan_line::ScanLine};
 
 #[derive(Debug, Default, Clone, Copy)]
 pub struct Ppu {
@@ -40,30 +40,30 @@ impl Ppu {
 
     pub fn set_scan_line_index(ram: &mut Ram, index: u8) {
         match index {
-            0..=143 => Ppu::set_mode(ram, Mode::OamScan),
-            144..=153 => Ppu::set_mode(ram, Mode::VBlank),
+            0..=143 => Ppu::set_mode(ram, PpuMode::OamScan),
+            144..=153 => Ppu::set_mode(ram, PpuMode::VBlank),
             _ => panic!("Invalid scan line index: {}", index),
         }
         ram.write(Self::SCAN_LINE_ADDRESS, index);
     }
 
-    pub fn get_mode(ram: &mut Ram) -> Mode {
+    pub fn get_mode(ram: &mut Ram) -> PpuMode {
         let mode = ram.read_masked(Ppu::LCD_STATUS_ADDRESS, 0x03);
         match mode {
-            0 => Mode::OamScan,
-            1 => Mode::PixelTransfer,
-            2 => Mode::HBlank,
-            3 => Mode::VBlank,
+            0 => PpuMode::OamScan,
+            1 => PpuMode::PixelTransfer,
+            2 => PpuMode::HBlank,
+            3 => PpuMode::VBlank,
             _ => unreachable!(),
         }
     }
 
-    pub fn set_mode(ram: &mut Ram, mode: Mode) {
+    pub fn set_mode(ram: &mut Ram, mode: PpuMode) {
         match mode {
-            Mode::OamScan => {}
-            Mode::PixelTransfer => {}
-            Mode::HBlank => {}
-            Mode::VBlank => {
+            PpuMode::OamScan => {}
+            PpuMode::PixelTransfer => {}
+            PpuMode::HBlank => {}
+            PpuMode::VBlank => {
                 trace!("VBlank interrupt");
                 ram.request_interrupt(yagber_ram::InterruptType::VBlank);
             }

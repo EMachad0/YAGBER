@@ -1,6 +1,6 @@
 use yagber_ram::Ram;
 
-use crate::{Ppu, mode::Mode};
+use crate::{ppu::Ppu, ppu_mode::PpuMode};
 
 #[derive(Debug, Clone, Copy)]
 pub struct ScanLine {
@@ -22,10 +22,10 @@ impl ScanLine {
         if self.dots >= mode.duration() {
             self.dots = 0;
             match mode {
-                Mode::OamScan => Ppu::set_mode(ram, Mode::PixelTransfer),
-                Mode::PixelTransfer => Ppu::set_mode(ram, Mode::HBlank),
-                Mode::HBlank => self.finished = true,
-                Mode::VBlank => self.finished = true,
+                PpuMode::OamScan => Ppu::set_mode(ram, PpuMode::PixelTransfer),
+                PpuMode::PixelTransfer => Ppu::set_mode(ram, PpuMode::HBlank),
+                PpuMode::HBlank => self.finished = true,
+                PpuMode::VBlank => self.finished = true,
             }
         }
     }

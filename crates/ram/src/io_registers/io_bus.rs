@@ -4,11 +4,11 @@ pub const IO_REGISTERS_OFFSET: u16 = 0xFF00;
 pub const IO_REGISTERS_SIZE: usize = 0x007F;
 
 #[derive(Debug, Clone, Copy)]
-pub struct IORegisters {
+pub struct IOBus {
     data: [u8; IO_REGISTERS_SIZE],
 }
 
-impl IORegisters {
+impl IOBus {
     pub fn new() -> Self {
         Self {
             data: [0; IO_REGISTERS_SIZE],
@@ -34,13 +34,13 @@ impl IORegisters {
     }
 }
 
-impl Default for IORegisters {
+impl Default for IOBus {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl Memory for IORegisters {
+impl Memory for IOBus {
     fn read(&self, address: u16) -> u8 {
         self.read(address)
     }

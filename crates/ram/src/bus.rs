@@ -1,19 +1,19 @@
 use crate::{
-    InterruptType, WriteObserver, boot_rom::BootRom, cartridge::Cartridge,
-    io_registers::IORegisters, memory::Memory, ram::Ram, register::Register,
+    InterruptType, MemoryObserver, boot_rom::BootRom, cartridge::Cartridge, io_registers::IOBus,
+    memory::Memory, oam::Oam, ram::Ram, register::Register, vram::Vram,
 };
 
 #[derive(Debug)]
 pub struct Bus {
     boot_rom: BootRom,
     cartridge: Cartridge,
-    vram: Ram,
+    vram: Vram,
     wram: Ram,
-    oam: Ram,
-    io_registers: IORegisters,
+    oam: Oam,
+    io_registers: IOBus,
     hram: Ram,
     ie: Register,
-    observers: Vec<Box<dyn WriteObserver>>,
+    observers: Vec<Box<dyn MemoryObserver>>,
 }
 
 impl Bus {
@@ -21,10 +21,10 @@ impl Bus {
         Self {
             boot_rom: BootRom::new(),
             cartridge: Cartridge::empty(),
-            vram: Ram::new(0x2000, 0x8000),
+            vram: Vram::new(),
             wram: Ram::new(0x2000, 0xC000),
-            oam: Ram::new(0xA0, 0xFE00),
-            io_registers: IORegisters::new(),
+            oam: Oam::new(),
+            io_registers: IOBus::new(),
             hram: Ram::new(0x7F, 0xFF80),
             ie: Register::new(0x00),
             observers: Vec::new(),
@@ -82,7 +82,8 @@ impl Bus {
         self.notify_observers(address, value);
     }
 
-    pub fn add_observer<W: WriteObserver + 'static>(&mut self, observer: W) {
+    pub fn add_observer<O: MemoryObserver + 'static>(&mut self, mut observer: O) {
+        observer.on_add(self);
         self.observers.push(Box::new(observer));
     }
 
@@ -92,6 +93,14 @@ impl Bus {
 
     pub fn clear_interrupt(&mut self, interrupt: InterruptType) {
         self.io_registers.clear_interrupt(interrupt);
+    }
+
+    pub fn set_vram_accessibility(&mut self, accessible: bool) {
+        self.vram.set_accessible(accessible);
+    }
+
+    pub fn set_oam_accessibility(&mut self, accessible: bool) {
+        self.oam.set_accessible(accessible);
     }
 
     pub fn get_priority_interrupt(&self) -> Option<InterruptType> {
@@ -132,7 +141,7 @@ impl Bus {
     fn notify_observers(&mut self, address: u16, value: u8) {
         let mut observers = std::mem::take(&mut self.observers);
         for observer in observers.iter_mut() {
-            observer.write(self, address, value);
+            observer.on_write(self, address, value);
         }
         self.observers = observers;
     }

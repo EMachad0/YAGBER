@@ -18,7 +18,8 @@ impl Emulator {
     pub fn new() -> Self {
         let mut ram = Ram::default();
 
-        ram.add_observer(yagber_timer::RamObserver);
+        ram.add_observer(yagber_timer::RamObserver::new());
+        ram.add_observer(yagber_ppu::PpuModeObserver::new());
 
         Self {
             cycles: 0,
