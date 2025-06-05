@@ -4,6 +4,8 @@ use yagber_memory::Bus;
 use yagber_ppu::Ppu;
 use yagber_timer::Timer;
 
+use crate::runners::Runner;
+
 #[derive(Debug)]
 pub struct Emulator {
     cycles: u64,
@@ -58,10 +60,9 @@ impl Emulator {
         self.cycles += 1;
     }
 
-    pub fn run(&mut self) {
-        loop {
-            self.step();
-        }
+    pub fn run<T: Runner>(self) {
+        let mut runner = T::new(self);
+        runner.run();
     }
 
     pub fn run_for(&mut self, cycles: u64) {
