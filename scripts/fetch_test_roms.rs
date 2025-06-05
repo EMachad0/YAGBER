@@ -17,6 +17,7 @@ struct TestRomMetadata {
     source: String,
     version: String,
     date: String,
+    metadata_version: String,
 }
 
 fn main() {
@@ -62,6 +63,7 @@ fn fetch_blargg_test_roms() {
         source: "blargg".to_string(),
         version: commit_hash,
         date: chrono::Utc::now().to_string(),
+        metadata_version: "1.0.0".to_string(),
     };
 
     let json_path = format!("{}{}", path, "version.json");
@@ -138,6 +140,7 @@ fn fetch_mooneye_test_roms() {
         source: "mts".to_string(),
         version: MOONEYE_VERSION.to_string(),
         date: chrono::Utc::now().to_string(),
+        metadata_version: "1.0.0".to_string(),
     };
     let json_path = format!("{}{}", dest_dir, "version.json");
     std::fs::write(json_path, serde_json::to_string(&metadata).unwrap())
