@@ -21,6 +21,7 @@ yagber_ppu = { workspace = true }
 yagber_clock = { workspace = true }
 yagber_link_cable = { workspace = true }
 yagber_timer = { workspace = true }
+yagber_display = { workspace = true }
 
 [dev-dependencies]
 pretty_assertions = { workspace = true }
@@ -40,3 +41,4 @@ yagber_ppu = { path = "crates/ppu" }
 yagber_memory = { path = "crates/memory" }
 yagber_link_cable = { path = "crates/link_cable" }
 yagber_timer = { path = "crates/timer" }
+yagber_display = { path = "crates/display" }

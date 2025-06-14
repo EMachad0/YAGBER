@@ -74,7 +74,7 @@ impl Emulator {
     }
 
     pub fn run<T: Runner>(self) -> T::Result {
-        let mut runner = T::new(self);
+        let runner = T::new(self);
         runner.run()
     }
 
