@@ -13,12 +13,14 @@ members = [
 tracing-subscriber = { workspace = true, features = ["env-filter"] }
 tracing = { workspace = true }
 dotenv = { workspace = true }
-yagber_memory = { path = "crates/memory" }
-yagber_cpu = { path = "crates/cpu" }
-yagber_ppu = { path = "crates/ppu" }
-yagber_clock = { path = "crates/clock" }
-yagber_link_cable = { path = "crates/link_cable" }
-yagber_timer = { path = "crates/timer" }
+
+yagber_app = { workspace = true }
+yagber_memory = { workspace = true }
+yagber_cpu = { workspace = true }
+yagber_ppu = { workspace = true }
+yagber_clock = { workspace = true }
+yagber_link_cable = { workspace = true }
+yagber_timer = { workspace = true }
 
 [dev-dependencies]
 pretty_assertions = { workspace = true }
@@ -30,6 +32,8 @@ dotenv = { version = "0.15.0" }
 tracing = { version = "0.1.41" }
 tracing-subscriber = { version = "0.3.19" }
 pretty_assertions = { version = "1.4.1" }
+
+yagber_app = { path = "crates/app" }
 yagber_cpu = { path = "crates/cpu" }
 yagber_clock = { path = "crates/clock" }
 yagber_ppu = { path = "crates/ppu" }
