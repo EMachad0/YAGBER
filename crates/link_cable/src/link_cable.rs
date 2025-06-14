@@ -1,4 +1,4 @@
-use yagber_memory::{Memory, Bus};
+use yagber_memory::{Bus, Memory};
 
 use crate::dest::{Destination, DestinationCollector};
 
@@ -67,6 +67,13 @@ impl LinkCable {
         ram.read(Self::SB_ADDR)
     }
 
+    pub fn on_tcycle(emulator: &mut yagber_app::Emulator, _event: &yagber_app::TCycleEvent) {
+        let (link_cable, bus) = emulator
+            .get_components_mut2::<LinkCable, Bus>()
+            .expect("LinkCable and/or Bus component missing");
+        link_cable.step(bus);
+    }
+
     pub fn step(&mut self, ram: &mut Bus) {
         if Self::transfer_enabled(ram) {
             let data = Self::read_data(ram);
@@ -80,5 +87,10 @@ impl LinkCable {
 
     pub fn get_buffer(&self) -> Option<&[u8]> {
         self.destinations.get_buffer()
+    }
+
+    pub fn output_buffer_for(emulator: &mut yagber_app::Emulator) -> Option<&[u8]> {
+        let link_cable = emulator.get_component_mut::<LinkCable>().unwrap();
+        link_cable.get_buffer()
     }
 }

@@ -1,8 +1,18 @@
-use yagber::Emulator;
-use yagber::HeadlessRunner;
+use yagber_app::Emulator;
+use yagber_app::HeadlessRunner;
 
 fn main() {
     yagber::init_tracing();
 
-    Emulator::new().run::<HeadlessRunner>();
+    // Order matters, some plugins depend on others
+    // TODO: Remove this foot gun
+    Emulator::new()
+        // Memory must be first
+        .with_plugin(yagber_memory::MemoryPlugin::default())
+        .with_plugin(yagber_cpu::CpuPlugin)
+        .with_plugin(yagber_ppu::PpuPlugin)
+        .with_plugin(yagber_link_cable::LinkCablePlugin::default().with_serial_output_stdout())
+        // Timer must be last
+        .with_plugin(yagber_timer::TimerPlugin)
+        .run::<HeadlessRunner>();
 }

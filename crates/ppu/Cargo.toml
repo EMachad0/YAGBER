@@ -6,5 +6,6 @@ edition = "2024"
 [dependencies]
 tracing = { workspace = true }
 
+yagber_app = { workspace = true }
 yagber_clock = { workspace = true }
 yagber_memory = { workspace = true }

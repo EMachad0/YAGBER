@@ -4,6 +4,9 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+tracing = { workspace = true }
+
+yagber_app = { workspace = true }
 arbitrary-int = { workspace = true }
 
 [features]

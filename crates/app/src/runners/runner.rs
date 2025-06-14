@@ -1,6 +1,8 @@
 use crate::emulator::Emulator;
 
 pub trait Runner {
+    type Result;
+
     fn new(emulator: Emulator) -> Self;
-    fn run(&mut self);
+    fn run(&mut self) -> Self::Result;
 }

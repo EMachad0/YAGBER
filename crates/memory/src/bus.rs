@@ -1,6 +1,6 @@
 use crate::{
-    InterruptType, MemoryObserver, boot_rom::BootRom, cartridge::Cartridge, io_registers::IOBus,
-    memory::Memory, oam::Oam, ram::Ram, register::Register, vram::Vram,
+    InterruptType, boot_rom::BootRom, cartridge::Cartridge, io_registers::IOBus, memory::Memory,
+    oam::Oam, ram::Ram, register::Register, vram::Vram,
 };
 
 #[derive(Debug)]
@@ -13,7 +13,6 @@ pub struct Bus {
     io_registers: IOBus,
     hram: Ram,
     ie: Register,
-    observers: Vec<Box<dyn MemoryObserver>>,
 }
 
 impl Bus {
@@ -27,7 +26,6 @@ impl Bus {
             io_registers: IOBus::new(),
             hram: Ram::new(0x7F, 0xFF80),
             ie: Register::new(0x00),
-            observers: Vec::new(),
         }
     }
 
@@ -79,12 +77,6 @@ impl Bus {
             // Interrupt Enable Register
             0xFFFF => self.ie.write(value),
         }
-        self.notify_observers(address, value);
-    }
-
-    pub fn add_observer<O: MemoryObserver + 'static>(&mut self, mut observer: O) {
-        observer.on_add(self);
-        self.observers.push(Box::new(observer));
     }
 
     pub fn request_interrupt(&mut self, interrupt: InterruptType) {
@@ -136,14 +128,6 @@ impl Bus {
 
     pub fn write_rom(&mut self, address: u16, value: u8) {
         self.cartridge.write(address, value);
-    }
-
-    fn notify_observers(&mut self, address: u16, value: u8) {
-        let mut observers = std::mem::take(&mut self.observers);
-        for observer in observers.iter_mut() {
-            observer.on_write(self, address, value);
-        }
-        self.observers = observers;
     }
 }
 

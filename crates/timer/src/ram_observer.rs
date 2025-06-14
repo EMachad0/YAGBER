@@ -1,4 +1,4 @@
-use yagber_memory::{Bus, MemoryObserver};
+use yagber_memory::Bus;
 
 use crate::timer::DIV_ADDR;
 
@@ -9,12 +9,14 @@ impl DivObserver {
     pub fn new() -> Self {
         Self
     }
-}
 
-impl MemoryObserver for DivObserver {
-    fn on_write(&mut self, bus: &mut Bus, address: u16, value: u8) {
-        if address == DIV_ADDR && value != 0 {
-            bus.write(address, 0);
+    pub fn on_memory_write(
+        emulator: &mut yagber_app::Emulator,
+        event: &yagber_memory::MemoryWriteEvent,
+    ) {
+        if event.address == DIV_ADDR && event.value != 0 {
+            let bus = emulator.get_component_mut::<Bus>().unwrap();
+            bus.write(DIV_ADDR, 0);
         }
     }
 }

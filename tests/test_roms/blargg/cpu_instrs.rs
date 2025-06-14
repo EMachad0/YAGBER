@@ -1,5 +1,4 @@
 use std::{fs, path::PathBuf};
-use yagber::Emulator;
 
 use crate::blargg::run_emulator;
 
@@ -15,17 +14,12 @@ fn test_blargg_cpu_instrs() {
     let out_log_path = format!("out/{}.log", ROM_PATH);
 
     let rom = fs::read(ROM_PATH).expect("Failed to read ROM");
-    let mut emu = Emulator::new()
-        .with_cartridge(&rom)
-        .with_serial_output_file(&out_log_path)
-        .with_serial_output_buffer();
 
-    let status = run_emulator(&mut emu);
-    let output_buffer = emu.get_serial_output_buffer().unwrap();
+    let status = run_emulator(&rom, &out_log_path);
     assert!(
-        status.is_success(),
+        status.result.is_success(),
         "Output buffer:\n{}",
-        String::from_utf8_lossy(output_buffer)
+        status.output_buffer
     );
 }
 
@@ -40,18 +34,13 @@ fn cpu_instrs_individual_test(test_name: &str) {
         .join(format!("{test_name}.log"));
 
     let rom = fs::read(rom_path).expect("Failed to read ROM");
-    let mut emu = Emulator::new()
-        .with_cartridge(&rom)
-        .with_serial_output_file(out_log_path.to_str().unwrap())
-        .with_serial_output_buffer();
 
-    let status = run_emulator(&mut emu);
+    let status = run_emulator(&rom, out_log_path.to_str().unwrap());
 
-    let output_buffer = emu.get_serial_output_buffer().unwrap();
     assert!(
-        status.is_success(),
+        status.result.is_success(),
         "Output buffer:\n{}",
-        String::from_utf8_lossy(output_buffer)
+        status.output_buffer
     );
 }
 

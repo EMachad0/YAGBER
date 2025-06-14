@@ -6,4 +6,6 @@ edition = "2024"
 [dependencies]
 arbitrary-int = { workspace = true }
 tracing = { workspace = true }
+
+yagber_app = { workspace = true }
 yagber_memory = { workspace = true }

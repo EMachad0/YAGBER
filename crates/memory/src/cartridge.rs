@@ -6,10 +6,15 @@ use crate::{
     ram::Ram,
 };
 
-pub struct Cartridge {
-    mbc: Box<dyn Mbc>,
-    rom: Ram,
-    ram: Ram,
+#[derive(Default)]
+pub enum Cartridge {
+    #[default]
+    Empty,
+    Loaded {
+        mbc: Box<dyn Mbc>,
+        rom: Ram,
+        ram: Ram,
+    },
 }
 
 impl Cartridge {
@@ -49,7 +54,7 @@ impl Cartridge {
             _ => panic!("Unsupported MBC type"),
         };
 
-        Self {
+        Self::Loaded {
             mbc,
             rom: Ram::from_bytes(rom, 0),
             ram: Ram::new(ram_size, 0),
@@ -57,36 +62,56 @@ impl Cartridge {
     }
 
     pub fn empty() -> Self {
-        Self {
-            mbc: Box::new(Mbc0::new()),
-            rom: Ram::new(0, 0),
-            ram: Ram::new(0, 0),
-        }
+        Self::Empty
     }
 
     pub fn read_rom(&self, address: u16) -> u8 {
-        let address = self.mbc.rom_address(address);
-        self.rom.read_usize(address)
+        match self {
+            Self::Empty => {
+                warn!("Reading from empty cartridge ROM");
+                0xFF
+            }
+            Self::Loaded { mbc, rom, .. } => {
+                let address = mbc.rom_address(address);
+                rom.read_usize(address)
+            }
+        }
     }
 
     pub fn write_rom(&mut self, address: u16, value: u8) {
-        self.mbc.rom_write(address, value);
+        match self {
+            Self::Empty => (),
+            Self::Loaded { mbc, .. } => mbc.rom_write(address, value),
+        }
     }
 
     pub fn read_ram(&self, address: u16) -> u8 {
-        if !self.mbc.ram_enabled() {
-            return 0xFF;
+        match self {
+            Self::Empty => {
+                warn!("Reading from empty cartridge RAM");
+                0xFF
+            }
+            Self::Loaded { mbc, ram, .. } => {
+                if !mbc.ram_enabled() {
+                    return 0xFF;
+                }
+                let address = mbc.ram_address(address);
+                ram.read_usize(address)
+            }
         }
-        let address = self.mbc.ram_address(address);
-        self.ram.read_usize(address)
     }
 
     pub fn write_ram(&mut self, address: u16, value: u8) {
-        if !self.mbc.ram_enabled() {
-            return;
+        match self {
+            Self::Empty => (),
+            Self::Loaded { mbc, ram, .. } => {
+                if !mbc.ram_enabled() {
+                    return;
+                }
+                let address = mbc.ram_address(address);
+                ram.write_usize(address, value);
+            }
         }
-        let address = self.mbc.ram_address(address);
-        self.ram.write_usize(address, value);
     }
 
     pub fn read(&self, address: u16) -> u8 {
@@ -106,18 +131,16 @@ impl Cartridge {
     }
 }
 
-impl Default for Cartridge {
-    fn default() -> Self {
-        Self::empty()
-    }
-}
-
 impl std::fmt::Debug for Cartridge {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("Cartridge")
-            .field("rom_size", &self.rom.len())
-            .field("ram_size", &self.ram.len())
-            .finish()
+        match self {
+            Self::Empty => f.write_str("Empty Cartridge"),
+            Self::Loaded { rom, ram, .. } => f
+                .debug_struct("Loaded Cartridge")
+                .field("rom_size", &rom.len())
+                .field("ram_size", &ram.len())
+                .finish(),
+        }
     }
 }
 

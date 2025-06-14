@@ -6,6 +6,8 @@ pub struct HeadlessRunner {
 }
 
 impl Runner for HeadlessRunner {
+    type Result = ();
+
     fn new(emulator: Emulator) -> Self {
         Self { emulator }
     }

@@ -1,13 +1,10 @@
-mod emulator;
-mod runners;
-
-pub use emulator::Emulator;
-pub use runners::{HeadlessRunner, Runner};
-
+pub use yagber_app as app;
 pub use yagber_clock as clock;
 pub use yagber_cpu as cpu;
 pub use yagber_memory as ram;
 pub use yagber_ppu as ppu;
+
+pub use yagber_app::Emulator;
 
 pub fn init_tracing() {
     dotenv::dotenv().ok();

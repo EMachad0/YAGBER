@@ -35,6 +35,13 @@ impl Cpu {
         }
     }
 
+    pub fn on_mcycle(emulator: &mut yagber_app::Emulator, _event: &yagber_app::MCycleEvent) {
+        let (cpu, bus) = emulator
+            .get_components_mut2::<Cpu, Bus>()
+            .expect("Cpu and/or Bus component missing");
+        cpu.step(bus);
+    }
+
     /// Perform a single CPU step
     /// Respects instruction timing
     /// Represents a single M-cycle

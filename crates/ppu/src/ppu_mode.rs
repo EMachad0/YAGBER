@@ -1,6 +1,7 @@
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Default)]
 pub enum PpuMode {
     /// 0b00
+    #[default]
     HBlank,
     /// 0b01
     VBlank,

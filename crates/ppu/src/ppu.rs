@@ -13,7 +13,16 @@ impl Ppu {
     pub const LCD_CONTROL_ADDRESS: u16 = 0xFF40;
 
     pub fn new() -> Self {
+        // Initial mode does not matter, it will be updated on add
         Self::default()
+    }
+
+    pub fn on_dot_cycle(emulator: &mut yagber_app::Emulator, _event: &yagber_app::DotCycleEvent) {
+        let (bus, ppu) = emulator
+            .get_components_mut2::<Bus, Ppu>()
+            .expect("Bus and/or PPU component missing");
+
+        ppu.step(bus);
     }
 
     pub fn step(&mut self, bus: &mut Bus) {
