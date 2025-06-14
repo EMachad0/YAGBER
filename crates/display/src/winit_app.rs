@@ -44,18 +44,24 @@ impl ApplicationHandler for WinitApp {
                 event_loop.exit();
             }
             WindowEvent::RedrawRequested => {
-                // Perform update
-                self.emulator.step();
-
                 let display = self.emulator.get_component::<Display>();
                 if display.is_none() {
                     return;
                 }
 
-                let display = display.unwrap();
-                display.window.request_redraw();
+                info!("Redraw requested");
             }
             _ => (),
         }
+    }
+
+    fn about_to_wait(&mut self, _event_loop: &winit::event_loop::ActiveEventLoop) {
+        self.emulator.step();
+
+        // if self.emulator.frame_ready() {
+        //     if let Some(display) = self.emulator.get_component::<Display>() {
+        //         display.window.request_redraw();
+        //     }
+        // }
     }
 }
