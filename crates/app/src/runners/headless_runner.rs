@@ -12,7 +12,7 @@ impl Runner for HeadlessRunner {
         Self { emulator }
     }
 
-    fn run(&mut self) {
+    fn run(mut self) {
         // Never exit
         loop {
             self.emulator.step();

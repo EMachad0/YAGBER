@@ -63,7 +63,7 @@ impl yagber::app::Runner for MtsTestRunner {
         Self::new(emulator)
     }
 
-    fn run(&mut self) -> Self::Result {
+    fn run(mut self) -> Self::Result {
         let result = self.run_until_result();
         let output_buffer =
             yagber_link_cable::LinkCable::output_buffer_for(&mut self.emulator).unwrap();

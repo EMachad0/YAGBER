@@ -4,5 +4,5 @@ pub trait Runner {
     type Result;
 
     fn new(emulator: Emulator) -> Self;
-    fn run(&mut self) -> Self::Result;
+    fn run(self) -> Self::Result;
 }
