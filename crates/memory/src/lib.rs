@@ -11,6 +11,7 @@ mod oam;
 mod ram;
 mod register;
 mod vram;
+mod wram;
 
 pub use bus::Bus;
 pub use events::MemoryWriteEvent;
@@ -49,6 +50,8 @@ impl yagber_app::Plugin for MemoryPlugin {
         let memory_bus = std::mem::take(&mut self.memory_bus).unwrap();
         emulator
             .with_component(memory_bus)
-            .with_event::<MemoryWriteEvent>();
+            .with_event::<MemoryWriteEvent>()
+            .with_event_handler(crate::vram::Vram::on_memory_write)
+            .with_event_handler(crate::wram::Wram::on_memory_write);
     }
 }

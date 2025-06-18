@@ -1,6 +1,6 @@
 use crate::{
     InterruptType, boot_rom::BootRom, cartridge::Cartridge, io_registers::IOBus, memory::Memory,
-    oam::Oam, ram::Ram, register::Register, vram::Vram,
+    oam::Oam, ram::Ram, register::Register, vram::Vram, wram::Wram,
 };
 
 #[derive(Debug)]
@@ -8,7 +8,7 @@ pub struct Bus {
     boot_rom: BootRom,
     cartridge: Cartridge,
     vram: Vram,
-    wram: Ram,
+    wram: Wram,
     oam: Oam,
     io_registers: IOBus,
     hram: Ram,
@@ -21,7 +21,7 @@ impl Bus {
             boot_rom: BootRom::new(),
             cartridge: Cartridge::empty(),
             vram: Vram::new(),
-            wram: Ram::new(0x2000, 0xC000),
+            wram: Wram::new(),
             oam: Oam::new(),
             io_registers: IOBus::new(),
             hram: Ram::new(0x7F, 0xFF80),
@@ -128,6 +128,14 @@ impl Bus {
 
     pub fn write_rom(&mut self, address: u16, value: u8) {
         self.cartridge.write(address, value);
+    }
+
+    pub(crate) fn vram_mut(&mut self) -> &mut Vram {
+        &mut self.vram
+    }
+
+    pub(crate) fn wram_mut(&mut self) -> &mut Wram {
+        &mut self.wram
     }
 }
 
