@@ -1,11 +1,31 @@
 use winit::window::Window;
 
+pub use pixels::Error as PixelsError;
+
 pub struct Display {
-    pub window: Window,
+    window: std::sync::Arc<Window>,
+    pixels: pixels::Pixels<'static>,
 }
 
 impl Display {
-    pub fn new(window: Window) -> Self {
-        Self { window }
+    pub const WIDTH: u32 = 160;
+    pub const HEIGHT: u32 = 144;
+
+    pub fn new(window: Window) -> Result<Self, pixels::Error> {
+        let window = std::sync::Arc::new(window);
+        let window_size = window.inner_size();
+        let surface_texture =
+            pixels::SurfaceTexture::new(window_size.width, window_size.height, window.clone());
+        let pixels = pixels::Pixels::new(Self::WIDTH, Self::HEIGHT, surface_texture)?;
+
+        Ok(Self { window, pixels })
+    }
+
+    pub fn frame_buffer(&mut self) -> &mut [u8] {
+        self.pixels.frame_mut()
+    }
+
+    pub fn render(&mut self) -> Result<(), pixels::Error> {
+        self.pixels.render()
     }
 }

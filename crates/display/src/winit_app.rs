@@ -14,7 +14,7 @@ impl WinitApp {
 
     pub fn window_attributes() -> WindowAttributes {
         WindowAttributes::default()
-            .with_inner_size(LogicalSize::new(160, 144))
+            .with_inner_size(LogicalSize::new(Display::WIDTH, Display::HEIGHT))
             .with_resizable(false)
             .with_title("YAGBER")
     }
@@ -24,8 +24,10 @@ impl ApplicationHandler for WinitApp {
     fn resumed(&mut self, event_loop: &winit::event_loop::ActiveEventLoop) {
         let display = self.emulator.get_component::<Display>();
         if display.is_none() {
-            let window = event_loop.create_window(Self::window_attributes()).unwrap();
-            let display = Display::new(window);
+            let window = event_loop
+                .create_window(Self::window_attributes())
+                .expect("Failed to create window");
+            let display = Display::new(window).expect("Failed to create display");
             self.emulator.with_component(display);
         }
     }
