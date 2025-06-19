@@ -65,6 +65,17 @@ impl CramInner {
             self.specification.increment();
         }
     }
+
+    /// Reads a colour from the CRAM.
+    /// Returns the RGB555 value of the colour.
+    pub fn read_colour(&self, palette_index: u8, colour_index: u8) -> u16 {
+        let palette_index = palette_index as usize;
+        let colour_index = colour_index as usize;
+        let offset = (palette_index * 4 + colour_index) * 2;
+        let colour_lo = self.data[offset];
+        let colour_hi = self.data[offset + 1];
+        u16::from_le_bytes([colour_lo, colour_hi])
+    }
 }
 
 impl Default for CramInner {
@@ -95,6 +106,10 @@ impl Cram {
 
     pub fn set_accessible(&mut self, accessible: bool) {
         self.inner.borrow_mut().accessible = accessible;
+    }
+
+    pub fn read_colour(&self, palette_index: u8, colour_index: u8) -> u16 {
+        self.inner.borrow().read_colour(palette_index, colour_index)
     }
 }
 

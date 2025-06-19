@@ -60,16 +60,29 @@ impl Vram {
         self.current_bank = bank;
     }
 
+    pub fn tile(&self, bank: bool, address: u16) -> &[Option<u8>] {
+        let bank = if bank { 1 } else { 0 };
+        let address = address as usize - Self::OFFSET;
+        &self.ram[bank].data_slice()[address..address + 16]
+    }
+
     pub fn tile_map(&self, lcdc3: bool) -> &[Option<u8>] {
-        if !lcdc3 {
-            let start = 0x9800 - Self::OFFSET;
-            let end = 0x9BFF - Self::OFFSET;
-            &self.ram[0].data_slice()[start..=end]
+        let (start, end) = self.get_map_range(lcdc3);
+        &self.ram[0].data_slice()[start..end]
+    }
+
+    pub fn attr_map(&self, lcdc3: bool) -> &[Option<u8>] {
+        let (start, end) = self.get_map_range(lcdc3);
+        &self.ram[1].data_slice()[start..end]
+    }
+
+    fn get_map_range(&self, lcdc3: bool) -> (usize, usize) {
+        let (start, end) = if !lcdc3 {
+            (0x9800, 0x9C00)
         } else {
-            let start = 0x9C00 - Self::OFFSET;
-            let end = 0x9FFF - Self::OFFSET;
-            &self.ram[0].data_slice()[start..=end]
-        }
+            (0x9C00, 0xA000)
+        };
+        (start - Self::OFFSET, end - Self::OFFSET)
     }
 }
 

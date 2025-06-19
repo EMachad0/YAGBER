@@ -21,12 +21,12 @@ impl Ppu {
             .get_components_mut2::<Bus, Ppu>()
             .expect("Bus and/or PPU component missing");
 
-        // Step the PPU even if there's no display, so that the scan line index is updated and interrupt is requested if necessary.
-        ppu.step(bus);
-
         if !Ppu::enabled(bus) {
             return;
         }
+
+        // Step the PPU even if there's no display, so that the scan line index is updated and interrupt is requested if necessary.
+        ppu.step(bus);
 
         // If the ppu just finished to draw a frame, we need to render it.
         if Ppu::scan_line_index(bus) != 144 || ppu.scan_line.dots() != 0 {
@@ -43,7 +43,8 @@ impl Ppu {
 
         let tile_fetcher_mode = bus.read_bit(Self::LCD_CONTROL_ADDRESS, 4);
         let bg_addr_mode = bus.read_bit(Self::LCD_CONTROL_ADDRESS, 3);
-        let bg_addr = bus.vram.tile_map(bg_addr_mode);
+        let bg_tile_map = bus.vram.tile_map(bg_addr_mode);
+        let gb_attr_map = bus.vram.attr_map(bg_addr_mode);
 
         let tile_addr = {
             if tile_fetcher_mode {
@@ -64,20 +65,22 @@ impl Ppu {
 
         for i in 0..32 {
             for j in 0..32 {
-                let tile_index = bg_addr[i * 32 + j].unwrap_or(0xFF);
+                let tile_index = bg_tile_map[i * 32 + j].expect("Tile index is missing");
                 let tile_addr = tile_addr(tile_index);
-                let tile = crate::tile::Tile::from_memory(bus, tile_addr);
+                let tile_attr = gb_attr_map[i * 32 + j].expect("Tile attribute is missing");
+                let tile = crate::tile::Tile::from_memory(bus, tile_addr, tile_attr);
 
                 for y in 0..8 {
                     for x in 0..8 {
-                        let pixel = tile.get_pixel(x as u8, y as u8);
-                        let pixel = match pixel {
-                            0b00 => [0, 0, 0, 255],       // Black
-                            0b01 => [255, 255, 255, 255], // White
-                            0b10 => [255, 0, 0, 255],     // Red
-                            0b11 => [0, 255, 0, 255],     // Green
-                            _ => unreachable!("Invalid pixel colour: {}", pixel),
-                        };
+                        let colour_index = tile.colour_index(x as u8, y as u8);
+                        let palette_index = tile.attr.palette_index();
+                        let colour = bus.background_cram.read_colour(palette_index, colour_index);
+                        let red = (colour & 0b11111) as u8 * 8;
+                        let green = ((colour >> 5) & 0b11111) as u8 * 8;
+                        let blue = ((colour >> 10) & 0b11111) as u8 * 8;
+                        let alpha = 255;
+                        let pixel = [red, green, blue, alpha];
+
                         let pixel_index = (i * 8 + y) * 256 + (j * 8 + x);
 
                         pixels[pixel_index] = pixel;
