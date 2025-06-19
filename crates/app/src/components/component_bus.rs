@@ -18,6 +18,11 @@ impl ComponentBus {
         self.components.insert(type_id, Box::new(component));
     }
 
+    pub fn has_component<T: Component>(&self) -> bool {
+        let type_id = std::any::TypeId::of::<T>();
+        self.components.contains_key(&type_id)
+    }
+
     pub fn get_component<T: Component>(&self) -> Option<&T> {
         let type_id = std::any::TypeId::of::<T>();
         self.components

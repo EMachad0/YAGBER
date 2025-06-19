@@ -21,49 +21,55 @@ impl Ppu {
             .get_components_mut2::<Bus, Ppu>()
             .expect("Bus and/or PPU component missing");
 
-        ppu.step(bus);
-
         if !Ppu::enabled(bus) {
             return;
         }
 
-        if Ppu::scan_line_index(bus) != 0 || ppu.scan_line.dots() != 0 {
+        // Step the PPU even if there's no display, so that the scan line index is updated and interrupt is requested if necessary.
+        ppu.step(bus);
+
+        // If the ppu just finished to draw a frame, we need to render it.
+        if Ppu::scan_line_index(bus) != 144 || ppu.scan_line.dots() != 0 {
             return;
         }
 
-        let bus_display = emulator.get_components_mut2::<Bus, yagber_display::Display>();
-
-        if bus_display.is_none() {
+        // If the display component is not present, there's nowhere to render to.
+        if !emulator.has_component::<yagber_display::Display>() {
             return;
         }
-        let (bus, display) = bus_display.unwrap();
+        let (bus, display) = emulator
+            .get_components_mut2::<Bus, yagber_display::Display>()
+            .expect("Bus and/or Display component missing");
 
         let tile_fetcher_mode = bus.read_bit(Self::LCD_CONTROL_ADDRESS, 4);
         let bg_addr_mode = bus.read_bit(Self::LCD_CONTROL_ADDRESS, 3);
         let bg_addr = if bg_addr_mode { 0x9C00 } else { 0x9800 };
 
-        let tile_addr = |tile_index: u8| {
+        let tile_addr = {
             if tile_fetcher_mode {
-                let tile_index = tile_index as u16;
-                (0x8000u16).checked_add(tile_index * 16)
+                |tile_index: u8| {
+                    let tile_index = tile_index as u16;
+                    0x8000u16 + tile_index * 16
+                }
             } else {
-                let tile_index = tile_index as i8 as i16;
-                (0x9000u16).checked_add_signed(tile_index * 16)
+                |tile_index: u8| {
+                    let tile_index = tile_index as i8 as i32;
+                    (0x9000i32 + tile_index * 16) as u16
+                }
             }
         };
 
+        let mut changed = false;
         let mut pixels = [[0; 4]; 256 * 256];
 
-        assert_eq!(pixels.len(), 256 * 256);
         for i in 0..32 {
             for j in 0..32 {
                 let tile_index = bus.read(bg_addr + (i * 32 + j));
-                let tile_addr = tile_addr(tile_index).expect("Tile address out of bounds");
+                let tile_addr = tile_addr(tile_index);
                 let tile = crate::tile::Tile::from_memory(bus, tile_addr);
 
                 for y in 0..8 {
                     for x in 0..8 {
-                        // let pixel = [8 * i as u8, 8 * j as u8, 4 * (i + j) as u8, 255];
                         let pixel = tile.get_pixel(x as u8, y as u8);
                         let pixel = match pixel {
                             0b00 => [0, 0, 0, 255],       // Black
@@ -73,6 +79,7 @@ impl Ppu {
                             _ => unreachable!("Invalid pixel colour: {}", pixel),
                         };
                         let pixel_index = (i * 8 + y) * 256 + (j * 8 + x);
+
                         pixels[pixel_index as usize] = pixel;
                     }
                 }
@@ -80,12 +87,15 @@ impl Ppu {
         }
 
         let frame_buffer = display.frame_buffer();
-        assert_eq!(frame_buffer.len(), 256 * 256 * 4);
         for (i, pixel) in frame_buffer.chunks_exact_mut(4).enumerate() {
-            pixel.copy_from_slice(&pixels[i]);
+            if changed || pixels[i] != *pixel {
+                changed = true;
+                pixel.copy_from_slice(&pixels[i]);
+            }
         }
-
-        display.request_redraw();
+        if changed {
+            display.request_redraw();
+        }
     }
 
     pub fn step(&mut self, bus: &mut Bus) {

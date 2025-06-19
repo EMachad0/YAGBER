@@ -104,6 +104,10 @@ impl Emulator {
         self
     }
 
+    pub fn has_component<C: Component>(&self) -> bool {
+        self.components.has_component::<C>()
+    }
+
     pub fn get_component_mut<C: Component>(&mut self) -> Option<&mut C> {
         self.components.get_component_mut::<C>()
     }
