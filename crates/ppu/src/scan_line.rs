@@ -33,6 +33,10 @@ impl ScanLine {
     pub fn finished(&self) -> bool {
         self.finished
     }
+
+    pub(crate) fn dots(&self) -> u32 {
+        self.dots
+    }
 }
 
 impl Default for ScanLine {

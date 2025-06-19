@@ -14,7 +14,10 @@ impl WinitApp {
 
     pub fn window_attributes() -> WindowAttributes {
         WindowAttributes::default()
-            .with_inner_size(LogicalSize::new(Display::WIDTH, Display::HEIGHT))
+            .with_inner_size(LogicalSize::new(
+                Display::WIDTH * Display::SCALE_FACTOR,
+                Display::HEIGHT * Display::SCALE_FACTOR,
+            ))
             .with_resizable(false)
             .with_title("YAGBER")
     }
@@ -46,12 +49,15 @@ impl ApplicationHandler for WinitApp {
                 event_loop.exit();
             }
             WindowEvent::RedrawRequested => {
-                let display = self.emulator.get_component::<Display>();
+                let display = self.emulator.get_component_mut::<Display>();
                 if display.is_none() {
                     return;
                 }
 
-                info!("Redraw requested");
+                let display = display.unwrap();
+                display.render().unwrap();
+
+                trace!("Redraw requested");
             }
             _ => (),
         }

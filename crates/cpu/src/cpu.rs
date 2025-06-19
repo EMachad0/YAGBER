@@ -82,13 +82,13 @@ impl Cpu {
     /// Perform a single CPU step
     /// returns the number of M-cycles taken by the instruction
     fn instruction_step(&mut self, bus: &mut Bus) {
+        if self.pc == 0x0100 {
+            debug!("Boot Rom Completed, Starting cartridge");
+        }
+
         // Fetch the next instruction
         let instruction = self.read_instruction(bus);
         trace!("{:?}", instruction);
-
-        if self.pc == 0x0100 {
-            trace!("Boot Rom Completed, Starting cartridge");
-        }
 
         // Execute the instruction
         self.execute_instruction(bus, &instruction);
