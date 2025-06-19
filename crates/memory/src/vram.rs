@@ -42,7 +42,7 @@ impl Vram {
         }
     }
 
-    pub(crate) fn set_accessible(&mut self, accessible: bool) {
+    pub fn set_accessible(&mut self, accessible: bool) {
         self.accessible = accessible;
     }
 
@@ -52,12 +52,24 @@ impl Vram {
             let memory_bus = emulator
                 .get_component_mut::<Bus>()
                 .expect("MemoryBus not found");
-            memory_bus.vram_mut().set_bank(bank as usize);
+            memory_bus.vram.set_bank(bank as usize);
         }
     }
 
     pub fn set_bank(&mut self, bank: usize) {
         self.current_bank = bank;
+    }
+
+    pub fn tile_map(&self, lcdc3: bool) -> &[Option<u8>] {
+        if !lcdc3 {
+            let start = 0x9800 - Self::OFFSET;
+            let end = 0x9BFF - Self::OFFSET;
+            &self.ram[0].data_slice()[start..=end]
+        } else {
+            let start = 0x9C00 - Self::OFFSET;
+            let end = 0x9FFF - Self::OFFSET;
+            &self.ram[0].data_slice()[start..=end]
+        }
     }
 }
 

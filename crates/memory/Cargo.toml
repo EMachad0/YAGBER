@@ -4,10 +4,11 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+arbitrary-int = { workspace = true }
+strum = { workspace = true, features = ["derive"] }
 tracing = { workspace = true }
 
 yagber_app = { workspace = true }
-arbitrary-int = { workspace = true }
 
 [features]
 default = ["break_on_unitialized_ram_read"]

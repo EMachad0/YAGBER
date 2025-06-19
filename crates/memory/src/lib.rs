@@ -1,6 +1,7 @@
 mod boot_rom;
 mod bus;
 mod cartridge;
+mod cram;
 mod events;
 mod interrupt;
 mod io_registers;
@@ -15,7 +16,9 @@ mod wram;
 pub use bus::Bus;
 pub use events::MemoryWriteEvent;
 pub use interrupt::InterruptType;
+pub use io_registers::IOType;
 pub use memory::Memory;
+pub use register::{Register, ByteRegister};
 
 #[macro_use]
 extern crate tracing;

@@ -43,7 +43,7 @@ impl Ppu {
 
         let tile_fetcher_mode = bus.read_bit(Self::LCD_CONTROL_ADDRESS, 4);
         let bg_addr_mode = bus.read_bit(Self::LCD_CONTROL_ADDRESS, 3);
-        let bg_addr = if bg_addr_mode { 0x9C00 } else { 0x9800 };
+        let bg_addr = bus.vram.tile_map(bg_addr_mode);
 
         let tile_addr = {
             if tile_fetcher_mode {
@@ -64,7 +64,7 @@ impl Ppu {
 
         for i in 0..32 {
             for j in 0..32 {
-                let tile_index = bus.read(bg_addr + (i * 32 + j));
+                let tile_index = bg_addr[i * 32 + j].unwrap_or(0xFF);
                 let tile_addr = tile_addr(tile_index);
                 let tile = crate::tile::Tile::from_memory(bus, tile_addr);
 
@@ -80,7 +80,7 @@ impl Ppu {
                         };
                         let pixel_index = (i * 8 + y) * 256 + (j * 8 + x);
 
-                        pixels[pixel_index as usize] = pixel;
+                        pixels[pixel_index] = pixel;
                     }
                 }
             }
@@ -102,7 +102,7 @@ impl Ppu {
         self.scan_line.step(bus);
         if self.scan_line.finished() {
             let scan_line_index = Self::scan_line_index(bus);
-            if scan_line_index + 1 > 153 {
+            if scan_line_index >= 153 {
                 Self::set_scan_line_index(bus, 0);
             } else {
                 Self::set_scan_line_index(bus, scan_line_index + 1);

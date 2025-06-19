@@ -50,7 +50,7 @@ impl Wram {
             Self::OFFSET_BANK_1..Self::END_ADDRESS_BANK_1 => {
                 self.ram[current_bank].write(address, value)
             }
-            _ => unreachable!("Wram: write to invalid address: {}", address),
+            _ => unreachable!("Wram: write to invalid address: {:X}", address),
         }
     }
 
@@ -60,7 +60,7 @@ impl Wram {
             let memory_bus = emulator
                 .get_component_mut::<Bus>()
                 .expect("MemoryBus not found");
-            memory_bus.wram_mut().set_bank(bank as usize);
+            memory_bus.wram.set_bank(bank as usize);
         }
     }
 

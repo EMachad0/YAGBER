@@ -1,34 +1,47 @@
 use yagber_app::EventSender;
 
 use crate::{
-    InterruptType, MemoryWriteEvent, boot_rom::BootRom, cartridge::Cartridge, io_registers::IOBus,
-    memory::Memory, oam::Oam, ram::Ram, register::Register, vram::Vram, wram::Wram,
+    ByteRegister, IOType, InterruptType, MemoryWriteEvent, boot_rom::BootRom, cartridge::Cartridge,
+    cram::Cram, io_registers::IOBus, memory::Memory, oam::Oam, ram::Ram, vram::Vram, wram::Wram,
 };
 
 #[derive(Debug)]
 pub struct Bus {
     boot_rom: BootRom,
     cartridge: Cartridge,
-    vram: Vram,
-    wram: Wram,
-    oam: Oam,
     io_registers: IOBus,
     hram: Ram,
-    ie: Register,
+    ie: ByteRegister,
     event_sender: Option<EventSender>,
+    pub vram: Vram,
+    pub wram: Wram,
+    pub oam: Oam,
+    pub background_cram: Cram,
+    pub object_cram: Cram,
 }
 
 impl Bus {
     pub fn new() -> Self {
+        let background_cram = Cram::new();
+        let object_cram = Cram::new();
+        let io_registers = IOBus::new()
+            .with_register(IOType::JOYP, crate::ByteRegister::new(0xFF))
+            .with_register(IOType::BCPS, background_cram.writer())
+            .with_register(IOType::BCPD, background_cram.reader())
+            .with_register(IOType::OCPS, object_cram.writer())
+            .with_register(IOType::OCPD, object_cram.reader());
+
         Self {
             boot_rom: BootRom::new(),
             cartridge: Cartridge::empty(),
             vram: Vram::new(),
             wram: Wram::new(),
             oam: Oam::new(),
-            io_registers: IOBus::new(),
+            io_registers,
             hram: Ram::new(0x7F, 0xFF80),
-            ie: Register::new(0x00),
+            ie: ByteRegister::new(0x00),
+            background_cram,
+            object_cram,
             event_sender: None,
         }
     }
@@ -74,7 +87,7 @@ impl Bus {
             // WRAM
             0xC000..=0xDFFF => self.wram.write(address, value),
             // Echo RAM
-            0xE000..=0xFDFF => self.wram.write(address, value),
+            0xE000..=0xFDFF => self.wram.write(address - 0x2000, value),
             // OAM
             0xFE00..=0xFE9F => self.oam.write(address, value),
             // Unusable
@@ -93,19 +106,11 @@ impl Bus {
     }
 
     pub fn request_interrupt(&mut self, interrupt: InterruptType) {
-        self.io_registers.request_interrupt(interrupt);
+        self.set_bit(InterruptType::IF_ADDRESS, interrupt.to_u8());
     }
 
     pub fn clear_interrupt(&mut self, interrupt: InterruptType) {
-        self.io_registers.clear_interrupt(interrupt);
-    }
-
-    pub fn set_vram_accessibility(&mut self, accessible: bool) {
-        self.vram.set_accessible(accessible);
-    }
-
-    pub fn set_oam_accessibility(&mut self, accessible: bool) {
-        self.oam.set_accessible(accessible);
+        self.clear_bit(InterruptType::IF_ADDRESS, interrupt.to_u8());
     }
 
     pub fn get_priority_interrupt(&self) -> Option<InterruptType> {
@@ -130,7 +135,7 @@ impl Bus {
 
     pub fn read_rom(&self, address: u16) -> u8 {
         if self.booting() {
-            // On the game boy color, the boot ROM is split into two parts:
+            // On the game boy colour, the boot ROM is split into two parts:
             // 0x0000..=0x00FF and 0x0200..=0x08FF
             if let 0x0000..=0x00FF | 0x0200..=0x08FF = address {
                 return self.boot_rom.read(address as usize);
@@ -141,14 +146,6 @@ impl Bus {
 
     pub fn write_rom(&mut self, address: u16, value: u8) {
         self.cartridge.write(address, value);
-    }
-
-    pub(crate) fn vram_mut(&mut self) -> &mut Vram {
-        &mut self.vram
-    }
-
-    pub(crate) fn wram_mut(&mut self) -> &mut Wram {
-        &mut self.wram
     }
 }
 

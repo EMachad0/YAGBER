@@ -31,7 +31,7 @@ impl Oam {
         }
     }
 
-    pub(crate) fn set_accessible(&mut self, accessible: bool) {
+    pub fn set_accessible(&mut self, accessible: bool) {
         self.accessible = accessible;
     }
 }

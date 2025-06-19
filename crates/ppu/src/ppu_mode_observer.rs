@@ -22,14 +22,21 @@ impl PpuModeObserver {
     fn update_accessibility(bus: &mut Bus, mode: PpuMode) {
         Self::update_vram_accessibility(bus, mode);
         Self::update_oam_accessibility(bus, mode);
+        Self::update_cram_accessibility(bus, mode);
     }
 
     fn update_vram_accessibility(bus: &mut Bus, mode: PpuMode) {
-        bus.set_vram_accessibility(mode != PpuMode::PixelTransfer);
+        bus.vram.set_accessible(mode != PpuMode::PixelTransfer);
     }
 
     fn update_oam_accessibility(bus: &mut Bus, mode: PpuMode) {
         let accessible = matches!(mode, PpuMode::OamScan | PpuMode::PixelTransfer);
-        bus.set_oam_accessibility(accessible);
+        bus.oam.set_accessible(accessible);
+    }
+
+    fn update_cram_accessibility(bus: &mut Bus, mode: PpuMode) {
+        let accessible = mode != PpuMode::PixelTransfer;
+        bus.background_cram.set_accessible(accessible);
+        bus.object_cram.set_accessible(accessible);
     }
 }

@@ -1,18 +1,34 @@
-#[derive(Debug, Default, Clone, Copy)]
-pub struct Register {
-    value: u8,
+pub trait Register {
+    fn read(&self) -> u8;
+    fn write(&mut self, value: u8);
 }
 
-impl Register {
-    pub fn new(value: u8) -> Self {
-        Register { value }
+/// A register that can be read and written to as a single byte.
+#[derive(Debug, Copy, Clone)]
+pub struct ByteRegister {
+    data: u8,
+}
+
+impl ByteRegister {
+    pub fn new(data: u8) -> Self {
+        Self { data }
     }
 
     pub fn read(&self) -> u8 {
-        self.value
+        self.data
     }
 
     pub fn write(&mut self, value: u8) {
-        self.value = value;
+        self.data = value;
+    }
+}
+
+impl Register for ByteRegister {
+    fn read(&self) -> u8 {
+        self.read()
+    }
+
+    fn write(&mut self, value: u8) {
+        self.write(value);
     }
 }
