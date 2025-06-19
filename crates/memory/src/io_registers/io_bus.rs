@@ -1,7 +1,7 @@
 use crate::{InterruptType, memory::Memory};
 
 pub const IO_REGISTERS_OFFSET: u16 = 0xFF00;
-pub const IO_REGISTERS_SIZE: usize = 0x007F;
+pub const IO_REGISTERS_SIZE: usize = 0x0080;
 
 #[derive(Debug, Clone, Copy)]
 pub struct IOBus {

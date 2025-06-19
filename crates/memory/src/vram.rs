@@ -20,7 +20,7 @@ impl Vram {
                 Ram::new(Self::SIZE, Self::OFFSET),
             ],
             current_bank: 0,
-            accessible: false,
+            accessible: true,
         }
     }
 

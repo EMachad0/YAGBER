@@ -13,7 +13,7 @@ impl Oam {
     pub fn new() -> Self {
         Self {
             ram: Ram::new(Self::SIZE, Self::OFFSET),
-            accessible: false,
+            accessible: true,
         }
     }
 
