@@ -21,7 +21,7 @@ impl Destination {
             }
             Destination::Stdout(stdout) => {
                 stdout.write_all(&[data])?;
-                stdout.write_all(&[b'\n'])?;
+                stdout.write_all(b"\n")?;
                 stdout.flush()?;
                 Ok(())
             }

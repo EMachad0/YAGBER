@@ -1,6 +1,8 @@
+use yagber_app::EventSender;
+
 use crate::{
-    InterruptType, boot_rom::BootRom, cartridge::Cartridge, io_registers::IOBus, memory::Memory,
-    oam::Oam, ram::Ram, register::Register, vram::Vram, wram::Wram,
+    InterruptType, MemoryWriteEvent, boot_rom::BootRom, cartridge::Cartridge, io_registers::IOBus,
+    memory::Memory, oam::Oam, ram::Ram, register::Register, vram::Vram, wram::Wram,
 };
 
 #[derive(Debug)]
@@ -13,6 +15,7 @@ pub struct Bus {
     io_registers: IOBus,
     hram: Ram,
     ie: Register,
+    event_sender: Option<EventSender>,
 }
 
 impl Bus {
@@ -26,7 +29,13 @@ impl Bus {
             io_registers: IOBus::new(),
             hram: Ram::new(0x7F, 0xFF80),
             ie: Register::new(0x00),
+            event_sender: None,
         }
+    }
+
+    pub fn with_event_sender(&mut self, event_sender: EventSender) -> &mut Self {
+        self.event_sender = Some(event_sender);
+        self
     }
 
     pub fn read(&self, address: u16) -> u8 {
@@ -76,6 +85,10 @@ impl Bus {
             0xFF80..=0xFFFE => self.hram.write(address, value),
             // Interrupt Enable Register
             0xFFFF => self.ie.write(value),
+        }
+
+        if let Some(event_sender) = &self.event_sender {
+            event_sender.send(MemoryWriteEvent::new(address, value));
         }
     }
 

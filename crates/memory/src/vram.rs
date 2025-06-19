@@ -14,10 +14,14 @@ impl Vram {
     const BANK_SELECT_ADDRESS: u16 = 0xFF4F;
 
     pub fn new() -> Self {
+        // Initialise VRAM with 0xFF just like on real hardware after power-up
+        // so that early reads (e.g. during boot ROM execution) don't
+        // trigger the `break_on_unitialized_ram_read` debug assertion.
+        let blank = vec![0xFF; Self::SIZE];
         Self {
             ram: [
-                Ram::new(Self::SIZE, Self::OFFSET),
-                Ram::new(Self::SIZE, Self::OFFSET),
+                Ram::from_bytes(&blank, Self::OFFSET),
+                Ram::from_bytes(&blank, Self::OFFSET),
             ],
             current_bank: 0,
             accessible: true,

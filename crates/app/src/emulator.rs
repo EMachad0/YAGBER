@@ -1,12 +1,12 @@
 use crate::{
     Component, DotCycleEvent, Event, EventBus, MCycleEvent, Plugin, TCycleEvent,
-    components::ComponentBus, runners::Runner,
+    components::ComponentBus, events::EventQueue, runners::Runner,
 };
 
 pub struct Emulator {
     cycles: u64,
     components: ComponentBus,
-    event_queue: Vec<Box<dyn Event>>,
+    event_queue: EventQueue,
 }
 
 impl Emulator {
@@ -14,7 +14,7 @@ impl Emulator {
         Self {
             cycles: 0,
             components: ComponentBus::new(),
-            event_queue: Vec::new(),
+            event_queue: EventQueue::new(),
         }
         .with_default_components()
     }
@@ -34,11 +34,12 @@ impl Emulator {
     pub fn step(&mut self) {
         self.cycles += 1;
 
-        self.emit_event(TCycleEvent { cycle: self.cycles });
-        self.emit_event(DotCycleEvent { cycle: self.cycles });
+        let sender = self.event_queue.sender();
+        sender.send(TCycleEvent { cycle: self.cycles });
+        sender.send(DotCycleEvent { cycle: self.cycles });
         if self.is_m_cycle() {
             let cycle = self.cycles / 4;
-            self.emit_event(MCycleEvent { cycle });
+            sender.send(MCycleEvent { cycle });
         }
 
         while let Some(event) = self.event_queue.pop() {
@@ -78,10 +79,6 @@ impl Emulator {
         runner.run()
     }
 
-    pub fn emit_event<E: Event>(&mut self, event: E) {
-        self.event_queue.push(Box::new(event));
-    }
-
     pub fn with_plugin<P: Plugin>(mut self, plugin: P) -> Self {
         plugin.init(&mut self);
         self
@@ -102,6 +99,10 @@ impl Emulator {
         let event_bus = self.components.get_component_mut::<EventBus>().unwrap();
         event_bus.add_handler::<E>(handler);
         self
+    }
+
+    pub fn event_sender(&self) -> crate::events::EventSender {
+        self.event_queue.sender()
     }
 
     pub fn has_component<C: Component>(&self) -> bool {

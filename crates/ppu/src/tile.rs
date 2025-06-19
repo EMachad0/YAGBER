@@ -7,8 +7,8 @@ pub struct Tile {
 impl Tile {
     pub fn from_memory(bus: &mut Bus, address: u16) -> Self {
         let mut data = [0; 16];
-        for i in 0..16 {
-            data[i] = bus.read(address + i as u16);
+        for (i, data) in data.iter_mut().enumerate() {
+            *data = bus.read(address + i as u16);
         }
         Self::new(data)
     }

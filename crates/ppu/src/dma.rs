@@ -60,7 +60,7 @@ impl Dma {
         let source_addr = self.source_addr;
         let target_addr = Self::DMA_TARGET_ADDR;
 
-        for i in 0..0x100 {
+        for i in 0..0xA0 {
             let value = bus.read(source_addr + i);
             bus.write(target_addr + i, value);
         }

@@ -1,7 +1,5 @@
 use winit::window::Window;
 
-pub use pixels::Error as PixelsError;
-
 pub struct Display {
     window: std::sync::Arc<Window>,
     pixels: pixels::Pixels<'static>,

@@ -6,7 +6,6 @@ mod interrupt;
 mod io_registers;
 mod mbc;
 mod memory;
-mod memory_wrapper;
 mod oam;
 mod ram;
 mod register;
@@ -17,7 +16,6 @@ pub use bus::Bus;
 pub use events::MemoryWriteEvent;
 pub use interrupt::InterruptType;
 pub use memory::Memory;
-pub use memory_wrapper::MemoryWrapper;
 
 #[macro_use]
 extern crate tracing;
@@ -47,7 +45,11 @@ impl Default for MemoryPlugin {
 
 impl yagber_app::Plugin for MemoryPlugin {
     fn init(mut self, emulator: &mut yagber_app::Emulator) {
-        let memory_bus = std::mem::take(&mut self.memory_bus).unwrap();
+        let event_sender = emulator.event_sender();
+
+        let mut memory_bus = std::mem::take(&mut self.memory_bus).unwrap();
+        memory_bus.with_event_sender(event_sender);
+
         emulator
             .with_component(memory_bus)
             .with_event::<MemoryWriteEvent>()
