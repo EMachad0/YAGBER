@@ -10,8 +10,11 @@ pub struct IOBus {
 
 impl IOBus {
     pub fn new() -> Self {
+        let mut data = [0; IO_REGISTERS_SIZE];
+        // Joypad returns 1 if the button is not pressed.
+        data[0x00] = 0xFF;
         Self {
-            data: [0; IO_REGISTERS_SIZE],
+            data,
         }
     }
 

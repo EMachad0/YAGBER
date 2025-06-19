@@ -21,12 +21,12 @@ impl Ppu {
             .get_components_mut2::<Bus, Ppu>()
             .expect("Bus and/or PPU component missing");
 
+        // Step the PPU even if there's no display, so that the scan line index is updated and interrupt is requested if necessary.
+        ppu.step(bus);
+
         if !Ppu::enabled(bus) {
             return;
         }
-
-        // Step the PPU even if there's no display, so that the scan line index is updated and interrupt is requested if necessary.
-        ppu.step(bus);
 
         // If the ppu just finished to draw a frame, we need to render it.
         if Ppu::scan_line_index(bus) != 144 || ppu.scan_line.dots() != 0 {
@@ -102,7 +102,7 @@ impl Ppu {
         self.scan_line.step(bus);
         if self.scan_line.finished() {
             let scan_line_index = Self::scan_line_index(bus);
-            if scan_line_index >= 153 {
+            if scan_line_index + 1 > 153 {
                 Self::set_scan_line_index(bus, 0);
             } else {
                 Self::set_scan_line_index(bus, scan_line_index + 1);
@@ -131,13 +131,7 @@ impl Ppu {
 
     pub fn get_mode(bus: &mut Bus) -> PpuMode {
         let mode = bus.read_masked(Ppu::LCD_STATUS_ADDRESS, 0x03);
-        match mode {
-            0 => PpuMode::OamScan,
-            1 => PpuMode::PixelTransfer,
-            2 => PpuMode::HBlank,
-            3 => PpuMode::VBlank,
-            _ => unreachable!(),
-        }
+        PpuMode::from_u8(mode)
     }
 
     pub fn set_mode(bus: &mut Bus, mode: PpuMode) {
