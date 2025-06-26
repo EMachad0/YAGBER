@@ -9,7 +9,7 @@ use crate::{
 pub struct Bus {
     boot_rom: BootRom,
     cartridge: Cartridge,
-    io_registers: IOBus,
+    pub io_registers: IOBus,
     hram: Ram,
     ie: ByteRegister,
     event_sender: Option<EventSender>,
@@ -164,3 +164,5 @@ impl Memory for Bus {
         self.write(address, value);
     }
 }
+
+impl yagber_app::Component for Bus {}

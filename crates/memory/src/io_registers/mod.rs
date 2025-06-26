@@ -1,6 +1,7 @@
 mod cram_register;
 mod io_bus;
 mod io_type;
+mod lcdc;
 
 pub use cram_register::{CramReaderRegister, CramWriterRegister};
 pub use io_bus::IOBus;

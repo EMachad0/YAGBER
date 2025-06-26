@@ -94,3 +94,5 @@ impl std::fmt::Debug for EventBus {
         f.debug_struct("EventBus").finish()
     }
 }
+
+impl crate::Component for EventBus {}

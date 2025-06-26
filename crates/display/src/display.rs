@@ -32,3 +32,5 @@ impl Display {
         self.window.request_redraw();
     }
 }
+
+impl yagber_app::Component for Display {}

@@ -972,3 +972,5 @@ impl Cpu {
         }
     }
 }
+
+impl yagber_app::Component for Cpu {}

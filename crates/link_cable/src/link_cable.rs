@@ -94,3 +94,5 @@ impl LinkCable {
         link_cable.get_buffer()
     }
 }
+
+impl yagber_app::Component for LinkCable {}

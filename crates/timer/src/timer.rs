@@ -165,6 +165,8 @@ impl Timer {
     }
 }
 
+impl yagber_app::Component for Timer {}
+
 #[cfg(test)]
 mod tests {
     use super::*;

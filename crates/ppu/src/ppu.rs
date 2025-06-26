@@ -119,7 +119,7 @@ impl Ppu {
         (lcd_control & 0x80) != 0
     }
 
-    pub fn scan_line_index(bus: &mut Bus) -> u8 {
+    pub fn scan_line_index(bus: &Bus) -> u8 {
         bus.read(Self::SCAN_LINE_ADDRESS)
     }
 
@@ -148,5 +148,41 @@ impl Ppu {
             }
         }
         bus.write_masked(Ppu::LCD_STATUS_ADDRESS, mode.to_u8(), 0x03);
+    }
+}
+
+impl yagber_app::Component for Ppu {}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn test_enabled() {
+        let mut bus = Bus::new();
+        bus.write(Ppu::LCD_CONTROL_ADDRESS, 0x80);
+
+        assert!(Ppu::enabled(&bus));
+
+        bus.write(Ppu::LCD_CONTROL_ADDRESS, 0x00);
+
+        assert!(!Ppu::enabled(&bus));
+    }
+
+    #[test]
+    fn ppu_timing() {
+        let mut bus = Bus::new();
+        bus.write(Ppu::LCD_CONTROL_ADDRESS, 0x80);
+
+        assert!(Ppu::enabled(&bus));
+
+        let mut ppu = Ppu::new();
+        ppu.step(&mut bus);
+
+        assert_eq!(Ppu::scan_line_index(&bus), 0);
+
+        for _ in 0..154 {
+            ppu.step(&mut bus);
+        }
     }
 }

@@ -66,3 +66,5 @@ impl Dma {
         }
     }
 }
+
+impl yagber_app::Component for Dma {}

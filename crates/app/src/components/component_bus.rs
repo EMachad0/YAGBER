@@ -90,6 +90,9 @@ mod tests {
         pub value: u8,
     }
 
+    impl Component for TestComponent {}
+    impl Component for TestComponent2 {}
+
     #[test]
     fn test_get_component() {
         let mut bus = ComponentBus::new();

@@ -70,7 +70,7 @@ impl Emulator {
         // emulator because components never move in memory after being
         // inserted into the `ComponentBus`.
         unsafe {
-            (*bus_ptr).dispatch(self, event);
+            (*bus_ptr).dispatch(self, event.as_any_ref());
         }
     }
 
