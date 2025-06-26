@@ -1,4 +1,4 @@
-pub trait Register: yagber_app::Downcastable {
+pub trait Register: yagber_app::Downcastable + 'static {
     fn read(&self) -> u8;
     fn write(&mut self, value: u8);
 }

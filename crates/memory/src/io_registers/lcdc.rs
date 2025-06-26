@@ -1,3 +1,4 @@
+#[derive(Debug, Clone, Copy, Default)]
 pub struct LcdcRegister {
     value: u8,
 }
@@ -11,32 +12,28 @@ impl LcdcRegister {
         self.value & 0x80 != 0
     }
 
-    fn tile_map_area(&self, value: bool) -> (u16, u16) {
-        if !value {
-            (0x9800, 0x9BFF)
-        } else {
-            (0x9C00, 0x9FFF)
-        }
-    }
+    // fn tile_map_area(&self, value: bool) -> (u16, u16) {
+    //     if !value {
+    //         (0x9800, 0x9BFF)
+    //     } else {
+    //         (0x9C00, 0x9FFF)
+    //     }
+    // }
 
-    pub fn window_tile_map_area(&self) -> (u16, u16) {
-        self.tile_map_area(self.value & 0x40 != 0)
+    pub fn window_tile_map_area(&self) -> bool {
+        self.value & 0x40 != 0
     }
 
     pub fn lcd_window_enabled(&self) -> bool {
         self.value & 0x20 != 0
     }
 
-    pub fn tile_data_area(&self) -> (u16, u16) {
-        if !self.value & 0x10 != 0 {
-            (0x8800, 0x97FF)
-        } else {
-            (0x8000, 0x9FFF)
-        }
+    pub fn tile_data_area(&self) -> bool {
+        self.value & 0x10 != 0
     }
 
-    pub fn bg_tile_map_area(&self) -> (u16, u16) {
-        self.tile_map_area(self.value & 0x08 != 0)
+    pub fn bg_tile_map_area(&self) -> bool {
+        self.value & 0x08 != 0
     }
 
     pub fn obj_size(&self) -> (u8, u8) {

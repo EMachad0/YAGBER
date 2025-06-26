@@ -1,4 +1,4 @@
-use yagber_memory::{Bus, Memory};
+use yagber_memory::{Bus, IOType, LcdcRegister, Memory};
 
 use crate::{ppu_mode::PpuMode, scan_line::ScanLine};
 
@@ -10,7 +10,6 @@ pub struct Ppu {
 impl Ppu {
     pub const SCAN_LINE_ADDRESS: u16 = 0xFF44;
     pub const LCD_STATUS_ADDRESS: u16 = 0xFF41;
-    pub const LCD_CONTROL_ADDRESS: u16 = 0xFF40;
 
     pub fn new() -> Self {
         Self::default()
@@ -41,8 +40,12 @@ impl Ppu {
             .get_components_mut2::<Bus, yagber_display::Display>()
             .expect("Bus and/or Display component missing");
 
-        let tile_fetcher_mode = bus.read_bit(Self::LCD_CONTROL_ADDRESS, 4);
-        let bg_addr_mode = bus.read_bit(Self::LCD_CONTROL_ADDRESS, 3);
+        let lcdc = bus
+            .io_registers
+            .get_register::<LcdcRegister>(IOType::LCDC)
+            .unwrap();
+        let tile_fetcher_mode = lcdc.tile_data_area();
+        let bg_addr_mode = lcdc.bg_tile_map_area();
         let bg_tile_map = bus.vram.tile_map(bg_addr_mode);
         let gb_attr_map = bus.vram.attr_map(bg_addr_mode);
 
@@ -115,8 +118,11 @@ impl Ppu {
     }
 
     pub fn enabled(bus: &Bus) -> bool {
-        let lcd_control = bus.read(Self::LCD_CONTROL_ADDRESS);
-        (lcd_control & 0x80) != 0
+        let lcdc = bus
+            .io_registers
+            .get_register::<LcdcRegister>(IOType::LCDC)
+            .unwrap();
+        lcdc.lcd_ppu_enabled()
     }
 
     pub fn scan_line_index(bus: &Bus) -> u8 {
@@ -157,32 +163,62 @@ impl yagber_app::Component for Ppu {}
 mod test {
     use super::*;
 
+    const LCD_CONTROL_ADDRESS: u16 = 0xFF40;
+
     #[test]
     fn test_enabled() {
         let mut bus = Bus::new();
-        bus.write(Ppu::LCD_CONTROL_ADDRESS, 0x80);
+        bus.write(LCD_CONTROL_ADDRESS, 0x80);
 
         assert!(Ppu::enabled(&bus));
 
-        bus.write(Ppu::LCD_CONTROL_ADDRESS, 0x00);
+        bus.write(LCD_CONTROL_ADDRESS, 0x00);
 
         assert!(!Ppu::enabled(&bus));
     }
 
     #[test]
-    fn ppu_timing() {
+    fn step() {
         let mut bus = Bus::new();
-        bus.write(Ppu::LCD_CONTROL_ADDRESS, 0x80);
+        bus.write(LCD_CONTROL_ADDRESS, 0x80);
 
-        assert!(Ppu::enabled(&bus));
+        let mut ppu = Ppu::new();
+        ppu.step(&mut bus);
+
+        assert_eq!(Ppu::scan_line_index(&bus), 0);
+        assert_eq!(ppu.scan_line.dots(), 1);
+    }
+
+    #[test]
+    fn ppu_timing_dots_per_scan_line() {
+        let mut bus = Bus::new();
+        bus.write(LCD_CONTROL_ADDRESS, 0x80);
 
         let mut ppu = Ppu::new();
         ppu.step(&mut bus);
 
         assert_eq!(Ppu::scan_line_index(&bus), 0);
 
-        for _ in 0..154 {
+        for i in 0..154 {
+            assert_eq!(Ppu::scan_line_index(&bus), i);
+            assert_eq!(ppu.scan_line.dots(), 0);
+            for _ in 0..456 {
+                ppu.step(&mut bus);
+            }
+        }
+    }
+
+    #[test]
+    fn ppu_timing_dots_per_frame() {
+        let mut bus = Bus::new();
+        bus.write(LCD_CONTROL_ADDRESS, 0x80);
+
+        let mut ppu = Ppu::new();
+        for _ in 0..70224 {
             ppu.step(&mut bus);
         }
+
+        assert_eq!(Ppu::scan_line_index(&bus), 0);
+        assert_eq!(ppu.scan_line.dots(), 0);
     }
 }

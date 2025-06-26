@@ -16,9 +16,9 @@ mod wram;
 pub use bus::Bus;
 pub use events::MemoryWriteEvent;
 pub use interrupt::InterruptType;
-pub use io_registers::IOType;
+pub use io_registers::{CramReaderRegister, CramWriterRegister, IOBus, IOType, LcdcRegister};
 pub use memory::Memory;
-pub use register::{Register, ByteRegister};
+pub use register::{ByteRegister, Register};
 
 #[macro_use]
 extern crate tracing;

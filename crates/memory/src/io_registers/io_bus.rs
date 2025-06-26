@@ -4,8 +4,10 @@ use crate::{
     register::{ByteRegister, Register},
 };
 
+type RegisterBox = Box<dyn Register>;
+
 pub struct IOBus {
-    data: Vec<Box<dyn Register>>,
+    data: Vec<RegisterBox>,
 }
 
 impl IOBus {
@@ -14,24 +16,24 @@ impl IOBus {
 
     pub fn new() -> Self {
         let data = (0..Self::IO_REGISTERS_SIZE)
-            .map(|_| Box::new(ByteRegister::new(0x00)) as Box<dyn Register>)
+            .map(|_| Box::new(ByteRegister::new(0x00)) as RegisterBox)
             .collect::<Vec<_>>();
 
         Self { data }.with_register(IOType::LCDC, LcdcRegister::new())
     }
 
-    pub fn with_register<R: Register + 'static>(mut self, io_type: IOType, register: R) -> Self {
+    pub fn with_register<R: Register>(mut self, io_type: IOType, register: R) -> Self {
         self.data[Self::virtual_address(io_type.address())] = Box::new(register);
         self
     }
 
-    pub fn get_register<R: Register + 'static>(&self, io_type: IOType) -> Option<&R> {
+    pub fn get_register<R: Register>(&self, io_type: IOType) -> Option<&R> {
         self.data[Self::virtual_address(io_type.address())]
             .as_any_ref()
             .downcast_ref::<R>()
     }
 
-    pub fn get_register_mut<R: Register + 'static>(&mut self, io_type: IOType) -> Option<&mut R> {
+    pub fn get_register_mut<R: Register>(&mut self, io_type: IOType) -> Option<&mut R> {
         self.data[Self::virtual_address(io_type.address())]
             .as_any_mut()
             .downcast_mut::<R>()
