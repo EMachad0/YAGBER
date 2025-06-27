@@ -8,7 +8,9 @@ const EXPECTED_SUCCESS: &[u8] = &[3, 5, 8, 13, 21, 34];
 /// and check the output buffer for "Passed" or "Failed"
 pub fn run_emulator(rom: &[u8], out_log_path: &str) -> MtsTestRunnerResult {
     yagber::Emulator::new()
-        // Memory must be first
+        // Log must be first
+        .with_plugin(yagber_log::LogPlugin::default())
+        // Memory must be second
         .with_plugin(yagber_memory::MemoryPlugin::default().with_cartridge(rom))
         .with_plugin(yagber_cpu::CpuPlugin)
         .with_plugin(yagber_ppu::PpuPlugin)

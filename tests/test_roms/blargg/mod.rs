@@ -6,7 +6,9 @@ use crate::utils::{MAX_CYCLES, TestResult};
 pub fn run_emulator(rom: &[u8], out_log_path: &str) -> BlarggTestRunnerResult {
     // Order matters, some plugins depend on others
     yagber::Emulator::new()
-        // Memory must be first
+        // Log must be first
+        .with_plugin(yagber_log::LogPlugin::default())
+        // Memory must be second
         .with_plugin(yagber_memory::MemoryPlugin::default().with_cartridge(rom))
         .with_plugin(yagber_cpu::CpuPlugin)
         .with_plugin(yagber_ppu::PpuPlugin)

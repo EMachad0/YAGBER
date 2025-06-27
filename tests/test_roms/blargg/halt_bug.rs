@@ -7,8 +7,6 @@ const ROM_PATH: &str = "test_roms/blargg/halt_bug.gb";
 // This test is not run currently because it does not have source code
 #[allow(dead_code)]
 fn test_halt_bug() {
-    yagber::init_tracing();
-
     assert!(fs::metadata(ROM_PATH).is_ok(), "Test ROM not found!");
 
     let out_log_path = format!("out/{}.log", ROM_PATH);

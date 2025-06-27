@@ -4,8 +4,6 @@ use crate::mts::run_emulator;
 
 #[test]
 fn test_mts_daa() {
-    yagber::init_tracing();
-
     let rom_path = "test_roms/mts/acceptance/instr/daa.gb";
     assert!(fs::metadata(rom_path).is_ok(), "Test ROM not found!");
 

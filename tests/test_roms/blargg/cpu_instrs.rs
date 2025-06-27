@@ -7,8 +7,6 @@ const INDV_ROM_PATH: &str = "test_roms/blargg/cpu_instrs/individual/";
 
 #[test]
 fn test_blargg_cpu_instrs() {
-    yagber::init_tracing();
-
     assert!(fs::metadata(ROM_PATH).is_ok(), "Test ROM not found!");
 
     let out_log_path = format!("out/{}.log", ROM_PATH);
@@ -24,8 +22,6 @@ fn test_blargg_cpu_instrs() {
 }
 
 fn cpu_instrs_individual_test(test_name: &str) {
-    yagber::init_tracing();
-
     let rom_path = PathBuf::from(INDV_ROM_PATH).join(test_name);
     assert!(rom_path.exists(), "Test ROM {rom_path:?} not found!");
 

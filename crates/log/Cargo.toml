@@ -1,0 +1,16 @@
+[package]
+name = "yagber_log"
+version = "0.1.0"
+edition = "2024"
+
+[features]
+default = []
+tracing-chrome = ["dep:tracing-chrome"]
+
+[dependencies]
+dotenv = { workspace = true }
+tracing-subscriber = { workspace = true, features = ["env-filter"] }
+tracing = { workspace = true }
+tracing-chrome = { version = "0.7.2", optional = true }
+
+yagber_app = { workspace = true }
