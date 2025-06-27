@@ -68,22 +68,20 @@ impl Ppu {
                 let tile_index = bg_tile_map[i * 32 + j].expect("Tile index is missing");
                 let tile_addr = tile_addr(tile_index);
                 let tile_attr = gb_attr_map[i * 32 + j].expect("Tile attribute is missing");
-                let tile = crate::tile::Tile::from_memory(bus, tile_addr, tile_attr);
+                let tile = crate::models::Tile::from_memory(bus, tile_addr, tile_attr);
 
                 for y in 0..8 {
                     for x in 0..8 {
                         let colour_index = tile.colour_index(x as u8, y as u8);
                         let palette_index = tile.attr.palette_index();
-                        let colour = bus.background_cram.read_colour(palette_index, colour_index);
-                        let red = (colour & 0b11111) as u8 * 8;
-                        let green = ((colour >> 5) & 0b11111) as u8 * 8;
-                        let blue = ((colour >> 10) & 0b11111) as u8 * 8;
-                        let alpha = 255;
-                        let pixel = [red, green, blue, alpha];
+                        let colour_raw =
+                            bus.background_cram.read_colour(palette_index, colour_index);
+                        let colour = crate::models::Rgb555::from_u16(colour_raw);
+                        let pixel = crate::models::Rgba::from(colour);
 
                         let pixel_index = (i * 8 + y) * 256 + (j * 8 + x);
 
-                        pixels[pixel_index] = pixel;
+                        pixels[pixel_index] = pixel.values();
                     }
                 }
             }

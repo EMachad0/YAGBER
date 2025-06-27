@@ -1,8 +1,8 @@
 mod dma;
+mod models;
 mod ppu;
 mod ppu_mode;
 mod ppu_mode_observer;
-mod tile;
 
 #[allow(unused_imports)]
 #[macro_use]
