@@ -2,7 +2,6 @@ mod dma;
 mod ppu;
 mod ppu_mode;
 mod ppu_mode_observer;
-mod scan_line;
 mod tile;
 
 #[macro_use]
