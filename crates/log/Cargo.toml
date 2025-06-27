@@ -5,9 +5,10 @@ edition = "2024"
 
 [features]
 default = []
-tracing-chrome = ["dep:tracing-chrome"]
+tracing-chrome = ["dep:tracing-chrome", "dep:chrono"]
 
 [dependencies]
+chrono = { workspace = true, optional = true }
 dotenv = { workspace = true }
 tracing-subscriber = { workspace = true, features = ["env-filter"] }
 tracing = { workspace = true }

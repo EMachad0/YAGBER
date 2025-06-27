@@ -6,13 +6,12 @@ use crate::ppu_mode::PpuMode;
 pub struct PpuModeObserver;
 
 impl PpuModeObserver {
-    pub const STAT_ADDRESS: u16 = 0xFF41;
-
     pub fn on_memory_write(
         emulator: &mut yagber_app::Emulator,
         event: &yagber_memory::MemoryWriteEvent,
     ) {
-        if event.address == Self::STAT_ADDRESS {
+        if event.address == yagber_memory::IOType::STAT.address() {
+            let _span = tracing::info_span!("ppu mode observer").entered();
             let mode = PpuMode::from_u8(event.value);
             let bus = emulator.get_component_mut::<Bus>().unwrap();
             Self::update_accessibility(bus, mode);

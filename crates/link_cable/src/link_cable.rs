@@ -68,6 +68,7 @@ impl LinkCable {
     }
 
     pub fn on_tcycle(emulator: &mut yagber_app::Emulator, _event: &yagber_app::TCycleEvent) {
+        let _span = tracing::info_span!("link cable step").entered();
         let (link_cable, bus) = emulator
             .get_components_mut2::<LinkCable, Bus>()
             .expect("LinkCable and/or Bus component missing");

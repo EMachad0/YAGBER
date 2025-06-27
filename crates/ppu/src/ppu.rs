@@ -14,6 +14,7 @@ impl Ppu {
     }
 
     pub fn on_dot_cycle(emulator: &mut yagber_app::Emulator, _event: &yagber_app::DotCycleEvent) {
+        let _span = tracing::info_span!("ppu dot cycle").entered();
         let (bus, ppu) = emulator
             .get_components_mut2::<Bus, Ppu>()
             .expect("Bus and/or PPU component missing");

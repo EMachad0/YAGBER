@@ -72,6 +72,7 @@ impl StatRegister {
     }
 
     pub fn on_dot_cycle(emulator: &mut yagber_app::Emulator, _event: &yagber_app::DotCycleEvent) {
+        let _span = tracing::info_span!("stat dot cycle").entered();
         let bus = emulator.get_component_mut::<crate::Bus>().unwrap();
         let ly = bus.read(IOType::LY.address());
         let lyc = bus.read(IOType::LYC.address());

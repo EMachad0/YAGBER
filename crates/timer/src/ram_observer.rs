@@ -1,7 +1,5 @@
 use yagber_memory::Bus;
 
-use crate::timer::DIV_ADDR;
-
 #[derive(Debug, Default)]
 pub struct DivObserver;
 
@@ -14,9 +12,10 @@ impl DivObserver {
         emulator: &mut yagber_app::Emulator,
         event: &yagber_memory::MemoryWriteEvent,
     ) {
-        if event.address == DIV_ADDR && event.value != 0 {
+        if event.address == yagber_memory::IOType::DIV.address() && event.value != 0 {
+            let _span = tracing::info_span!("div observer").entered();
             let bus = emulator.get_component_mut::<Bus>().unwrap();
-            bus.write(DIV_ADDR, 0);
+            bus.write(yagber_memory::IOType::DIV.address(), 0);
         }
     }
 }

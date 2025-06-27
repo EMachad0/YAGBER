@@ -70,6 +70,8 @@ impl EventBus {
 
     /// Dispatch a single event to all of its registered handlers.
     pub fn dispatch(&self, emulator: &mut Emulator, event: &dyn Any) {
+        let _span = info_span!("event dispatch", ?event).entered();
+
         if let Some(vec) = self.handlers.get(&event.type_id()) {
             // iterate over a *copy* of the slice to avoid borrow issues if a
             // handler decides to register more handlers while we are

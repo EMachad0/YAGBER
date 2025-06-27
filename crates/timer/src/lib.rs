@@ -13,7 +13,7 @@ impl yagber_app::Plugin for TimerPlugin {
     fn init(self, emulator: &mut yagber_app::Emulator) {
         emulator
             .with_component(Timer::new())
-            .with_event_handler::<yagber_app::MCycleEvent>(Timer::on_mcycle)
-            .with_event_handler::<yagber_memory::MemoryWriteEvent>(DivObserver::on_memory_write);
+            .with_event_handler(Timer::on_mcycle)
+            .with_event_handler(DivObserver::on_memory_write);
     }
 }

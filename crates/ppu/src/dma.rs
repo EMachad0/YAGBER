@@ -21,10 +21,11 @@ impl Dma {
         emulator: &mut yagber_app::Emulator,
         event: &yagber_memory::MemoryWriteEvent,
     ) {
-        let dma = emulator
-            .get_component_mut::<Dma>()
-            .expect("DMA component missing");
         if event.address == Self::DMA_ADDR {
+            let _span = tracing::info_span!("dma start").entered();
+            let dma = emulator
+                .get_component_mut::<Dma>()
+                .expect("DMA component missing");
             dma.start(event.value as u16 * 0x100);
         }
     }
@@ -36,6 +37,7 @@ impl Dma {
     }
 
     pub fn on_mcycle(emulator: &mut yagber_app::Emulator, _event: &yagber_app::MCycleEvent) {
+        let _span = tracing::info_span!("dma step").entered();
         let (dma, bus) = emulator
             .get_components_mut2::<Dma, yagber_memory::Bus>()
             .expect("DMA and/or Bus component missing");

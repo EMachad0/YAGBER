@@ -36,7 +36,7 @@ impl yagber_app::Plugin for LinkCablePlugin {
         let link_cable = std::mem::take(&mut self.link_cable).unwrap();
         emulator
             .with_component(link_cable)
-            .with_event_handler::<yagber_app::TCycleEvent>(LinkCable::on_tcycle);
+            .with_event_handler(LinkCable::on_tcycle);
     }
 }
 

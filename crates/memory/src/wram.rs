@@ -56,6 +56,7 @@ impl Wram {
 
     pub fn on_memory_write(emulator: &mut yagber_app::Emulator, event: &MemoryWriteEvent) {
         if event.address == Self::BANK_SELECT_ADDRESS {
+            let _span = tracing::info_span!("wram bank select").entered();
             let bank = event.value & 0x07;
             let memory_bus = emulator
                 .get_component_mut::<Bus>()

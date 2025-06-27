@@ -62,7 +62,11 @@ impl yagber_app::Plugin for LogPlugin {
             if let Ok(path) = std::env::var("TRACE_CHROME") {
                 chrome_layer_builder = chrome_layer_builder.file(path);
             } else {
-                chrome_layer_builder = chrome_layer_builder.file("out/yagber.trace.json");
+                std::fs::create_dir_all("out/trace").expect("cannot create out/trace/ directory");
+
+                let timestamp = chrono::Local::now().format("%Y%m%dT%H%M%S");
+                chrome_layer_builder =
+                    chrome_layer_builder.file(format!("out/trace/yagber-{timestamp}.trace.json"));
             }
 
             let (chrome_layer, guard) = chrome_layer_builder.build();

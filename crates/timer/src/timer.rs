@@ -74,6 +74,7 @@ impl Timer {
     }
 
     pub fn on_mcycle(emulator: &mut yagber_app::Emulator, _event: &yagber_app::MCycleEvent) {
+        let _span = tracing::info_span!("timer step").entered();
         let (timer, bus) = emulator
             .get_components_mut2::<Timer, Bus>()
             .expect("Timer and/or Bus component missing");
