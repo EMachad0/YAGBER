@@ -68,12 +68,14 @@ impl yagber_app::Plugin for LogPlugin {
             let (chrome_layer, guard) = chrome_layer_builder.build();
             let guard = ChromeLayerGuard { _guard: guard };
             _emulator.with_component(guard);
-            println!("Chrome layer added");
             subscriber.with(chrome_layer)
         };
 
         let _ = subscriber.try_init();
         info!("Yagber tracing initialized");
+
+        #[cfg(feature = "tracing-chrome")]
+        info!("Chrome tracing enabled");
     }
 }
 
