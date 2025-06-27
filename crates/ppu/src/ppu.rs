@@ -26,10 +26,12 @@ impl Ppu {
         ppu.step(bus);
 
         // If the ppu just finished to draw a frame, we need to render it.
-        if ppu.y != 144 || ppu.x != 0 {
-            return;
+        if ppu.y == 144 && ppu.x == 0 {
+            Self::render_frame(emulator);
         }
+    }
 
+    fn render_frame(emulator: &mut yagber_app::Emulator) {
         // If the display component is not present, there's nowhere to render to.
         if !emulator.has_component::<yagber_display::Display>() {
             return;
