@@ -1,4 +1,4 @@
-use yagber_memory::{Bus, IOType, LcdcRegister, Memory};
+use yagber_memory::{Bus, IOType, LcdcRegister};
 
 use crate::ppu_mode::PpuMode;
 
@@ -9,9 +9,6 @@ pub struct Ppu {
 }
 
 impl Ppu {
-    pub const SCAN_LINE_ADDRESS: u16 = 0xFF44;
-    pub const LCD_STATUS_ADDRESS: u16 = 0xFF41;
-
     pub fn new() -> Self {
         Self { x: 0, y: 0 }
     }
@@ -108,6 +105,12 @@ impl Ppu {
         if self.y >= 154 {
             self.y = 0;
         }
+
+        // Vblank interrupt at the start of the Vblank period.
+        if self.y == 144 && self.x == 0 {
+            bus.request_interrupt(yagber_memory::InterruptType::VBlank);
+        }
+
         Self::set_scan_line_index(bus, self.y);
         Self::set_mode(bus, self.mode());
     }
@@ -126,7 +129,7 @@ impl Ppu {
             144..=153 => Ppu::set_mode(bus, PpuMode::VBlank),
             _ => panic!("Invalid scan line index: {}", index),
         }
-        bus.write(Self::SCAN_LINE_ADDRESS, index);
+        bus.write(IOType::LY.address(), index);
     }
 
     fn mode(&self) -> PpuMode {
@@ -143,7 +146,11 @@ impl Ppu {
     }
 
     fn set_mode(bus: &mut Bus, mode: PpuMode) {
-        bus.write_masked(Ppu::LCD_STATUS_ADDRESS, mode.to_u8(), 0x03);
+        let stat = bus
+            .io_registers
+            .get_register_mut::<yagber_memory::StatRegister>(IOType::STAT)
+            .expect("STAT register not found");
+        stat.set_mode(mode.to_u8());
     }
 }
 
@@ -153,23 +160,16 @@ impl yagber_app::Component for Ppu {}
 mod test {
     use super::*;
     use pretty_assertions::assert_eq;
+    use yagber_memory::Memory;
 
     #[test]
     fn test_enabled() {
         let mut bus = Bus::new();
-        let lcdc = bus
-            .io_registers
-            .get_register_mut::<LcdcRegister>(IOType::LCDC)
-            .expect("LCDC register not found");
-        lcdc.write(0x80);
+        bus.write(IOType::LCDC.address(), 0x80);
 
         assert!(Ppu::enabled(&bus));
 
-        let lcdc = bus
-            .io_registers
-            .get_register_mut::<LcdcRegister>(IOType::LCDC)
-            .expect("LCDC register not found");
-        lcdc.write(0x00);
+        bus.write(IOType::LCDC.address(), 0x00);
 
         assert!(!Ppu::enabled(&bus));
     }
@@ -177,11 +177,7 @@ mod test {
     #[test]
     fn step() {
         let mut bus = Bus::new();
-        let lcdc = bus
-            .io_registers
-            .get_register_mut::<LcdcRegister>(IOType::LCDC)
-            .expect("LCDC register not found");
-        lcdc.write(0x80);
+        bus.write(IOType::LCDC.address(), 0x80);
 
         let mut ppu = Ppu::new();
         ppu.step(&mut bus);
@@ -193,11 +189,7 @@ mod test {
     #[test]
     fn ppu_timing_dots_per_scan_line() {
         let mut bus = Bus::new();
-        let lcdc = bus
-            .io_registers
-            .get_register_mut::<LcdcRegister>(IOType::LCDC)
-            .expect("LCDC register not found");
-        lcdc.write(0x80);
+        bus.write(IOType::LCDC.address(), 0x80);
 
         let mut ppu = Ppu::new();
         assert_eq!(ppu.y, 0);
@@ -215,11 +207,7 @@ mod test {
     #[test]
     fn ppu_timing_dots_per_frame() {
         let mut bus = Bus::new();
-        let lcdc = bus
-            .io_registers
-            .get_register_mut::<LcdcRegister>(IOType::LCDC)
-            .expect("LCDC register not found");
-        lcdc.write(0x80);
+        bus.write(IOType::LCDC.address(), 0x80);
 
         let mut ppu = Ppu::new();
         assert_eq!(ppu.y, 0);
@@ -231,5 +219,25 @@ mod test {
 
         assert_eq!(ppu.y, 0);
         assert_eq!(ppu.x, 0);
+    }
+
+    #[test]
+    fn ppu_vblank_interrupt() {
+        let mut bus = Bus::new();
+        bus.write(IOType::LCDC.address(), 0x80);
+
+        let mut ppu = Ppu::new();
+
+        for _ in 0..65664 {
+            ppu.step(&mut bus);
+        }
+
+        assert_eq!(ppu.y, 144);
+        assert_eq!(ppu.x, 0);
+
+        assert!(bus.read_bit(
+            IOType::IF.address(),
+            yagber_memory::InterruptType::VBlank.to_u8()
+        ));
     }
 }

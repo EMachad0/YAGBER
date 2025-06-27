@@ -16,7 +16,9 @@ mod wram;
 pub use bus::Bus;
 pub use events::MemoryWriteEvent;
 pub use interrupt::InterruptType;
-pub use io_registers::{CramReaderRegister, CramWriterRegister, IOBus, IOType, LcdcRegister};
+pub use io_registers::{
+    CramReaderRegister, CramWriterRegister, IOBus, IOType, LcdcRegister, StatRegister,
+};
 pub use memory::Memory;
 pub use register::{ByteRegister, Register};
 
@@ -57,6 +59,7 @@ impl yagber_app::Plugin for MemoryPlugin {
             .with_component(memory_bus)
             .with_event::<MemoryWriteEvent>()
             .with_event_handler(crate::vram::Vram::on_memory_write)
-            .with_event_handler(crate::wram::Wram::on_memory_write);
+            .with_event_handler(crate::wram::Wram::on_memory_write)
+            .with_event_handler(crate::io_registers::StatRegister::on_dot_cycle);
     }
 }

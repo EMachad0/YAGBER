@@ -1,5 +1,5 @@
 use crate::{
-    io_registers::{io_type::IOType, lcdc::LcdcRegister},
+    io_registers::{IOType, LcdcRegister, StatRegister},
     memory::Memory,
     register::{ByteRegister, Register},
 };
@@ -19,7 +19,9 @@ impl IOBus {
             .map(|_| Box::new(ByteRegister::new(0x00)) as RegisterBox)
             .collect::<Vec<_>>();
 
-        Self { data }.with_register(IOType::LCDC, LcdcRegister::new())
+        Self { data }
+            .with_register(IOType::LCDC, LcdcRegister::new())
+            .with_register(IOType::STAT, StatRegister::new())
     }
 
     pub fn with_register<R: Register>(mut self, io_type: IOType, register: R) -> Self {
@@ -33,6 +35,7 @@ impl IOBus {
             .downcast_ref::<R>()
     }
 
+    /// Careful, this does not trigger the on_memory_write event.
     pub fn get_register_mut<R: Register>(&mut self, io_type: IOType) -> Option<&mut R> {
         self.data[Self::virtual_address(io_type.address())]
             .as_any_mut()

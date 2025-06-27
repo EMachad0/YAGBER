@@ -1,6 +1,5 @@
+use yagber_app::{EdgeDetector, EdgeMode};
 use yagber_memory::{Bus, InterruptType};
-
-use crate::edge_detector::{EdgeDetector, EdgeMode};
 
 pub const DIV_ADDR: u16 = 0xFF04;
 pub const TIMA_ADDR: u16 = 0xFF05;
