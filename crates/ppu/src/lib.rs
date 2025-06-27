@@ -4,6 +4,7 @@ mod ppu_mode;
 mod ppu_mode_observer;
 mod tile;
 
+#[allow(unused_imports)]
 #[macro_use]
 extern crate tracing;
 

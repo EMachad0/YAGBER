@@ -12,16 +12,6 @@ pub enum PpuMode {
 }
 
 impl PpuMode {
-    /// Duration of each mode in dots.
-    pub fn duration(&self) -> u32 {
-        match self {
-            PpuMode::HBlank => 204,
-            PpuMode::VBlank => 4560,
-            PpuMode::OamScan => 80,
-            PpuMode::PixelTransfer => 172,
-        }
-    }
-
     pub fn from_u8(value: u8) -> Self {
         match value & 0b11 {
             0 => PpuMode::HBlank,
