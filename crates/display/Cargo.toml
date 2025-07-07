@@ -6,7 +6,6 @@ edition = "2024"
 [dependencies]
 tracing = { workspace = true }
 winit = "0.30.11"
-winit_input_helper = "0.16.0"
 pixels = "0.15.0"
 
 yagber_app = { workspace = true }
