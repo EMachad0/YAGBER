@@ -22,9 +22,6 @@ pub use io_registers::{
 pub use memory::Memory;
 pub use register::{ByteRegister, Register};
 
-#[macro_use]
-extern crate tracing;
-
 pub struct MemoryPlugin {
     memory_bus: Option<Bus>,
 }

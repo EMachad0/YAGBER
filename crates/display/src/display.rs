@@ -25,6 +25,9 @@ impl Display {
     }
 
     pub fn render(&mut self) -> Result<(), pixels::Error> {
+        #[cfg(feature = "trace")]
+        let _span = tracing::info_span!("display render").entered();
+
         self.pixels.render()
     }
 

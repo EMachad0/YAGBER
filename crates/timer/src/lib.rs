@@ -1,9 +1,6 @@
 mod ram_observer;
 mod timer;
 
-#[macro_use]
-extern crate tracing;
-
 pub use ram_observer::DivObserver;
 pub use timer::Timer;
 

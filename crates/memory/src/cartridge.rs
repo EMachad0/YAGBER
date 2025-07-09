@@ -68,7 +68,8 @@ impl Cartridge {
     pub fn read_rom(&self, address: u16) -> u8 {
         match self {
             Self::Empty => {
-                warn!("Reading from empty cartridge ROM");
+                #[cfg(feature = "trace")]
+                tracing::warn!("Reading from empty cartridge ROM");
                 0xFF
             }
             Self::Loaded { mbc, rom, .. } => {
@@ -88,7 +89,8 @@ impl Cartridge {
     pub fn read_ram(&self, address: u16) -> u8 {
         match self {
             Self::Empty => {
-                warn!("Reading from empty cartridge RAM");
+                #[cfg(feature = "trace")]
+                tracing::warn!("Reading from empty cartridge RAM");
                 0xFF
             }
             Self::Loaded { mbc, ram, .. } => {

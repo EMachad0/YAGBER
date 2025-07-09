@@ -46,7 +46,11 @@ impl EventBus {
     /// emulator and a reference to the concrete event. We wrap that function
     /// into a trait-object that erases the concrete type so that we can store
     /// it in the same vector whatever the event is.
-    pub fn add_handler<E: Event>(&mut self, callback: fn(&mut Emulator, &E)) {
+    pub fn add_handler<E, F>(&mut self, callback: F)
+    where
+        E: Event,
+        F: Fn(&mut Emulator, &E) + Send + Sync + 'static,
+    {
         let id = TypeId::of::<E>();
         let vec = self.handlers.get_mut(&id).unwrap_or_else(|| {
             panic!(
@@ -55,6 +59,9 @@ impl EventBus {
             )
         });
 
+        #[cfg(feature = "trace")]
+        let callback_name = std::any::type_name::<F>();
+
         // Wrap the typed callback into an _erased_ closure.
         let wrapper: BoxedHandler = Box::new(move |emu, any_evt| {
             // Down-cast to the concrete event type. This **must** succeed
@@ -62,6 +69,8 @@ impl EventBus {
             let concrete_evt = any_evt
                 .downcast_ref::<E>()
                 .expect("Event type mismatch while dispatching");
+            #[cfg(feature = "trace")]
+            let _span = tracing::info_span!("handler", callback_name).entered();
             callback(emu, concrete_evt);
         });
 
@@ -70,7 +79,8 @@ impl EventBus {
 
     /// Dispatch a single event to all of its registered handlers.
     pub fn dispatch(&self, emulator: &mut Emulator, event: &dyn Any) {
-        let _span = info_span!("event dispatch", ?event).entered();
+        #[cfg(feature = "trace")]
+        let _span = tracing::info_span!("event dispatch", ?event).entered();
 
         if let Some(vec) = self.handlers.get(&event.type_id()) {
             // iterate over a *copy* of the slice to avoid borrow issues if a

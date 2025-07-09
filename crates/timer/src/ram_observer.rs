@@ -13,7 +13,6 @@ impl DivObserver {
         event: &yagber_memory::MemoryWriteEvent,
     ) {
         if event.address == yagber_memory::IOType::DIV.address() && event.value != 0 {
-            let _span = tracing::info_span!("div observer").entered();
             let bus = emulator.get_component_mut::<Bus>().unwrap();
             bus.write(yagber_memory::IOType::DIV.address(), 0);
         }

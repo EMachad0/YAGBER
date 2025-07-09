@@ -36,7 +36,9 @@ impl Cpu {
     }
 
     pub fn on_mcycle(emulator: &mut yagber_app::Emulator, _event: &yagber_app::MCycleEvent) {
-        let _span = info_span!("cpu step").entered();
+        #[cfg(feature = "trace")]
+        let _span = tracing::info_span!("cpu step").entered();
+
         let (cpu, bus) = emulator
             .get_components_mut2::<Cpu, Bus>()
             .expect("Cpu and/or Bus component missing");
@@ -84,12 +86,14 @@ impl Cpu {
     /// returns the number of M-cycles taken by the instruction
     fn instruction_step(&mut self, bus: &mut Bus) {
         if self.pc == 0x0100 {
-            debug!("Boot Rom Completed, Starting cartridge");
+            #[cfg(feature = "trace")]
+            tracing::debug!("Boot Rom Completed, Starting cartridge");
         }
 
         // Fetch the next instruction
         let instruction = self.read_instruction(bus);
-        trace!("{:?}", instruction);
+        #[cfg(feature = "trace")]
+        tracing::trace!("{:?}", instruction);
 
         // Execute the instruction
         self.execute_instruction(bus, &instruction);
@@ -253,7 +257,8 @@ impl Cpu {
     }
 
     fn call(&mut self, bus: &mut Bus, address: u16) {
-        trace!("Calling to {:#06X}", address);
+        #[cfg(feature = "trace")]
+        tracing::trace!("Calling to {:#06X}", address);
         self.stack_push(bus, self.pc);
         self.pc = address;
     }
@@ -274,12 +279,14 @@ impl Cpu {
     fn handle_interrupt(&mut self, bus: &mut Bus) {
         let interrupt = bus.get_priority_interrupt();
         if let Some(interrupt) = interrupt {
-            trace!("Handling interrupt: {:?}", interrupt);
+            #[cfg(feature = "trace")]
+            tracing::trace!("Handling interrupt: {:?}", interrupt);
             bus.clear_interrupt(interrupt);
             self.call(bus, interrupt.address());
             self.busy = 2; // 2 more M-Cycles of NOP
         } else {
-            warn!("Requested interrupt handling but no interrupt is pending");
+            #[cfg(feature = "trace")]
+            tracing::warn!("Requested interrupt handling but no interrupt is pending");
         }
     }
 
@@ -466,7 +473,8 @@ impl Cpu {
                 let imm8 = instruction.imm8().unwrap();
                 let signed_imm = (imm8 as i8) as i16;
                 self.pc = self.pc.wrapping_add_signed(signed_imm);
-                trace!("Jumping to {:#06X}", self.pc);
+                #[cfg(feature = "trace")]
+                tracing::trace!("Jumping to {:#06X}", self.pc);
             }
             JrCondImm8 => {
                 let imm8 = instruction.imm8().unwrap();
@@ -475,7 +483,8 @@ impl Cpu {
                     // sign‐extend 8→16 and add to PC
                     let offset = (imm8 as i8) as i16;
                     self.pc = self.pc.wrapping_add_signed(offset);
-                    trace!("Jumping to {:#06X}", self.pc);
+                    #[cfg(feature = "trace")]
+                    tracing::trace!("Jumping to {:#06X}", self.pc);
                 }
             }
             Stop => {
@@ -488,7 +497,6 @@ impl Cpu {
                         bus.set_bit(0xFF4D, 7);
                     }
                 }
-                trace!("STOP instruction encountered");
             }
             // Block 0b01
             LdR8R8 => {
@@ -719,18 +727,21 @@ impl Cpu {
                 let imm16 = instruction.imm16().unwrap();
                 if self.check_condition(instruction.cond().unwrap()) {
                     self.pc = imm16;
-                    trace!("Jumping to {:#06X}", imm16);
+                    #[cfg(feature = "trace")]
+                    tracing::trace!("Jumping to {:#06X}", imm16);
                 }
             }
             JpImm16 => {
                 let imm16 = instruction.imm16().unwrap();
                 self.pc = imm16;
-                trace!("Jumping to {:#06X}", imm16);
+                #[cfg(feature = "trace")]
+                tracing::trace!("Jumping to {:#06X}", imm16);
             }
             JpHl => {
                 let hl = self.registers.hl();
                 self.pc = hl;
-                trace!("Jumping to HL: {:#06X}", hl);
+                #[cfg(feature = "trace")]
+                tracing::trace!("Jumping to HL: {:#06X}", hl);
             }
             CallCondImm16 => {
                 let imm16 = instruction.imm16().unwrap();
@@ -757,7 +768,10 @@ impl Cpu {
                 let value = self.read_r16stk(r16);
                 self.stack_push(bus, value);
             }
-            Prefix => trace!("Prefix instruction encountered"),
+            Prefix => {
+                #[cfg(feature = "trace")]
+                tracing::trace!("Prefix instruction encountered");
+            }
             LdhCA => {
                 let a = self.registers.a();
                 let c = self.registers.c() as u16;

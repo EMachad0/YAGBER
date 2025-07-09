@@ -68,7 +68,6 @@ impl LinkCable {
     }
 
     pub fn on_tcycle(emulator: &mut yagber_app::Emulator, _event: &yagber_app::TCycleEvent) {
-        let _span = tracing::info_span!("link cable step").entered();
         let (link_cable, bus) = emulator
             .get_components_mut2::<LinkCable, Bus>()
             .expect("LinkCable and/or Bus component missing");
@@ -78,7 +77,9 @@ impl LinkCable {
     pub fn step(&mut self, ram: &mut Bus) {
         if Self::transfer_enabled(ram) {
             let data = Self::read_data(ram);
-            if let Err(e) = self.destinations.write(data) {
+            let _result = self.destinations.write(data);
+            #[cfg(feature = "trace")]
+            if let Err(e) = _result {
                 tracing::error!("Failed to write to destination: {}", e);
             }
             ram.write(Self::SC_ADDR, 0);

@@ -5,11 +5,16 @@ fn main() {
     let rom_path = std::env::args().nth(1).expect("No ROM path provided");
     let rom = std::fs::read(rom_path).expect("Failed to read ROM file");
 
-    // Order matters
-    Emulator::new()
+    let mut emulator = Emulator::new();
+
+    if cfg!(feature = "trace") {
         // Log must be first
-        .with_plugin(yagber_log::LogPlugin::default())
-        // Memory must be second
+        emulator = emulator.with_plugin(yagber_log::LogPlugin::default());
+    }
+
+    // Order matters
+    emulator
+        // Memory must be first
         .with_plugin(yagber_memory::MemoryPlugin::default().with_cartridge(&rom))
         .with_plugin(yagber_cpu::CpuPlugin)
         .with_plugin(yagber_ppu::PpuPlugin)

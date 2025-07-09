@@ -32,7 +32,8 @@ impl Emulator {
 
     /// Step the emulator by a T-Cycle or Dot cycle.
     pub fn step(&mut self) {
-        let _step_span = info_span!("step").entered();
+        #[cfg(feature = "trace")]
+        let _step_span = tracing::info_span!("step").entered();
         self.cycles += 1;
 
         let sender = self.event_queue.sender();
@@ -81,8 +82,11 @@ impl Emulator {
     }
 
     pub fn with_plugin<P: Plugin>(mut self, plugin: P) -> Self {
-        let type_name = std::any::type_name::<P>();
-        let _span = info_span!("plugin init", ?type_name).entered();
+        #[cfg(feature = "trace")]
+        {
+            let type_name = std::any::type_name::<P>();
+            let _span = tracing::info_span!("plugin init", %type_name).entered();
+        }
         plugin.init(&mut self);
         self
     }
@@ -98,9 +102,13 @@ impl Emulator {
         self
     }
 
-    pub fn with_event_handler<E: Event>(&mut self, handler: fn(&mut Emulator, &E)) -> &mut Self {
+    pub fn with_event_handler<E, F>(&mut self, handler: F) -> &mut Self
+    where
+        E: Event,
+        F: Fn(&mut Emulator, &E) + Send + Sync + 'static,
+    {
         let event_bus = self.components.get_component_mut::<EventBus>().unwrap();
-        event_bus.add_handler::<E>(handler);
+        event_bus.add_handler(handler);
         self
     }
 

@@ -15,7 +15,3 @@ pub use emulator::Emulator;
 pub use events::{Event, EventBus, EventSender};
 pub use plugin::Plugin;
 pub use runners::{HeadlessRunner, Runner};
-
-#[allow(unused_imports)]
-#[macro_use]
-extern crate tracing;

@@ -4,10 +4,6 @@ mod ppu;
 mod ppu_mode;
 mod ppu_mode_observer;
 
-#[allow(unused_imports)]
-#[macro_use]
-extern crate tracing;
-
 pub struct PpuPlugin;
 
 impl yagber_app::Plugin for PpuPlugin {

@@ -1,9 +1,6 @@
-pub use tracing::{
-    debug, debug_span, error, error_span, info, info_span, trace, trace_span, warn, warn_span,
-};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
-pub(crate) const DEFAULT_FILTER: &str = "wgpu=error,naga=warn";
+const DEFAULT_FILTER: &str = "wgpu=error,naga=warn";
 
 pub struct LogPlugin {
     filter: String,
@@ -54,7 +51,23 @@ impl yagber_app::Plugin for LogPlugin {
 
         let stderr_fmt_layer =
             tracing_subscriber::fmt::Layer::default().with_writer(std::io::stderr);
+
+        #[cfg(feature = "tracing-tracy")]
+        let stderr_fmt_layer = {
+            use tracing_subscriber::Layer;
+
+            stderr_fmt_layer.with_filter(tracing_subscriber::filter::FilterFn::new(|meta| {
+                meta.fields().field("frame_marker").is_none()
+            }))
+        };
+
         let subscriber = subscriber.with(stderr_fmt_layer);
+
+        #[cfg(feature = "tracing-tracy")]
+        let subscriber = {
+            let tracy_layer = tracing_tracy::TracyLayer::default();
+            subscriber.with(tracy_layer)
+        };
 
         #[cfg(feature = "tracing-chrome")]
         let subscriber = {
@@ -76,10 +89,13 @@ impl yagber_app::Plugin for LogPlugin {
         };
 
         let _ = subscriber.try_init();
-        info!("Yagber tracing initialized");
+        tracing::trace!("Yagber tracing initialized");
 
         #[cfg(feature = "tracing-chrome")]
-        info!("Chrome tracing enabled");
+        tracing::info!("Chrome tracing enabled");
+
+        #[cfg(feature = "tracing-tracy")]
+        tracing::info!("Tracy tracing enabled");
     }
 }
 
@@ -90,12 +106,3 @@ pub struct ChromeLayerGuard {
 
 #[cfg(feature = "tracing-chrome")]
 impl yagber_app::Component for ChromeLayerGuard {}
-
-pub fn init_tracing() {
-    dotenv::dotenv().ok();
-    let _ = tracing_subscriber::fmt()
-        .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
-        .event_format(tracing_subscriber::fmt::format().compact())
-        .try_init();
-    info!("Yagber tracing initialized");
-}
