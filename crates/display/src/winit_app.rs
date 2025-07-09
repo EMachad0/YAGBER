@@ -85,9 +85,7 @@ impl ApplicationHandler for WinitApp {
             frame_marker = true
         );
 
-        for _ in 0..72224 {
-            self.emulator.step();
-        }
+        self.emulator.step();
 
         // if self.emulator.frame_ready() {
         //     if let Some(display) = self.emulator.get_component::<Display>() {

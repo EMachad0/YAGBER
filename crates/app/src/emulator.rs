@@ -30,22 +30,24 @@ impl Emulator {
         self
     }
 
-    /// Step the emulator by a T-Cycle or Dot cycle.
+    /// Step the emulator a single frame.
     pub fn step(&mut self) {
-        #[cfg(feature = "trace")]
-        let _step_span = tracing::info_span!("step").entered();
-        self.cycles += 1;
+        for _ in 0..72224 {
+            #[cfg(feature = "trace")]
+            let _step_span = tracing::info_span!("step").entered();
+            self.cycles += 1;
 
-        let sender = self.event_queue.sender();
-        sender.send(TCycleEvent { cycle: self.cycles });
-        sender.send(DotCycleEvent { cycle: self.cycles });
-        if self.is_m_cycle() {
-            let cycle = self.cycles / 4;
-            sender.send(MCycleEvent { cycle });
-        }
+            let sender = self.event_queue.sender();
+            sender.send(TCycleEvent { cycle: self.cycles });
+            sender.send(DotCycleEvent { cycle: self.cycles });
+            if self.is_m_cycle() {
+                let cycle = self.cycles / 4;
+                sender.send(MCycleEvent { cycle });
+            }
 
-        while let Some(event) = self.event_queue.pop() {
-            self.dispatch_event(&*event);
+            while let Some(event) = self.event_queue.pop() {
+                self.dispatch_event(&*event);
+            }
         }
     }
 
