@@ -32,6 +32,7 @@ impl Emulator {
 
     /// Step the emulator a single frame.
     pub fn step(&mut self) {
+        // A frame is 72224 dot cycles.
         for _ in 0..72224 {
             #[cfg(feature = "trace")]
             let _step_span = tracing::info_span!("step").entered();
