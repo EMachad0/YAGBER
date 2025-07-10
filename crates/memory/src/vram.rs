@@ -11,7 +11,6 @@ pub struct Vram {
 impl Vram {
     const SIZE: usize = 0x2000;
     const OFFSET: usize = 0x8000;
-    const BANK_SELECT_ADDRESS: u16 = 0xFF4F;
 
     pub fn new() -> Self {
         // Initialise VRAM with 0xFF just like on real hardware after power-up
@@ -47,7 +46,7 @@ impl Vram {
     }
 
     pub fn on_memory_write(emulator: &mut yagber_app::Emulator, event: &MemoryWriteEvent) {
-        if event.address == Self::BANK_SELECT_ADDRESS {
+        if event.address == crate::IOType::VBK.address() {
             let bank = event.value & 0x01;
             let memory_bus = emulator
                 .get_component_mut::<Bus>()

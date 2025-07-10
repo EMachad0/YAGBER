@@ -5,7 +5,6 @@ pub struct Dma {
 }
 
 impl Dma {
-    const DMA_ADDR: u16 = 0xFF46;
     const DMA_DELAY_CYCLES: u32 = 160;
     const DMA_TARGET_ADDR: u16 = 0xFE00;
 
@@ -21,7 +20,7 @@ impl Dma {
         emulator: &mut yagber_app::Emulator,
         event: &yagber_memory::MemoryWriteEvent,
     ) {
-        if event.address == Self::DMA_ADDR {
+        if event.address == yagber_memory::IOType::DMA.address() {
             let dma = emulator
                 .get_component_mut::<Dma>()
                 .expect("DMA component missing");

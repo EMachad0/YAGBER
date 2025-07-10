@@ -13,7 +13,6 @@ impl Wram {
     const END_ADDRESS_BANK_0: u16 = Self::OFFSET_BANK_0 + Self::SIZE;
     const OFFSET_BANK_1: u16 = 0xD000;
     const END_ADDRESS_BANK_1: u16 = Self::OFFSET_BANK_1 + Self::SIZE;
-    const BANK_SELECT_ADDRESS: u16 = 0xFF70;
 
     pub fn new() -> Self {
         let size = Self::SIZE as usize;
@@ -55,7 +54,7 @@ impl Wram {
     }
 
     pub fn on_memory_write(emulator: &mut yagber_app::Emulator, event: &MemoryWriteEvent) {
-        if event.address == Self::BANK_SELECT_ADDRESS {
+        if event.address == crate::IOType::SVBK.address() {
             let bank = event.value & 0x07;
             let memory_bus = emulator
                 .get_component_mut::<Bus>()
