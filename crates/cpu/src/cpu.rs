@@ -35,7 +35,7 @@ impl Cpu {
         }
     }
 
-    pub fn on_mcycle(emulator: &mut yagber_app::Emulator, _event: &yagber_app::MCycleEvent) {
+    pub fn on_mcycle(emulator: &mut yagber_app::Emulator) {
         #[cfg(feature = "trace")]
         let _span = tracing::info_span!("cpu step").entered();
 

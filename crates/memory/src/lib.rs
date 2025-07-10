@@ -57,6 +57,6 @@ impl yagber_app::Plugin for MemoryPlugin {
             .with_event::<MemoryWriteEvent>()
             .with_event_handler(crate::vram::Vram::on_memory_write)
             .with_event_handler(crate::wram::Wram::on_memory_write)
-            .with_event_handler(crate::io_registers::StatRegister::on_dot_cycle);
+            .on_dot_cycle(crate::io_registers::StatRegister::on_dot_cycle);
     }
 }

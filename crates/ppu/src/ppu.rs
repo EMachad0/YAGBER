@@ -13,7 +13,7 @@ impl Ppu {
         Self { x: 0, y: 0 }
     }
 
-    pub fn on_dot_cycle(emulator: &mut yagber_app::Emulator, _event: &yagber_app::DotCycleEvent) {
+    pub fn on_dot_cycle(emulator: &mut yagber_app::Emulator) {
         let (bus, ppu) = emulator
             .get_components_mut2::<Bus, Ppu>()
             .expect("Bus and/or PPU component missing");

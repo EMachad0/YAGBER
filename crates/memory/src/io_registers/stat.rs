@@ -71,7 +71,7 @@ impl StatRegister {
         self.value = (self.value & 0x07) | (value & !0x07);
     }
 
-    pub fn on_dot_cycle(emulator: &mut yagber_app::Emulator, _event: &yagber_app::DotCycleEvent) {
+    pub fn on_dot_cycle(emulator: &mut yagber_app::Emulator) {
         let bus = emulator.get_component_mut::<crate::Bus>().unwrap();
         let ly = bus.read(IOType::LY.address());
         let lyc = bus.read(IOType::LYC.address());

@@ -35,7 +35,7 @@ impl Dma {
         self.source_addr = source_addr;
     }
 
-    pub fn on_mcycle(emulator: &mut yagber_app::Emulator, _event: &yagber_app::MCycleEvent) {
+    pub fn on_mcycle(emulator: &mut yagber_app::Emulator) {
         let (dma, bus) = emulator
             .get_components_mut2::<Dma, yagber_memory::Bus>()
             .expect("DMA and/or Bus component missing");

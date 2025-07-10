@@ -1,12 +1,15 @@
 use crate::{
-    Component, DotCycleEvent, Event, EventBus, MCycleEvent, Plugin, TCycleEvent,
-    components::ComponentBus, events::EventQueue, runners::Runner,
+    Component, Event, EventBus, Plugin, callback_queue::CallbackQueue, components::ComponentBus,
+    events::EventQueue, runners::Runner,
 };
 
 pub struct Emulator {
     cycles: u64,
     components: ComponentBus,
     event_queue: EventQueue,
+    tcycle_queue: CallbackQueue,
+    mcycle_queue: CallbackQueue,
+    dot_cycle_queue: CallbackQueue,
 }
 
 impl Emulator {
@@ -15,18 +18,15 @@ impl Emulator {
             cycles: 0,
             components: ComponentBus::new(),
             event_queue: EventQueue::new(),
+            tcycle_queue: CallbackQueue::new(),
+            mcycle_queue: CallbackQueue::new(),
+            dot_cycle_queue: CallbackQueue::new(),
         }
         .with_default_components()
     }
 
     fn with_default_components(mut self) -> Self {
-        // event bus
-        let mut event_bus = EventBus::new();
-        event_bus.register_event::<MCycleEvent>();
-        event_bus.register_event::<TCycleEvent>();
-        event_bus.register_event::<DotCycleEvent>();
-
-        self.components.add_component(event_bus);
+        self.components.add_component(EventBus::new());
         self
     }
 
@@ -38,18 +38,67 @@ impl Emulator {
             let _step_span = tracing::info_span!("step").entered();
             self.cycles += 1;
 
-            let sender = self.event_queue.sender();
-            sender.send(TCycleEvent { cycle: self.cycles });
-            sender.send(DotCycleEvent { cycle: self.cycles });
+            self.step_dot_cycle();
+            self.step_tcycle();
             if self.is_m_cycle() {
-                let cycle = self.cycles / 4;
-                sender.send(MCycleEvent { cycle });
+                self.step_mcycle();
             }
 
             while let Some(event) = self.event_queue.pop() {
                 self.dispatch_event(&*event);
             }
         }
+    }
+
+    fn step_tcycle(&mut self) {
+        let emulator_ptr = self as *mut Emulator;
+
+        let callbacks = self.tcycle_queue.callbacks();
+        for callback in callbacks {
+            callback(unsafe { &mut *emulator_ptr });
+        }
+    }
+
+    fn step_mcycle(&mut self) {
+        let emulator_ptr = self as *mut Emulator;
+
+        let callbacks = self.mcycle_queue.callbacks();
+        for callback in callbacks {
+            callback(unsafe { &mut *emulator_ptr });
+        }
+    }
+
+    fn step_dot_cycle(&mut self) {
+        let emulator_ptr = self as *mut Emulator;
+
+        let callbacks = self.dot_cycle_queue.callbacks();
+        for callback in callbacks {
+            callback(unsafe { &mut *emulator_ptr });
+        }
+    }
+
+    pub fn on_tcycle<F>(&mut self, callback: F) -> &mut Self
+    where
+        F: Fn(&mut Emulator) + Send + Sync + 'static,
+    {
+        self.tcycle_queue.add_callback(callback);
+        self
+    }
+
+    pub fn on_mcycle<F>(&mut self, callback: F) -> &mut Self
+    where
+        F: Fn(&mut Emulator) + Send + Sync + 'static,
+    {
+        self.mcycle_queue.add_callback(callback);
+        self
+    }
+
+    pub fn on_dot_cycle<F>(&mut self, callback: F) -> &mut Self
+    where
+        F: Fn(&mut Emulator) + Send + Sync + 'static,
+    {
+        self.dot_cycle_queue.add_callback(callback);
+        self
     }
 
     fn dispatch_event(&mut self, event: &dyn Event) {
