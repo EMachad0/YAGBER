@@ -64,6 +64,35 @@ impl ComponentBus {
             _ => None,
         }
     }
+
+    pub fn attach_component<C, F, A, R>(&mut self, f: F) -> impl Fn(A) -> R + use<C, F, A, R>
+    where
+        C: Component,
+        F: Fn(&mut C, A) -> R,
+    {
+        let component = self.get_component_mut::<C>().expect("Component not found");
+        // SAFETY: Component stays alive inside the emulator
+        let component = component as *mut C;
+        move |a| f(unsafe { &mut *component }, a)
+    }
+
+    pub fn attach_components2<C0, C1, F, A, R>(
+        &mut self,
+        f: F,
+    ) -> impl Fn(A) -> R + use<C0, C1, F, A, R>
+    where
+        C0: Component,
+        C1: Component,
+        F: Fn(&mut C0, &mut C1, A) -> R,
+    {
+        let (component0, component1) = self
+            .get_components_mut2::<C0, C1>()
+            .expect("Components not found");
+        // SAFETY: Component stays alive inside the emulator
+        let component0 = component0 as *mut C0;
+        let component1 = component1 as *mut C1;
+        move |a| f(unsafe { &mut *component0 }, unsafe { &mut *component1 }, a)
+    }
 }
 
 impl Default for ComponentBus {

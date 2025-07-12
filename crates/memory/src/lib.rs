@@ -52,59 +52,40 @@ impl yagber_app::Plugin for MemoryPlugin {
             .with_component(memory_bus)
             .with_component(stat_interrupt_detector);
 
-        let stat_interrupt_detector_ptr = emulator
-            .get_component_mut::<io_registers::StatInterruptDetector>()
-            .unwrap()
-            as *mut io_registers::StatInterruptDetector;
+        let stat_ly_hook = emulator.attach_component(io_registers::Stat::on_ly_write);
+        let stat_lyc_hook = emulator.attach_component(io_registers::Stat::on_lyc_write);
+        let stat_stat_hook =
+            emulator.attach_components2(io_registers::StatInterruptDetector::on_stat_write);
+        let bcps_bcpd_hook = emulator.attach_component(io_registers::BCPSRegister::on_bcpd_write);
+        let ocps_ocpd_hook = emulator.attach_component(io_registers::OCPSRegister::on_ocpd_write);
+        let bcpd_bcps_hook = emulator.attach_component(io_registers::BCPDRegister::on_bcps_write);
+        let ocpd_ocps_hook = emulator.attach_component(io_registers::OCPDRegister::on_ocps_write);
+        let bcpd_reader = emulator.attach_component(io_registers::BCPDRegister::bcpd_reader);
+        let ocpd_reader = emulator.attach_component(io_registers::OCPDRegister::ocpd_reader);
+        let vram_vbk_hook = emulator.attach_component(crate::vram::Vram::on_vbk_write);
+        let wram_svbk_hook = emulator.attach_component(crate::wram::Wram::on_svbk_write);
+        let oam_stat_hook = emulator.attach_component(crate::oam::Oam::on_stat_write);
+        let vram_stat_hook = emulator.attach_component(crate::vram::Vram::on_stat_write);
 
-        let memory_bus = emulator.get_component_mut::<Bus>().unwrap();
-
-        // SAFETY: Memory bus stays alive inside the emulator
-        let bus_ptr = memory_bus as *mut Bus;
-
-        memory_bus
+        emulator
+            .get_component_mut::<Bus>()
+            .expect("Bus component missing")
             .io_registers
             .with_transformer(IOType::JOYP, io_registers::JoypRegister::joyp_transformer)
-            .with_hook(IOType::LY, move |value| {
-                io_registers::Stat::on_ly_write(unsafe { &mut *bus_ptr }, value);
-            })
-            .with_hook(IOType::LYC, move |value| {
-                io_registers::Stat::on_lyc_write(unsafe { &mut *bus_ptr }, value);
-            })
+            .with_hook(IOType::LY, stat_ly_hook)
+            .with_hook(IOType::LYC, stat_lyc_hook)
             .with_transformer(IOType::STAT, io_registers::Stat::stat_transformer)
-            .with_hook(IOType::STAT, move |value| unsafe {
-                (*stat_interrupt_detector_ptr).on_stat_write(&mut *bus_ptr, value);
-            })
-            .with_hook(IOType::BCPD, move |value| {
-                io_registers::BCPSRegister::on_bcpd_write(unsafe { &mut *bus_ptr }, value);
-            })
-            .with_hook(IOType::OCPD, move |value| {
-                io_registers::OCPSRegister::on_ocpd_write(unsafe { &mut *bus_ptr }, value);
-            })
-            .with_hook(IOType::BCPS, move |value| {
-                io_registers::BCPDRegister::on_bcps_write(unsafe { &mut *bus_ptr }, value);
-            })
-            .with_hook(IOType::OCPS, move |value| {
-                io_registers::OCPDRegister::on_ocps_write(unsafe { &mut *bus_ptr }, value);
-            })
-            .with_reader(IOType::BCPS, move |value| {
-                io_registers::BCPDRegister::bcpd_reader(unsafe { &mut *bus_ptr }, value)
-            })
-            .with_reader(IOType::OCPD, move |value| {
-                io_registers::OCPDRegister::ocpd_reader(unsafe { &mut *bus_ptr }, value)
-            })
-            .with_hook(IOType::VBK, move |value| {
-                crate::vram::Vram::on_vbk_write(unsafe { &mut *bus_ptr }, value)
-            })
-            .with_hook(IOType::SVBK, move |value| {
-                crate::wram::Wram::on_svbk_write(unsafe { &mut *bus_ptr }, value)
-            })
-            .with_hook(IOType::STAT, move |value| {
-                crate::oam::Oam::on_stat_write(unsafe { &mut *bus_ptr }, value)
-            })
-            .with_hook(IOType::STAT, move |value| {
-                crate::vram::Vram::on_stat_write(unsafe { &mut *bus_ptr }, value)
-            })
+            .with_hook(IOType::STAT, stat_stat_hook)
+            .with_hook(IOType::BCPD, bcps_bcpd_hook)
+            .with_hook(IOType::OCPD, ocps_ocpd_hook)
+            .with_hook(IOType::BCPS, bcpd_bcps_hook)
+            .with_hook(IOType::OCPS, ocpd_ocps_hook)
+            .with_reader(IOType::BCPS, bcpd_reader)
+            .with_reader(IOType::OCPD, ocpd_reader)
+            .with_hook(IOType::VBK, vram_vbk_hook)
+            .with_hook(IOType::SVBK, wram_svbk_hook)
+            .with_hook(IOType::STAT, oam_stat_hook)
+            .with_hook(IOType::STAT, vram_stat_hook)
             .with_transformer(
                 IOType::DIV,
                 crate::io_registers::DivRegister::div_transformer,

@@ -53,10 +53,7 @@ impl Dma {
         }
     }
 
-    pub(crate) fn on_dma_write(emulator: &mut yagber_app::Emulator, value: u8) {
-        let dma = emulator
-            .get_component_mut::<Dma>()
-            .expect("DMA component missing");
+    pub(crate) fn on_dma_write(dma: &mut Dma, value: u8) {
         dma.start(value as u16 * 0x100);
     }
 }
