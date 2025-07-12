@@ -62,10 +62,10 @@ impl yagber_app::Plugin for MemoryPlugin {
         let ocpd_ocps_hook = emulator.attach_component(io_registers::OCPDRegister::on_ocps_write);
         let bcpd_reader = emulator.attach_component(io_registers::BCPDRegister::bcpd_reader);
         let ocpd_reader = emulator.attach_component(io_registers::OCPDRegister::ocpd_reader);
-        let vram_vbk_hook = emulator.attach_component(crate::vram::Vram::on_vbk_write);
-        let wram_svbk_hook = emulator.attach_component(crate::wram::Wram::on_svbk_write);
-        let oam_stat_hook = emulator.attach_component(crate::oam::Oam::on_stat_write);
-        let vram_stat_hook = emulator.attach_component(crate::vram::Vram::on_stat_write);
+        let vram_vbk_hook = emulator.attach_component(vram::Vram::on_vbk_write);
+        let wram_svbk_hook = emulator.attach_component(wram::Wram::on_svbk_write);
+        let oam_stat_hook = emulator.attach_component(oam::Oam::on_stat_write);
+        let vram_stat_hook = emulator.attach_component(vram::Vram::on_stat_write);
 
         emulator
             .get_component_mut::<Bus>()
@@ -86,9 +86,6 @@ impl yagber_app::Plugin for MemoryPlugin {
             .with_hook(IOType::SVBK, wram_svbk_hook)
             .with_hook(IOType::STAT, oam_stat_hook)
             .with_hook(IOType::STAT, vram_stat_hook)
-            .with_transformer(
-                IOType::DIV,
-                crate::io_registers::DivRegister::div_transformer,
-            );
+            .with_transformer(IOType::DIV, io_registers::DivRegister::div_transformer);
     }
 }
