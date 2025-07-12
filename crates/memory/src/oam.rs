@@ -1,4 +1,4 @@
-use crate::{Memory, ram::Ram};
+use crate::{Bus, Memory, ram::Ram};
 
 #[derive(Debug)]
 pub struct Oam {
@@ -33,6 +33,12 @@ impl Oam {
 
     pub fn set_accessible(&mut self, accessible: bool) {
         self.accessible = accessible;
+    }
+
+    pub(crate) fn on_stat_write(bus: &mut Bus, value: u8) {
+        let stat = super::Stat::new(value);
+        let mode = stat.mode();
+        bus.oam.set_accessible(mode != 2 && mode != 3);
     }
 }
 

@@ -1,10 +1,5 @@
 use yagber_app::{EdgeDetector, EdgeMode};
-use yagber_memory::{Bus, InterruptType};
-
-pub const DIV_ADDR: u16 = 0xFF04;
-pub const TIMA_ADDR: u16 = 0xFF05;
-pub const TMA_ADDR: u16 = 0xFF06;
-pub const TAC_ADDR: u16 = 0xFF07;
+use yagber_memory::{Bus, IOType, InterruptType};
 
 /// System Counter is a 16.777216 MHz clock.
 /// Incremented every M-Cycle.
@@ -126,23 +121,24 @@ impl Timer {
     }
 
     fn read_tima(&self, ram: &Bus) -> u8 {
-        ram.read(TIMA_ADDR)
+        ram.io_registers.read(IOType::TIMA.address())
     }
 
     fn read_tma(&self, ram: &Bus) -> u8 {
-        ram.read(TMA_ADDR)
+        ram.io_registers.read(IOType::TMA.address())
     }
 
     fn read_tac(&self, ram: &Bus) -> u8 {
-        ram.read(TAC_ADDR)
+        ram.io_registers.read(IOType::TAC.address())
     }
 
     fn write_tima(&mut self, ram: &mut Bus, value: u8) {
-        ram.write(TIMA_ADDR, value);
+        ram.io_registers.write(IOType::TIMA.address(), value);
     }
 
     fn write_div(&mut self, ram: &mut Bus, value: u8) {
-        ram.write(DIV_ADDR, value);
+        ram.io_registers
+            .write_unchecked(IOType::DIV.address(), value);
     }
 
     #[cfg(test)]
@@ -174,24 +170,23 @@ mod tests {
         let tac = 0xFD; // Timer ON, Every 4 M-Cycles
         let mut timer = Timer::from_cycles(0x2B, tac);
         let mut bus = Bus::default();
-        let if_addr = 0xFF0F;
 
-        bus.write(TIMA_ADDR, 0xFE);
-        bus.write(TMA_ADDR, 0x23);
-        bus.write(TAC_ADDR, tac);
-        bus.write(if_addr, 0xE0); // IF
+        bus.io_registers.write(IOType::TIMA.address(), 0xFE);
+        bus.io_registers.write(IOType::TMA.address(), 0x23);
+        bus.io_registers.write(IOType::TAC.address(), tac);
+        bus.io_registers.write(IOType::IF.address(), 0xE0); // IF
 
         assert_eq!(timer.cycles(), 0x2B);
         assert_eq!(timer.read_tima(&bus), 0xFE);
         assert_eq!(timer.read_tma(&bus), 0x23);
-        assert_eq!(bus.read(if_addr), 0xE0);
+        assert_eq!(bus.io_registers.read(IOType::IF.address()), 0xE0);
 
         // first falling edge
         timer.tick(&mut bus);
 
         assert_eq!(timer.cycles(), 0x2C);
         assert_eq!(timer.read_tima(&bus), 0xFF);
-        assert_eq!(bus.read(if_addr), 0xE0);
+        assert_eq!(bus.io_registers.read(IOType::IF.address()), 0xE0);
 
         // rising edge
         timer.tick(&mut bus);
@@ -199,7 +194,7 @@ mod tests {
 
         assert_eq!(timer.cycles(), 0x2E);
         assert_eq!(timer.read_tima(&bus), 0xFF);
-        assert_eq!(bus.read(if_addr), 0xE0);
+        assert_eq!(bus.io_registers.read(IOType::IF.address()), 0xE0);
 
         // second falling edge
         timer.tick(&mut bus);
@@ -207,21 +202,21 @@ mod tests {
 
         assert_eq!(timer.cycles(), 0x30);
         assert_eq!(timer.read_tima(&bus), 0x00);
-        assert_eq!(bus.read(if_addr), 0xE0);
+        assert_eq!(bus.io_registers.read(IOType::IF.address()), 0xE0);
 
         // no edge
         timer.tick(&mut bus);
 
         assert_eq!(timer.cycles(), 0x31);
         assert_eq!(timer.read_tima(&bus), 0x23);
-        assert_eq!(bus.read(if_addr), 0xE4);
+        assert_eq!(bus.io_registers.read(IOType::IF.address()), 0xE4);
 
         // second rising edge
         timer.tick(&mut bus);
 
         assert_eq!(timer.cycles(), 0x32);
         assert_eq!(timer.read_tima(&bus), 0x23);
-        assert_eq!(bus.read(if_addr), 0xE4);
+        assert_eq!(bus.io_registers.read(IOType::IF.address()), 0xE4);
 
         // third falling edge
         timer.tick(&mut bus);
@@ -229,7 +224,7 @@ mod tests {
 
         assert_eq!(timer.cycles(), 0x34);
         assert_eq!(timer.read_tima(&bus), 0x24);
-        assert_eq!(bus.read(if_addr), 0xE4);
+        assert_eq!(bus.io_registers.read(IOType::IF.address()), 0xE4);
         assert_eq!(timer.read_tma(&bus), 0x23)
     }
 }

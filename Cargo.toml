@@ -4,9 +4,8 @@ version = "0.1.0"
 edition = "2024"
 
 [features]
-default = ["trace", "yagber_memory/break_on_unitialized_ram_read"]
+default = ["yagber_memory/break_on_unitialized_ram_read"]
 trace = [
-    "dep:yagber_log",
     "yagber_app/trace",
     "yagber_memory/trace",
     "yagber_cpu/trace",
@@ -28,7 +27,7 @@ yagber_cpu = { workspace = true }
 yagber_ppu = { workspace = true }
 yagber_clock = { workspace = true }
 yagber_link_cable = { workspace = true }
-yagber_log = { workspace = true, optional = true }
+yagber_log = { workspace = true }
 yagber_timer = { workspace = true }
 yagber_display = { workspace = true }
 

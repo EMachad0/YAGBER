@@ -87,7 +87,7 @@ impl Cpu {
     fn instruction_step(&mut self, bus: &mut Bus) {
         if self.pc == 0x0100 {
             #[cfg(feature = "trace")]
-            tracing::debug!("Boot Rom Completed, Starting cartridge");
+            tracing::info!("Boot Rom Completed, Starting cartridge");
         }
 
         // Fetch the next instruction

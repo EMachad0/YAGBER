@@ -29,9 +29,9 @@ impl yagber_app::Runner for WinitRunner {
         let mut app = WinitApp::new(self.emulator);
         let result = self.event_loop.run_app(&mut app);
 
-        if let Some(error) = result.err() {
+        if let Some(_error) = result.err() {
             #[cfg(feature = "trace")]
-            tracing::error!("Error running event loop: {:?}", error);
+            tracing::error!("Error running event loop: {:?}", _error);
         }
     }
 }

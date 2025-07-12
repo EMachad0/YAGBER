@@ -1,18 +1,19 @@
 use yagber_app::{EdgeDetector, EdgeMode};
 
-use crate::{IOType, InterruptType, Register};
+use crate::{Bus, IOType, InterruptType};
 
-#[derive(Debug, Clone, Copy)]
-pub struct StatRegister {
+pub struct Stat {
     value: u8,
-    edge_detector: EdgeDetector,
 }
 
-impl StatRegister {
-    pub fn new() -> Self {
+impl Stat {
+    pub fn new(value: u8) -> Self {
+        Self { value }
+    }
+
+    pub fn from_bus(bus: &Bus) -> Self {
         Self {
-            value: 0,
-            edge_detector: EdgeDetector::new(EdgeMode::Rising),
+            value: bus.read(IOType::STAT.address()),
         }
     }
 
@@ -36,20 +37,8 @@ impl StatRegister {
         self.value & 0x04 != 0
     }
 
-    pub fn set_lyc_eq_ly(&mut self, value: bool) {
-        if value {
-            self.value |= 0x04;
-        } else {
-            self.value &= !0x04;
-        }
-    }
-
-    fn mode(&self) -> u8 {
+    pub fn mode(&self) -> u8 {
         self.value & 0x03
-    }
-
-    pub fn set_mode(&mut self, mode: u8) {
-        self.value = (self.value & 0xFC) | (mode & 0x03);
     }
 
     fn interrupt_line(&self) -> bool {
@@ -59,47 +48,64 @@ impl StatRegister {
             || (self.mode_2_select() && self.mode() == 2)
     }
 
+    pub(crate) fn stat_transformer(old_value: u8, new_value: u8) -> Option<u8> {
+        Some((old_value & 0x07) | (new_value & !0x07))
+    }
+
+    pub(crate) fn on_ly_write(bus: &mut Bus, value: u8) {
+        Stat::update_stat(bus, value, bus.read(IOType::LYC.address()));
+    }
+
+    pub(crate) fn on_lyc_write(bus: &mut Bus, value: u8) {
+        Stat::update_stat(bus, bus.read(IOType::LY.address()), value);
+    }
+
+    fn update_stat(bus: &mut Bus, ly: u8, lyc: u8) {
+        let bit_4 = if lyc == ly { 0x04 } else { 0x00 };
+        let stat = bus.read(IOType::STAT.address());
+        let new_value = (stat & !0x04) | bit_4;
+        bus.io_registers
+            .write_unchecked(IOType::STAT.address(), new_value);
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct StatInterruptDetector {
+    should_trigger_interrupt: bool,
+    edge_detector: EdgeDetector,
+}
+
+impl StatInterruptDetector {
+    pub fn new() -> Self {
+        Self {
+            edge_detector: EdgeDetector::new(EdgeMode::Rising),
+            should_trigger_interrupt: false,
+        }
+    }
+
+    pub fn tick(&mut self, new_stat: u8) {
+        let interrupt_line = Stat::new(new_stat).interrupt_line();
+        self.should_trigger_interrupt = self.edge_detector.tick(interrupt_line);
+    }
+
     pub fn should_trigger_interrupt(&mut self) -> bool {
-        self.edge_detector.tick(self.interrupt_line())
+        self.should_trigger_interrupt
     }
 
-    pub fn read(&self) -> u8 {
-        self.value
-    }
-
-    pub fn write(&mut self, value: u8) {
-        self.value = (self.value & 0x07) | (value & !0x07);
-    }
-
-    pub fn on_dot_cycle(emulator: &mut yagber_app::Emulator) {
-        let bus = emulator.get_component_mut::<crate::Bus>().unwrap();
-        let ly = bus.read(IOType::LY.address());
-        let lyc = bus.read(IOType::LYC.address());
-
-        let stat = bus
-            .io_registers
-            .get_register_mut::<StatRegister>(IOType::STAT)
-            .expect("STAT register not found");
-        stat.set_lyc_eq_ly(lyc == ly);
-
-        if stat.should_trigger_interrupt() {
+    pub(crate) fn on_stat_write(&mut self, bus: &mut Bus, value: u8) {
+        self.tick(value);
+        if self.should_trigger_interrupt() {
             bus.request_interrupt(InterruptType::Lcd);
+        } else {
+            bus.clear_interrupt(InterruptType::Lcd);
         }
     }
 }
 
-impl Register for StatRegister {
-    fn read(&self) -> u8 {
-        self.read()
-    }
-
-    fn write(&mut self, value: u8) {
-        self.write(value);
-    }
-}
-
-impl Default for StatRegister {
+impl Default for StatInterruptDetector {
     fn default() -> Self {
         Self::new()
     }
 }
+
+impl yagber_app::Component for StatInterruptDetector {}

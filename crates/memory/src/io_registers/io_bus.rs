@@ -1,13 +1,7 @@
-use crate::{
-    io_registers::{IOType, LcdcRegister, StatRegister},
-    memory::Memory,
-    register::{ByteRegister, Register},
-};
-
-type RegisterBox = Box<dyn Register>;
+use crate::{IOType, io_registers::IORegister, memory::Memory};
 
 pub struct IOBus {
-    data: Vec<RegisterBox>,
+    data: Vec<IORegister>,
 }
 
 impl IOBus {
@@ -16,30 +10,10 @@ impl IOBus {
 
     pub fn new() -> Self {
         let data = (0..Self::IO_REGISTERS_SIZE)
-            .map(|_| Box::new(ByteRegister::new(0x00)) as RegisterBox)
+            .map(|_| IORegister::new())
             .collect::<Vec<_>>();
 
         Self { data }
-            .with_register(IOType::LCDC, LcdcRegister::new())
-            .with_register(IOType::STAT, StatRegister::new())
-    }
-
-    pub fn with_register<R: Register>(mut self, io_type: IOType, register: R) -> Self {
-        self.data[Self::virtual_address(io_type.address())] = Box::new(register);
-        self
-    }
-
-    pub fn get_register<R: Register>(&self, io_type: IOType) -> Option<&R> {
-        self.data[Self::virtual_address(io_type.address())]
-            .as_any_ref()
-            .downcast_ref::<R>()
-    }
-
-    /// Careful, this does not trigger the on_memory_write event.
-    pub fn get_register_mut<R: Register>(&mut self, io_type: IOType) -> Option<&mut R> {
-        self.data[Self::virtual_address(io_type.address())]
-            .as_any_mut()
-            .downcast_mut::<R>()
     }
 
     pub fn read(&self, address: u16) -> u8 {
@@ -48,6 +22,61 @@ impl IOBus {
 
     pub fn write(&mut self, address: u16, value: u8) {
         self.data[Self::virtual_address(address)].write(value);
+    }
+
+    pub fn write_unchecked(&mut self, address: u16, value: u8) {
+        self.data[Self::virtual_address(address)].write_unchecked(value);
+    }
+
+    pub fn write_unhooked(&mut self, address: u16, value: u8) {
+        self.data[Self::virtual_address(address)].write_unhooked(value);
+    }
+
+    pub fn add_transformer<F>(&mut self, io: IOType, transformer: F) -> &mut Self
+    where
+        F: Fn(u8, u8) -> Option<u8> + 'static,
+    {
+        self.data[Self::virtual_address(io.address())].add_transformer(transformer);
+        self
+    }
+
+    pub fn add_hook<F>(&mut self, io: IOType, hook: F)
+    where
+        F: Fn(u8) + 'static,
+    {
+        self.data[Self::virtual_address(io.address())].add_hook(hook);
+    }
+
+    pub fn add_reader<F>(&mut self, io: IOType, reader: F) -> &mut Self
+    where
+        F: Fn(u8) -> u8 + 'static,
+    {
+        self.data[Self::virtual_address(io.address())].add_reader(reader);
+        self
+    }
+
+    pub fn with_transformer<F>(&mut self, io: IOType, transformer: F) -> &mut Self
+    where
+        F: Fn(u8, u8) -> Option<u8> + 'static,
+    {
+        self.add_transformer(io, transformer);
+        self
+    }
+
+    pub fn with_hook<F>(&mut self, io: IOType, hook: F) -> &mut Self
+    where
+        F: Fn(u8) + 'static,
+    {
+        self.add_hook(io, hook);
+        self
+    }
+
+    pub fn with_reader<F>(&mut self, io: IOType, reader: F) -> &mut Self
+    where
+        F: Fn(u8) -> u8 + 'static,
+    {
+        self.add_reader(io, reader);
+        self
     }
 
     fn virtual_address(address: u16) -> usize {

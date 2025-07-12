@@ -16,18 +16,6 @@ impl Dma {
         }
     }
 
-    pub fn on_memory_write(
-        emulator: &mut yagber_app::Emulator,
-        event: &yagber_memory::MemoryWriteEvent,
-    ) {
-        if event.address == yagber_memory::IOType::DMA.address() {
-            let dma = emulator
-                .get_component_mut::<Dma>()
-                .expect("DMA component missing");
-            dma.start(event.value as u16 * 0x100);
-        }
-    }
-
     fn start(&mut self, source_addr: u16) {
         self.enabled = true;
         self.cycles = 0;
@@ -63,6 +51,13 @@ impl Dma {
             let value = bus.read(source_addr + i);
             bus.write(target_addr + i, value);
         }
+    }
+
+    pub(crate) fn on_dma_write(emulator: &mut yagber_app::Emulator, value: u8) {
+        let dma = emulator
+            .get_component_mut::<Dma>()
+            .expect("DMA component missing");
+        dma.start(value as u16 * 0x100);
     }
 }
 

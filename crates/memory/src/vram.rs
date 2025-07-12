@@ -1,4 +1,4 @@
-use crate::{Bus, Memory, MemoryWriteEvent, ram::Ram};
+use crate::{Bus, Memory, ram::Ram};
 
 #[derive(Debug)]
 pub struct Vram {
@@ -45,16 +45,6 @@ impl Vram {
         self.accessible = accessible;
     }
 
-    pub fn on_memory_write(emulator: &mut yagber_app::Emulator, event: &MemoryWriteEvent) {
-        if event.address == crate::IOType::VBK.address() {
-            let bank = event.value & 0x01;
-            let memory_bus = emulator
-                .get_component_mut::<Bus>()
-                .expect("MemoryBus not found");
-            memory_bus.vram.set_bank(bank as usize);
-        }
-    }
-
     pub fn set_bank(&mut self, bank: usize) {
         self.current_bank = bank;
     }
@@ -82,6 +72,18 @@ impl Vram {
             (0x9C00, 0xA000)
         };
         (start - Self::OFFSET, end - Self::OFFSET)
+    }
+
+    pub(crate) fn on_vbk_write(bus: &mut Bus, value: u8) {
+        let bank = value & 0x01;
+        let vram = &mut bus.vram;
+        vram.set_bank(bank as usize);
+    }
+
+    pub(crate) fn on_stat_write(bus: &mut Bus, value: u8) {
+        let stat = super::Stat::new(value);
+        let mode = stat.mode();
+        bus.vram.set_accessible(mode != 3);
     }
 }
 

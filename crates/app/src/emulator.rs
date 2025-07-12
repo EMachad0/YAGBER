@@ -1,12 +1,10 @@
 use crate::{
-    Component, Event, EventBus, Plugin, callback_queue::CallbackQueue, components::ComponentBus,
-    events::EventQueue, runners::Runner,
+    Component, Plugin, callback_queue::CallbackQueue, components::ComponentBus, runners::Runner,
 };
 
 pub struct Emulator {
     cycles: u64,
     components: ComponentBus,
-    event_queue: EventQueue,
     tcycle_queue: CallbackQueue,
     mcycle_queue: CallbackQueue,
     dot_cycle_queue: CallbackQueue,
@@ -17,7 +15,6 @@ impl Emulator {
         Self {
             cycles: 0,
             components: ComponentBus::new(),
-            event_queue: EventQueue::new(),
             tcycle_queue: CallbackQueue::new(),
             mcycle_queue: CallbackQueue::new(),
             dot_cycle_queue: CallbackQueue::new(),
@@ -25,8 +22,7 @@ impl Emulator {
         .with_default_components()
     }
 
-    fn with_default_components(mut self) -> Self {
-        self.components.add_component(EventBus::new());
+    fn with_default_components(self) -> Self {
         self
     }
 
@@ -42,10 +38,6 @@ impl Emulator {
             self.step_tcycle();
             if self.is_m_cycle() {
                 self.step_mcycle();
-            }
-
-            while let Some(event) = self.event_queue.pop() {
-                self.dispatch_event(&*event);
             }
         }
     }
@@ -81,6 +73,13 @@ impl Emulator {
     where
         F: Fn(&mut Emulator) + Send + Sync + 'static,
     {
+        #[cfg(feature = "trace")]
+        let callback_name = std::any::type_name::<F>();
+        #[cfg(feature = "trace")]
+        let callback = move |emulator: &mut Emulator| {
+            let _span = tracing::info_span!("tcycle", %callback_name).entered();
+            callback(emulator)
+        };
         self.tcycle_queue.add_callback(callback);
         self
     }
@@ -89,6 +88,13 @@ impl Emulator {
     where
         F: Fn(&mut Emulator) + Send + Sync + 'static,
     {
+        #[cfg(feature = "trace")]
+        let callback_name = std::any::type_name::<F>();
+        #[cfg(feature = "trace")]
+        let callback = move |emulator: &mut Emulator| {
+            let _span = tracing::info_span!("mcycle", %callback_name).entered();
+            callback(emulator)
+        };
         self.mcycle_queue.add_callback(callback);
         self
     }
@@ -97,35 +103,15 @@ impl Emulator {
     where
         F: Fn(&mut Emulator) + Send + Sync + 'static,
     {
+        #[cfg(feature = "trace")]
+        let callback_name = std::any::type_name::<F>();
+        #[cfg(feature = "trace")]
+        let callback = move |emulator: &mut Emulator| {
+            let _span = tracing::info_span!("dot_cycle", %callback_name).entered();
+            callback(emulator)
+        };
         self.dot_cycle_queue.add_callback(callback);
         self
-    }
-
-    fn dispatch_event(&mut self, event: &dyn Event) {
-        // We cannot keep an immutable borrow of `self` (through
-        // `get_component`) while also passing `&mut self` to the
-        // dispatched handlers.
-        // To work around this we obtain a *raw pointer* to the `EventBus`,
-        // _drop_ the immutable borrow immediately (by ending the scope),
-        // and then invoke `dispatch` through the raw pointer.
-
-        let bus_ptr = {
-            // Immutable borrow is *temporary* and ends right after this
-            // block, so it won't overlap with the upcoming mutable
-            // borrow of `self`.
-            let bus_ref = self
-                .components
-                .get_component::<EventBus>()
-                .expect("EventBus not found");
-            bus_ref as *const EventBus
-        };
-
-        // SAFETY: `bus_ptr` is valid for the entire lifetime of the
-        // emulator because components never move in memory after being
-        // inserted into the `ComponentBus`.
-        unsafe {
-            (*bus_ptr).dispatch(self, event.as_any_ref());
-        }
     }
 
     pub fn run<T: Runner>(self) -> T::Result {
@@ -135,10 +121,10 @@ impl Emulator {
 
     pub fn with_plugin<P: Plugin>(mut self, plugin: P) -> Self {
         #[cfg(feature = "trace")]
-        {
+        let _span = {
             let type_name = std::any::type_name::<P>();
-            let _span = tracing::info_span!("plugin init", %type_name).entered();
-        }
+            tracing::info_span!("plugin init", %type_name).entered()
+        };
         plugin.init(&mut self);
         self
     }
@@ -146,26 +132,6 @@ impl Emulator {
     pub fn with_component<C: Component>(&mut self, component: C) -> &mut Self {
         self.components.add_component(component);
         self
-    }
-
-    pub fn with_event<E: Event>(&mut self) -> &mut Self {
-        let event_bus = self.components.get_component_mut::<EventBus>().unwrap();
-        event_bus.register_event::<E>();
-        self
-    }
-
-    pub fn with_event_handler<E, F>(&mut self, handler: F) -> &mut Self
-    where
-        E: Event,
-        F: Fn(&mut Emulator, &E) + Send + Sync + 'static,
-    {
-        let event_bus = self.components.get_component_mut::<EventBus>().unwrap();
-        event_bus.add_handler(handler);
-        self
-    }
-
-    pub fn event_sender(&self) -> crate::events::EventSender {
-        self.event_queue.sender()
     }
 
     pub fn has_component<C: Component>(&self) -> bool {

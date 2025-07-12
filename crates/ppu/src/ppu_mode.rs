@@ -12,13 +12,14 @@ pub enum PpuMode {
 }
 
 impl PpuMode {
+    #[allow(dead_code)]
     pub fn from_u8(value: u8) -> Self {
         match value & 0b11 {
             0 => PpuMode::HBlank,
             1 => PpuMode::VBlank,
             2 => PpuMode::OamScan,
             3 => PpuMode::PixelTransfer,
-            _ => panic!("Invalid mode value"),
+            _ => unreachable!("Invalid mode value: {}", value),
         }
     }
 

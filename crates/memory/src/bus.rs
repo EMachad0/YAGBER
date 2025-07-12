@@ -1,8 +1,6 @@
-use yagber_app::EventSender;
-
 use crate::{
-    ByteRegister, IOType, InterruptType, MemoryWriteEvent, boot_rom::BootRom, cartridge::Cartridge,
-    cram::Cram, io_registers::IOBus, memory::Memory, oam::Oam, ram::Ram, vram::Vram, wram::Wram,
+    ByteRegister, InterruptType, boot_rom::BootRom, cartridge::Cartridge, cram::Cram,
+    io_registers::IOBus, memory::Memory, oam::Oam, ram::Ram, vram::Vram, wram::Wram,
 };
 
 #[derive(Debug)]
@@ -12,7 +10,6 @@ pub struct Bus {
     pub io_registers: IOBus,
     hram: Ram,
     ie: ByteRegister,
-    event_sender: Option<EventSender>,
     pub vram: Vram,
     pub wram: Wram,
     pub oam: Oam,
@@ -22,33 +19,18 @@ pub struct Bus {
 
 impl Bus {
     pub fn new() -> Self {
-        let background_cram = Cram::new();
-        let object_cram = Cram::new();
-        let io_registers = IOBus::new()
-            .with_register(IOType::JOYP, crate::ByteRegister::new(0xFF))
-            .with_register(IOType::BCPS, background_cram.writer())
-            .with_register(IOType::BCPD, background_cram.reader())
-            .with_register(IOType::OCPS, object_cram.writer())
-            .with_register(IOType::OCPD, object_cram.reader());
-
         Self {
             boot_rom: BootRom::new(),
             cartridge: Cartridge::empty(),
             vram: Vram::new(),
             wram: Wram::new(),
             oam: Oam::new(),
-            io_registers,
+            io_registers: IOBus::new(),
             hram: Ram::new(0x7F, 0xFF80),
             ie: ByteRegister::new(0x00),
-            background_cram,
-            object_cram,
-            event_sender: None,
+            background_cram: Cram::new(),
+            object_cram: Cram::new(),
         }
-    }
-
-    pub fn with_event_sender(&mut self, event_sender: EventSender) -> &mut Self {
-        self.event_sender = Some(event_sender);
-        self
     }
 
     pub fn read(&self, address: u16) -> u8 {
@@ -98,10 +80,6 @@ impl Bus {
             0xFF80..=0xFFFE => self.hram.write(address, value),
             // Interrupt Enable Register
             0xFFFF => self.ie.write(value),
-        }
-
-        if let Some(event_sender) = &self.event_sender {
-            event_sender.send(MemoryWriteEvent::new(address, value));
         }
     }
 

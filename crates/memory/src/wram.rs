@@ -1,4 +1,4 @@
-use crate::{Bus, Memory, MemoryWriteEvent, ram::Ram};
+use crate::{Bus, Memory, ram::Ram};
 
 #[derive(Debug)]
 pub struct Wram {
@@ -53,16 +53,6 @@ impl Wram {
         }
     }
 
-    pub fn on_memory_write(emulator: &mut yagber_app::Emulator, event: &MemoryWriteEvent) {
-        if event.address == crate::IOType::SVBK.address() {
-            let bank = event.value & 0x07;
-            let memory_bus = emulator
-                .get_component_mut::<Bus>()
-                .expect("MemoryBus not found");
-            memory_bus.wram.set_bank(bank as usize);
-        }
-    }
-
     pub fn set_bank(&mut self, bank: usize) {
         self.current_bank = bank;
     }
@@ -73,6 +63,11 @@ impl Wram {
         } else {
             self.current_bank
         }
+    }
+
+    pub(crate) fn on_svbk_write(bus: &mut Bus, value: u8) {
+        let bank = value & 0x07;
+        bus.wram.set_bank(bank as usize);
     }
 }
 

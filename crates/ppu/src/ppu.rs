@@ -40,10 +40,7 @@ impl Ppu {
             .get_components_mut2::<Bus, yagber_display::Display>()
             .expect("Bus and/or Display component missing");
 
-        let lcdc = bus
-            .io_registers
-            .get_register::<LcdcRegister>(IOType::LCDC)
-            .unwrap();
+        let lcdc = LcdcRegister::from_bus(bus);
         let tile_fetcher_mode = lcdc.tile_data_area();
         let bg_addr_mode = lcdc.bg_tile_map_area();
         let bg_tile_map = bus.vram.tile_map(bg_addr_mode);
@@ -116,10 +113,7 @@ impl Ppu {
     }
 
     pub fn enabled(bus: &Bus) -> bool {
-        let lcdc = bus
-            .io_registers
-            .get_register::<LcdcRegister>(IOType::LCDC)
-            .unwrap();
+        let lcdc = LcdcRegister::from_bus(bus);
         lcdc.lcd_ppu_enabled()
     }
 
@@ -146,11 +140,10 @@ impl Ppu {
     }
 
     fn set_mode(bus: &mut Bus, mode: PpuMode) {
-        let stat = bus
-            .io_registers
-            .get_register_mut::<yagber_memory::StatRegister>(IOType::STAT)
-            .expect("STAT register not found");
-        stat.set_mode(mode.to_u8());
+        let stat = bus.io_registers.read(IOType::STAT.address());
+        let new_stat = (stat & !0x03) | mode.to_u8();
+        bus.io_registers
+            .write_unchecked(IOType::STAT.address(), new_stat);
     }
 }
 

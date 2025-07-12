@@ -1,3 +1,5 @@
+use crate::{Bus, IOType};
+
 #[derive(Debug, Clone, Copy, Default)]
 pub struct LcdcRegister {
     value: u8,
@@ -6,6 +8,12 @@ pub struct LcdcRegister {
 impl LcdcRegister {
     pub fn new() -> Self {
         Self { value: 0 }
+    }
+
+    pub fn from_bus(bus: &Bus) -> Self {
+        Self {
+            value: bus.read(IOType::LCDC.address()),
+        }
     }
 
     pub fn lcd_ppu_enabled(&self) -> bool {
@@ -50,23 +58,5 @@ impl LcdcRegister {
 
     pub fn bg_window_enabled_priority(&self) -> bool {
         self.value & 0x01 != 0
-    }
-
-    pub fn read(&self) -> u8 {
-        self.value
-    }
-
-    pub fn write(&mut self, value: u8) {
-        self.value = value;
-    }
-}
-
-impl crate::Register for LcdcRegister {
-    fn read(&self) -> u8 {
-        self.read()
-    }
-
-    fn write(&mut self, value: u8) {
-        self.write(value);
     }
 }
