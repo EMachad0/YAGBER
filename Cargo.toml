@@ -24,6 +24,7 @@ members = [
 yagber_app = { workspace = true }
 yagber_memory = { workspace = true }
 yagber_cpu = { workspace = true }
+yagber_dma = { workspace = true }
 yagber_ppu = { workspace = true }
 yagber_clock = { workspace = true }
 yagber_link_cable = { workspace = true }
@@ -46,6 +47,7 @@ tracing-subscriber = { version = "0.3.19" }
 
 yagber_app = { path = "crates/app" }
 yagber_cpu = { path = "crates/cpu" }
+yagber_dma = { path = "crates/dma" }
 yagber_clock = { path = "crates/clock" }
 yagber_ppu = { path = "crates/ppu" }
 yagber_memory = { path = "crates/memory" }
