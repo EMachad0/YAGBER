@@ -193,7 +193,7 @@ impl Ppu {
         if self.mode() == PpuMode::PixelTransfer {
             let scy = bus.io_registers.read(IOType::SCY.address());
             let scx = bus.io_registers.read(IOType::SCX.address());
-            let x = (self.x as u8 - 81).wrapping_add(scx);
+            let x = (self.x as u8 - 80).wrapping_add(scx);
             let y = self.y.wrapping_add(scy);
             self.render_pixel(x, y, bus);
         }
@@ -224,20 +224,15 @@ impl Ppu {
     }
 
     fn set_scan_line_index(bus: &mut Bus, index: u8) {
-        match index {
-            0..=143 => Ppu::set_mode(bus, PpuMode::OamScan),
-            144..=153 => Ppu::set_mode(bus, PpuMode::VBlank),
-            _ => panic!("Invalid scan line index: {}", index),
-        }
         bus.write(IOType::LY.address(), index);
     }
 
     fn mode(&self) -> PpuMode {
         match self.y {
             0..=143 => match self.x {
-                0..=80 => PpuMode::OamScan,
-                81..=252 => PpuMode::PixelTransfer,
-                253..=456 => PpuMode::HBlank,
+                0..80 => PpuMode::OamScan,
+                80..252 => PpuMode::PixelTransfer,
+                252..456 => PpuMode::HBlank,
                 _ => panic!("Invalid x index: {}", self.x),
             },
             144..=153 => PpuMode::VBlank,
