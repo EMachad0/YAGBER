@@ -290,6 +290,10 @@ impl Cpu {
         }
     }
 
+    pub fn freeze_for(&mut self, cycles: u16) {
+        self.busy = cycles;
+    }
+
     fn execute_instruction(&mut self, bus: &mut Bus, instruction: &Instruction) {
         // Execute the instruction
         use InstructionType::*;

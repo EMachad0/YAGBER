@@ -57,6 +57,31 @@ impl ComponentBus {
         }
     }
 
+    pub fn get_components_mut3<C0: Component, C1: Component, C2: Component>(
+        &mut self,
+    ) -> Option<(&mut C0, &mut C1, &mut C2)> {
+        use std::any::TypeId;
+        let keys = [
+            &TypeId::of::<C0>(),
+            &TypeId::of::<C1>(),
+            &TypeId::of::<C2>(),
+        ];
+        if keys[0] == keys[1] || keys[0] == keys[2] || keys[1] == keys[2] {
+            return None;
+        }
+
+        let [opt0, opt1, opt2] = self.components.get_disjoint_mut(keys);
+        match (opt0, opt1, opt2) {
+            (Some(c0_box), Some(c1_box), Some(c2_box)) => {
+                let c0_ref = Self::downcast_box_mut::<C0>(c0_box);
+                let c1_ref = Self::downcast_box_mut::<C1>(c1_box);
+                let c2_ref = Self::downcast_box_mut::<C2>(c2_box);
+                Some((c0_ref, c1_ref, c2_ref))
+            }
+            _ => None,
+        }
+    }
+
     fn downcast_box_mut<T: Component>(boxed_component: &mut Box<dyn Component>) -> &mut T {
         boxed_component
             .as_mut()
@@ -92,6 +117,33 @@ impl ComponentBus {
         let component0 = component0 as *mut C0;
         let component1 = component1 as *mut C1;
         move |a| f(unsafe { &mut *component0 }, unsafe { &mut *component1 }, a)
+    }
+
+    pub fn attach_components3<C0, C1, C2, F, A, R>(
+        &mut self,
+        f: F,
+    ) -> impl Fn(A) -> R + use<C0, C1, C2, F, A, R>
+    where
+        C0: Component,
+        C1: Component,
+        C2: Component,
+        F: Fn(&mut C0, &mut C1, &mut C2, A) -> R,
+    {
+        let (component0, component1, component2) = self
+            .get_components_mut3::<C0, C1, C2>()
+            .expect("Components not found");
+        // SAFETY: Component stays alive inside the emulator
+        let component0 = component0 as *mut C0;
+        let component1 = component1 as *mut C1;
+        let component2 = component2 as *mut C2;
+        move |a| {
+            f(
+                unsafe { &mut *component0 },
+                unsafe { &mut *component1 },
+                unsafe { &mut *component2 },
+                a,
+            )
+        }
     }
 }
 

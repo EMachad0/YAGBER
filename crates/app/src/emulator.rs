@@ -175,6 +175,19 @@ impl Emulator {
         self.components.attach_components2(f)
     }
 
+    pub fn attach_components3<C0, C1, C2, F, A, R>(
+        &mut self,
+        f: F,
+    ) -> impl Fn(A) -> R + use<C0, C1, C2, F, A, R>
+    where
+        C0: Component,
+        C1: Component,
+        C2: Component,
+        F: Fn(&mut C0, &mut C1, &mut C2, A) -> R,
+    {
+        self.components.attach_components3(f)
+    }
+
     pub fn get_cycles(&self) -> u64 {
         self.cycles
     }

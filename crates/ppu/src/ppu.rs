@@ -200,11 +200,7 @@ impl Ppu {
 
         // Vblank interrupt at the start of the Vblank period.
         if self.y == 144 && self.x == 0 {
-            tracing::debug!("Entered VBlank");
             bus.request_interrupt(yagber_memory::InterruptType::VBlank);
-        }
-        if self.y == 0 && self.x == 0 {
-            tracing::debug!("Exited VBlank");
         }
 
         Self::set_scan_line_index(bus, self.y);
