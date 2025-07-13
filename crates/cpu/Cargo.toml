@@ -6,6 +6,7 @@ edition = "2024"
 [features]
 default = []
 trace = ["dep:tracing"]
+trace-span = ["dep:tracing"]
 
 [dependencies]
 arbitrary-int = { workspace = true }

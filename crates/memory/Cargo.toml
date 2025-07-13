@@ -7,6 +7,7 @@ edition = "2024"
 default = []
 break_on_unitialized_ram_read = []
 trace = ["dep:tracing"]
+trace-span = ["dep:tracing"]
 
 [dependencies]
 arbitrary-int = { workspace = true }

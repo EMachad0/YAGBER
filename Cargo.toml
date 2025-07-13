@@ -11,8 +11,15 @@ trace = [
     "yagber_cpu/trace",
     "yagber_display/trace",
 ]
-tracing-chrome = ["yagber_log/tracing-chrome"]
-tracing-tracy = ["yagber_log/tracing-tracy", "yagber_display/frame_marker"]
+trace-span = [
+    "trace",
+    "yagber_app/trace-span",
+    "yagber_memory/trace-span",
+    "yagber_cpu/trace-span",
+    "yagber_display/trace-span",
+]
+tracing-chrome = ["trace", "trace-span", "yagber_log/tracing-chrome"]
+tracing-tracy = ["trace", "trace-span", "yagber_log/tracing-tracy", "yagber_display/frame_marker"]
 
 [workspace]
 members = [

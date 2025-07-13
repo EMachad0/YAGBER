@@ -28,9 +28,9 @@ impl Emulator {
 
     /// Step the emulator a single frame.
     pub fn step(&mut self) {
-        // A frame is 72224 dot cycles.
-        for _ in 0..72224 {
-            #[cfg(feature = "trace")]
+        // A frame is 70224 dot cycles.
+        for _ in 0..70224 {
+            #[cfg(feature = "trace-span")]
             let _step_span = tracing::info_span!("step").entered();
             self.cycles += 1;
 
@@ -73,9 +73,9 @@ impl Emulator {
     where
         F: Fn(&mut Emulator) + Send + Sync + 'static,
     {
-        #[cfg(feature = "trace")]
+        #[cfg(feature = "trace-span")]
         let callback_name = std::any::type_name::<F>();
-        #[cfg(feature = "trace")]
+        #[cfg(feature = "trace-span")]
         let callback = move |emulator: &mut Emulator| {
             let _span = tracing::info_span!("tcycle", %callback_name).entered();
             callback(emulator)
@@ -88,9 +88,9 @@ impl Emulator {
     where
         F: Fn(&mut Emulator) + Send + Sync + 'static,
     {
-        #[cfg(feature = "trace")]
+        #[cfg(feature = "trace-span")]
         let callback_name = std::any::type_name::<F>();
-        #[cfg(feature = "trace")]
+        #[cfg(feature = "trace-span")]
         let callback = move |emulator: &mut Emulator| {
             let _span = tracing::info_span!("mcycle", %callback_name).entered();
             callback(emulator)
@@ -103,9 +103,9 @@ impl Emulator {
     where
         F: Fn(&mut Emulator) + Send + Sync + 'static,
     {
-        #[cfg(feature = "trace")]
+        #[cfg(feature = "trace-span")]
         let callback_name = std::any::type_name::<F>();
-        #[cfg(feature = "trace")]
+        #[cfg(feature = "trace-span")]
         let callback = move |emulator: &mut Emulator| {
             let _span = tracing::info_span!("dot_cycle", %callback_name).entered();
             callback(emulator)
@@ -120,7 +120,7 @@ impl Emulator {
     }
 
     pub fn with_plugin<P: Plugin>(mut self, plugin: P) -> Self {
-        #[cfg(feature = "trace")]
+        #[cfg(feature = "trace-span")]
         let _span = {
             let type_name = std::any::type_name::<P>();
             tracing::info_span!("plugin init", %type_name).entered()

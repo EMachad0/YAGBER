@@ -24,7 +24,7 @@ impl yagber_app::Runner for WinitRunner {
     }
 
     fn run(self) -> Self::Result {
-        #[cfg(feature = "trace")]
+        #[cfg(feature = "trace-span")]
         let _span = tracing::info_span!("winit runner run").entered();
         let mut app = WinitApp::new(self.emulator);
         let result = self.event_loop.run_app(&mut app);

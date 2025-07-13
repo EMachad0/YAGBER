@@ -203,7 +203,7 @@ impl Ppu {
             tracing::debug!("Entered VBlank");
             bus.request_interrupt(yagber_memory::InterruptType::VBlank);
         }
-        if self.y == 0 {
+        if self.y == 0 && self.x == 0 {
             tracing::debug!("Exited VBlank");
         }
 

@@ -25,7 +25,7 @@ impl WinitApp {
 
 impl ApplicationHandler for WinitApp {
     fn resumed(&mut self, event_loop: &winit::event_loop::ActiveEventLoop) {
-        #[cfg(feature = "trace")]
+        #[cfg(feature = "trace-span")]
         let _span = tracing::info_span!("winit app resumed").entered();
 
         let display = self.emulator.get_component::<Display>();
@@ -44,7 +44,7 @@ impl ApplicationHandler for WinitApp {
         _window_id: winit::window::WindowId,
         event: winit::event::WindowEvent,
     ) {
-        #[cfg(feature = "trace")]
+        #[cfg(feature = "trace-span")]
         let _span = tracing::info_span!("winit app window event").entered();
 
         use winit::event::WindowEvent;
@@ -56,7 +56,7 @@ impl ApplicationHandler for WinitApp {
                 event_loop.exit();
             }
             WindowEvent::RedrawRequested => {
-                #[cfg(feature = "trace")]
+                #[cfg(feature = "trace-span")]
                 let _span = tracing::info_span!("winit app redraw requested").entered();
 
                 let display = self.emulator.get_component_mut::<Display>();
@@ -75,7 +75,7 @@ impl ApplicationHandler for WinitApp {
     }
 
     fn about_to_wait(&mut self, _event_loop: &winit::event_loop::ActiveEventLoop) {
-        #[cfg(feature = "trace")]
+        #[cfg(feature = "trace-span")]
         let _span = tracing::info_span!("winit app about to wait").entered();
 
         #[cfg(feature = "frame_marker")]
