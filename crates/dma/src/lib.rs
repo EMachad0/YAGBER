@@ -12,7 +12,6 @@ impl yagber_app::Plugin for DmaPlugin {
 
         let dma_hook = emulator.attach_component(dma::Dma::on_dma_write);
         let hdma_len_hook = emulator.attach_components2(hdma::Hdma::on_hdma_len_write);
-        let hdma_reader = emulator.attach_component(hdma::Hdma::hdma_len_reader);
         let hdma_stat_hook = emulator.attach_components2(hdma::Hdma::on_stat_write);
 
         emulator
@@ -21,7 +20,6 @@ impl yagber_app::Plugin for DmaPlugin {
             .io_registers
             .with_hook(yagber_memory::IOType::DMA, dma_hook)
             .with_hook(yagber_memory::IOType::HdmaLen, hdma_len_hook)
-            .with_reader(yagber_memory::IOType::HdmaLen, hdma_reader)
             .with_hook(yagber_memory::IOType::STAT, hdma_stat_hook);
     }
 }

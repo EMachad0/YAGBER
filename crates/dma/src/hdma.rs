@@ -5,6 +5,8 @@ pub struct Hdma {
     paused: bool,
     blocks: u8,
     last_stat_mode: u8,
+    src: u16,
+    dst: u16,
 }
 
 impl Hdma {
@@ -14,13 +16,12 @@ impl Hdma {
             paused: false,
             blocks: 0,
             last_stat_mode: 0xFF,
+            src: 0,
+            dst: 0,
         }
     }
 
-    fn transfer(bus: &mut Bus, len: u16) {
-        let src = Self::get_hdma_src(bus);
-        let dst = Self::get_hdma_dst(bus);
-
+    fn transfer(bus: &mut Bus, src: u16, dst: u16, len: u16) {
         for i in 0..len {
             let value = bus.read(src + i);
             bus.write(dst + i, value);
@@ -43,32 +44,39 @@ impl Hdma {
     }
 
     pub(crate) fn on_hdma_len_write(&mut self, bus: &mut Bus, value: u8) {
-        let mode = value & 0x80 != 0;
-        let len = value & 0x7F;
-        let blocks = len / 0x10 - 1;
-        tracing::debug!("Hdma: mode={} len={} blocks={}", mode, len, blocks);
+        let hblank_mode = value & 0x80 != 0;
+        let blocks = (value & 0x7F) as u8;
+
+        tracing::debug!(
+            "HDMA write: hblank_mode={} blocks={} ({} bytes)",
+            hblank_mode,
+            blocks + 1,
+            ((blocks as u16) + 1) * 0x10
+        );
+
         if self.active {
-            if !mode {
+            if !hblank_mode {
                 self.paused = true;
             }
-        } else {
-            match mode {
-                false => {
-                    Self::transfer(bus, len as u16);
-                }
-                true => {
-                    self.active = true;
-                    self.paused = false;
-                    self.blocks = blocks;
-                }
-            }
+            return;
         }
-    }
 
-    pub(crate) fn hdma_len_reader(&mut self, _value: u8) -> u8 {
-        match self.active {
-            false => 0xFF,
-            true => self.blocks | 0x80,
+        let src = Self::get_hdma_src(bus);
+        let dst = Self::get_hdma_dst(bus);
+
+        if hblank_mode {
+            // HBlank DMA
+            self.active = true;
+            self.paused = false;
+            self.blocks = blocks;
+            self.src = src;
+            self.dst = dst;
+        } else {
+            // Immediate GDMA
+            let bytes = ((blocks as u16) + 1) * 0x10;
+            Self::transfer(bus, src, dst, bytes);
+            bus.io_registers
+                .write_unhooked(IOType::HdmaLen.address(), 0xFF);
         }
     }
 
@@ -80,11 +88,18 @@ impl Hdma {
             return;
         }
 
-        Self::transfer(bus, 0x10);
+        Self::transfer(bus, self.src, self.dst, 0x10);
         if self.blocks == 0 {
             self.active = false;
+            bus.io_registers
+                .write_unhooked(IOType::HdmaLen.address(), 0xFF);
         } else {
+            self.src = self.src.wrapping_add(0x10);
+            self.dst = self.dst.wrapping_add(0x10);
             self.blocks -= 1;
+            let status = (self.blocks & 0x7F) | 0x80;
+            bus.io_registers
+                .write_unhooked(IOType::HdmaLen.address(), status);
         }
     }
 }
