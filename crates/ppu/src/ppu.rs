@@ -1,19 +1,26 @@
+use yagber_display::Display;
 use yagber_memory::{Bus, IOType, LcdcRegister, TileFetcherMode};
 
 use crate::ppu_mode::PpuMode;
 
-#[derive(Debug, Default, Clone, Copy)]
+#[derive(Debug)]
 pub struct Ppu {
     x: u16, // 0-456
     y: u8,  // 0-153
+    frame_buffer: [[u8; 4]; 256 * 256],
 }
 
 impl Ppu {
     pub fn new() -> Self {
-        Self { x: 0, y: 0 }
+        Self {
+            x: 0,
+            y: 0,
+            frame_buffer: [[0; 4]; 256 * 256],
+        }
     }
 
     pub fn on_dot_cycle(emulator: &mut yagber_app::Emulator) {
+        let has_display = emulator.has_component::<yagber_display::Display>();
         let (bus, ppu) = emulator
             .get_components_mut2::<Bus, Ppu>()
             .expect("Bus and/or PPU component missing");
@@ -25,21 +32,49 @@ impl Ppu {
         // Step the PPU even if there's no display, so that the scan line index is updated and interrupt is requested if necessary.
         ppu.step(bus);
 
-        // If the ppu just finished to draw a frame, we need to render it.
-        if ppu.y == 144 && ppu.x == 0 {
-            Self::render_frame(emulator);
+        let frame_just_finished = ppu.y == 144 && ppu.x == 0;
+
+        // If the display component is not present, there's nowhere to render to.
+        // If the ppu just finished to draw a frame
+        if has_display && frame_just_finished {
+            // Render the rest of the frame for debug purposes
+            ppu.render_outer_frame(bus);
+            // Render the frame to the display
+            let (ppu, display) = emulator
+                .get_components_mut2::<Ppu, Display>()
+                .expect("PPU and/or Display component missing");
+            ppu.render_frame(display);
         }
     }
 
-    fn render_frame(emulator: &mut yagber_app::Emulator) {
-        // If the display component is not present, there's nowhere to render to.
-        if !emulator.has_component::<yagber_display::Display>() {
-            return;
-        }
-        let (bus, display) = emulator
-            .get_components_mut2::<Bus, yagber_display::Display>()
-            .expect("Bus and/or Display component missing");
+    fn render_pixel(&mut self, x: u8, y: u8, bus: &Bus) {
+        let lcdc = LcdcRegister::from_bus(bus);
+        let tile_fetcher_mode = lcdc.tile_data_area();
+        let bg_addr_mode = lcdc.bg_tile_map_area();
+        let bg_tile_map = bus.vram.tile_map(bg_addr_mode);
+        let bg_attr_map = bus.vram.attr_map(bg_addr_mode);
 
+        let tile_map_index = (y as usize / 8) * 32 + (x as usize / 8);
+        let tile_index = bg_tile_map[tile_map_index].expect("Tile index is missing");
+        let tile_address = match tile_fetcher_mode {
+            TileFetcherMode::TileDataArea1 => 0x8000u16 + (tile_index as u16) * 16,
+            TileFetcherMode::TileDataArea0 => (0x9000i32 + (tile_index as i8 as i32) * 16) as u16,
+        };
+        let tile_attr = bg_attr_map[tile_map_index].expect("Tile attribute is missing");
+        let tile = crate::models::Tile::from_memory(bus, tile_address, tile_attr);
+
+        let colour_index = tile.colour_index(x % 8, y % 8);
+
+        let palette_index = tile.attr.palette_index();
+        let colour_raw = bus.background_cram.read_colour(palette_index, colour_index);
+        let colour = crate::models::Rgb555::from_u16(colour_raw);
+        let colour_rgba = crate::models::Rgba::from(colour);
+
+        let pixel_index = y as usize * 256 + x as usize;
+        self.frame_buffer[pixel_index] = colour_rgba.values();
+    }
+
+    fn render_outer_frame(&mut self, bus: &Bus) {
         let lcdc = LcdcRegister::from_bus(bus);
         let tile_fetcher_mode = lcdc.tile_data_area();
         let bg_addr_mode = lcdc.bg_tile_map_area();
@@ -107,24 +142,31 @@ impl Ppu {
             }
         }
 
-        let frame_buffer = display.frame_buffer();
-        for (i, pixel) in frame_buffer.chunks_exact_mut(4).enumerate() {
-            pixel.copy_from_slice(&pixels[i]);
-        }
-
         let scy = bus.io_registers.read(IOType::SCY.address());
         let scx = bus.io_registers.read(IOType::SCX.address());
-        Self::add_border(frame_buffer, scy, scx);
+        let left_x = scx;
+        let top_y = scy;
+        let bottom_y = top_y.wrapping_add(143);
+        let right_x = left_x.wrapping_add(159);
 
-        display.request_redraw();
+        let frame_buffer = &mut self.frame_buffer;
+        for (i, pixel) in frame_buffer.iter_mut().enumerate() {
+            let x = (i % 256) as u8;
+            let y = (i / 256) as u8;
+            if left_x <= x && x <= right_x && top_y <= y && y <= bottom_y {
+                continue;
+            }
+            pixel.copy_from_slice(&pixels[i]);
+        }
+        Self::add_border(frame_buffer, scy, scx);
     }
 
-    fn add_border(frame_buffer: &mut [u8], scy: u8, scx: u8) {
+    fn add_border(frame_buffer: &mut [[u8; 4]], scy: u8, scx: u8) {
         let mut paint_pixel = |i: usize, j: usize| {
             let y = (i + scy as usize) % 256;
             let x = (j + scx as usize) % 256;
-            let pixel_index = (y * 256 + x) * 4;
-            frame_buffer[pixel_index..pixel_index + 4].copy_from_slice(&[255, 0, 0, 255]);
+            let pixel_index = y * 256 + x;
+            frame_buffer[pixel_index] = [255, 0, 0, 255];
         };
         for i in [0, 143] {
             for j in 0..160 {
@@ -148,6 +190,14 @@ impl Ppu {
             self.y = 0;
         }
 
+        if self.mode() == PpuMode::PixelTransfer {
+            let scy = bus.io_registers.read(IOType::SCY.address());
+            let scx = bus.io_registers.read(IOType::SCX.address());
+            let x = (self.x as u8 - 81).wrapping_add(scx);
+            let y = self.y.wrapping_add(scy);
+            self.render_pixel(x, y, bus);
+        }
+
         // Vblank interrupt at the start of the Vblank period.
         if self.y == 144 && self.x == 0 {
             bus.request_interrupt(yagber_memory::InterruptType::VBlank);
@@ -155,6 +205,13 @@ impl Ppu {
 
         Self::set_scan_line_index(bus, self.y);
         Self::set_mode(bus, self.mode());
+    }
+
+    fn render_frame(&self, display: &mut Display) {
+        for (i, pixel) in display.frame_buffer().chunks_exact_mut(4).enumerate() {
+            pixel.copy_from_slice(&self.frame_buffer[i]);
+        }
+        display.request_redraw();
     }
 
     pub fn enabled(bus: &Bus) -> bool {

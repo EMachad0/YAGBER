@@ -37,32 +37,32 @@ impl ComponentBus {
             .and_then(|c| c.as_mut().as_any_mut().downcast_mut::<T>())
     }
 
-    pub fn get_components_mut2<C1: Component, C2: Component>(
+    pub fn get_components_mut2<C0: Component, C1: Component>(
         &mut self,
-    ) -> Option<(&mut C1, &mut C2)> {
+    ) -> Option<(&mut C0, &mut C1)> {
         use std::any::TypeId;
-        let keys = [&TypeId::of::<C1>(), &TypeId::of::<C2>()];
+        let keys = [&TypeId::of::<C0>(), &TypeId::of::<C1>()];
         if keys[0] == keys[1] {
             return None;
         }
 
-        let [opt1, opt2] = self.components.get_disjoint_mut(keys);
-        match (opt1, opt2) {
-            (Some(c1_box), Some(c2_box)) => {
-                let c1_ref = c1_box
-                    .as_mut()
-                    .as_any_mut()
-                    .downcast_mut::<C1>()
-                    .expect("Failed to downcast C1");
-                let c2_ref = c2_box
-                    .as_mut()
-                    .as_any_mut()
-                    .downcast_mut::<C2>()
-                    .expect("Failed to downcast C2");
-                Some((c1_ref, c2_ref))
+        let [opt0, opt1] = self.components.get_disjoint_mut(keys);
+        match (opt0, opt1) {
+            (Some(c0_box), Some(c1_box)) => {
+                let c0_ref = Self::downcast_box_mut::<C0>(c0_box);
+                let c1_ref = Self::downcast_box_mut::<C1>(c1_box);
+                Some((c0_ref, c1_ref))
             }
             _ => None,
         }
+    }
+
+    fn downcast_box_mut<T: Component>(boxed_component: &mut Box<dyn Component>) -> &mut T {
+        boxed_component
+            .as_mut()
+            .as_any_mut()
+            .downcast_mut::<T>()
+            .expect("Failed to downcast component")
     }
 
     pub fn attach_component<C, F, A, R>(&mut self, f: F) -> impl Fn(A) -> R + use<C, F, A, R>
