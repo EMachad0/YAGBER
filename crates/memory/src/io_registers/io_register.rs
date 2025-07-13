@@ -80,3 +80,9 @@ impl Register for IORegister {
         self.write(value);
     }
 }
+
+impl Default for IORegister {
+    fn default() -> Self {
+        Self::new()
+    }
+}

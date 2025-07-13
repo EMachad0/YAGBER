@@ -14,9 +14,7 @@ mod wram;
 
 pub use bus::Bus;
 pub use interrupt::InterruptType;
-pub use io_registers::{
-    BCPDRegister, BCPSRegister, IOBus, IOType, LcdcRegister, OCPDRegister, OCPSRegister, Stat,
-};
+pub use io_registers::*;
 pub use memory::Memory;
 pub use register::{ByteRegister, Register};
 

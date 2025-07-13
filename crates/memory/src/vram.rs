@@ -1,4 +1,4 @@
-use crate::{Bus, Memory, ram::Ram};
+use crate::{Bus, Memory, TileMapArea, ram::Ram};
 
 #[derive(Debug)]
 pub struct Vram {
@@ -55,21 +55,20 @@ impl Vram {
         &self.ram[bank].data_slice()[address..address + 16]
     }
 
-    pub fn tile_map(&self, lcdc3: bool) -> &[Option<u8>] {
-        let (start, end) = self.get_map_range(lcdc3);
+    pub fn tile_map(&self, area: TileMapArea) -> &[Option<u8>] {
+        let (start, end) = self.get_map_range(area);
         &self.ram[0].data_slice()[start..end]
     }
 
-    pub fn attr_map(&self, lcdc3: bool) -> &[Option<u8>] {
-        let (start, end) = self.get_map_range(lcdc3);
+    pub fn attr_map(&self, area: TileMapArea) -> &[Option<u8>] {
+        let (start, end) = self.get_map_range(area);
         &self.ram[1].data_slice()[start..end]
     }
 
-    fn get_map_range(&self, lcdc3: bool) -> (usize, usize) {
-        let (start, end) = if !lcdc3 {
-            (0x9800, 0x9C00)
-        } else {
-            (0x9C00, 0xA000)
+    fn get_map_range(&self, area: TileMapArea) -> (usize, usize) {
+        let (start, end) = match area {
+            TileMapArea::TileMapArea0 => (0x9800, 0x9C00),
+            TileMapArea::TileMapArea1 => (0x9C00, 0xA000),
         };
         (start - Self::OFFSET, end - Self::OFFSET)
     }

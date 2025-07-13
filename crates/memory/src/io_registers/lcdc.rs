@@ -1,5 +1,19 @@
 use crate::{Bus, IOType};
 
+#[derive(Debug, Clone, Copy)]
+pub enum TileMapArea {
+    /// 0x9800 - 0x9BFF
+    TileMapArea0,
+    /// 0x9C00 - 0x9FFF
+    TileMapArea1,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum TileFetcherMode {
+    TileDataArea0,
+    TileDataArea1,
+}
+
 #[derive(Debug, Clone, Copy, Default)]
 pub struct LcdcRegister {
     value: u8,
@@ -28,20 +42,32 @@ impl LcdcRegister {
     //     }
     // }
 
-    pub fn window_tile_map_area(&self) -> bool {
-        self.value & 0x40 != 0
+    pub fn window_tile_map_area(&self) -> TileMapArea {
+        if self.value & 0x40 != 0 {
+            TileMapArea::TileMapArea1
+        } else {
+            TileMapArea::TileMapArea0
+        }
     }
 
     pub fn lcd_window_enabled(&self) -> bool {
         self.value & 0x20 != 0
     }
 
-    pub fn tile_data_area(&self) -> bool {
-        self.value & 0x10 != 0
+    pub fn tile_data_area(&self) -> TileFetcherMode {
+        if self.value & 0x10 != 0 {
+            TileFetcherMode::TileDataArea1
+        } else {
+            TileFetcherMode::TileDataArea0
+        }
     }
 
-    pub fn bg_tile_map_area(&self) -> bool {
-        self.value & 0x08 != 0
+    pub fn bg_tile_map_area(&self) -> TileMapArea {
+        if self.value & 0x08 != 0 {
+            TileMapArea::TileMapArea1
+        } else {
+            TileMapArea::TileMapArea0
+        }
     }
 
     pub fn obj_size(&self) -> (u8, u8) {

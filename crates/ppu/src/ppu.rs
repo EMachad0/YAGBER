@@ -1,4 +1,4 @@
-use yagber_memory::{Bus, IOType, LcdcRegister};
+use yagber_memory::{Bus, IOType, LcdcRegister, TileFetcherMode};
 
 use crate::ppu_mode::PpuMode;
 
@@ -44,43 +44,64 @@ impl Ppu {
         let tile_fetcher_mode = lcdc.tile_data_area();
         let bg_addr_mode = lcdc.bg_tile_map_area();
         let bg_tile_map = bus.vram.tile_map(bg_addr_mode);
-        let gb_attr_map = bus.vram.attr_map(bg_addr_mode);
+        let bg_attr_map = bus.vram.attr_map(bg_addr_mode);
 
-        let tile_addr = {
-            if tile_fetcher_mode {
-                |tile_index: u8| {
-                    let tile_index = tile_index as u16;
-                    0x8000u16 + tile_index * 16
-                }
-            } else {
-                |tile_index: u8| {
-                    let tile_index = tile_index as i8 as i32;
-                    (0x9000i32 + tile_index * 16) as u16
-                }
-            }
+        let get_tile_addr = match tile_fetcher_mode {
+            TileFetcherMode::TileDataArea1 => |tile_index: u8| {
+                let tile_index = tile_index as u16;
+                0x8000u16 + tile_index * 16
+            },
+            TileFetcherMode::TileDataArea0 => |tile_index: u8| {
+                let tile_index = tile_index as i8 as i32;
+                (0x9000i32 + tile_index * 16) as u16
+            },
         };
 
-        let mut pixels = [[0; 4]; 256 * 256];
+        let tile_addresses = {
+            let mut addresses = [0; 32 * 32];
+            for i in 0..32 {
+                for j in 0..32 {
+                    let tile_index = bg_tile_map[i * 32 + j].expect("Tile index is missing");
+                    let tile_addr = get_tile_addr(tile_index);
+                    addresses[i * 32 + j] = tile_addr;
+                }
+            }
+            addresses
+        };
 
-        for i in 0..32 {
-            for j in 0..32 {
-                let tile_index = bg_tile_map[i * 32 + j].expect("Tile index is missing");
-                let tile_addr = tile_addr(tile_index);
-                let tile_attr = gb_attr_map[i * 32 + j].expect("Tile attribute is missing");
-                let tile = crate::models::Tile::from_memory(bus, tile_addr, tile_attr);
+        let tile_attrs = {
+            let mut attrs = [0; 32 * 32];
+            for i in 0..32 {
+                for j in 0..32 {
+                    attrs[i * 32 + j] = bg_attr_map[i * 32 + j].expect("Tile attribute is missing");
+                }
+            }
+            attrs
+        };
 
-                for y in 0..8 {
-                    for x in 0..8 {
-                        let colour_index = tile.colour_index(x as u8, y as u8);
-                        let palette_index = tile.attr.palette_index();
+        let tiles = {
+            (0..32 * 32)
+                .map(|i| {
+                    let tile_addr = tile_addresses[i];
+                    let tile_attr = tile_attrs[i];
+                    crate::models::Tile::from_memory(bus, tile_addr, tile_attr)
+                })
+                .collect::<Vec<_>>()
+        };
+
+        let mut pixels = Vec::with_capacity(256 * 256);
+
+        for chunk in tiles.chunks_exact(32) {
+            for y in 0..8 {
+                for tile in chunk {
+                    let palette_index = tile.attr.palette_index();
+                    let row = tile.get_pixel_row(y);
+                    for colour_index in row {
                         let colour_raw =
                             bus.background_cram.read_colour(palette_index, colour_index);
                         let colour = crate::models::Rgb555::from_u16(colour_raw);
-                        let pixel = crate::models::Rgba::from(colour);
-
-                        let pixel_index = (i * 8 + y) * 256 + (j * 8 + x);
-
-                        pixels[pixel_index] = pixel.values();
+                        let colour_rgba = crate::models::Rgba::from(colour);
+                        pixels.push(colour_rgba.values());
                     }
                 }
             }
