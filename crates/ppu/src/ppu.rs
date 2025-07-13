@@ -111,7 +111,31 @@ impl Ppu {
         for (i, pixel) in frame_buffer.chunks_exact_mut(4).enumerate() {
             pixel.copy_from_slice(&pixels[i]);
         }
+
+        let scy = bus.io_registers.read(IOType::SCY.address());
+        let scx = bus.io_registers.read(IOType::SCX.address());
+        Self::add_border(frame_buffer, scy, scx);
+
         display.request_redraw();
+    }
+
+    fn add_border(frame_buffer: &mut [u8], scy: u8, scx: u8) {
+        let mut paint_pixel = |i: usize, j: usize| {
+            let y = (i + scy as usize) % 256;
+            let x = (j + scx as usize) % 256;
+            let pixel_index = (y * 256 + x) * 4;
+            frame_buffer[pixel_index..pixel_index + 4].copy_from_slice(&[255, 0, 0, 255]);
+        };
+        for i in [0, 143] {
+            for j in 0..160 {
+                paint_pixel(i, j);
+            }
+        }
+        for j in [0, 159] {
+            for i in 0..144 {
+                paint_pixel(i, j);
+            }
+        }
     }
 
     pub fn step(&mut self, bus: &mut Bus) {
