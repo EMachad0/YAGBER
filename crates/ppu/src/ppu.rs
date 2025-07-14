@@ -63,6 +63,11 @@ impl Ppu {
     }
 
     fn render_background_pixel(&mut self, x: u8, y: u8, bus: &Bus) {
+        let scy = bus.io_registers.read(IOType::SCY.address());
+        let scx = bus.io_registers.read(IOType::SCX.address());
+        let x = x.wrapping_add(scx);
+        let y = y.wrapping_add(scy);
+
         let lcdc = LcdcRegister::from_bus(bus);
         let tile_fetcher_mode = lcdc.tile_data_area();
         let bg_addr_mode = lcdc.bg_tile_map_area();
@@ -102,7 +107,11 @@ impl Ppu {
         let colour = crate::models::Rgb555::from_u16(colour_raw);
         let colour_rgba = crate::models::Rgba::from(colour);
 
-        let pixel_index = y as usize * 256 + x as usize;
+        let scy = bus.io_registers.read(IOType::SCY.address());
+        let scx = bus.io_registers.read(IOType::SCX.address());
+        let world_x = x.wrapping_add(scx);
+        let world_y = y.wrapping_add(scy);
+        let pixel_index = world_y as usize * 256 + world_x as usize;
         self.frame_buffer[pixel_index] = colour_rgba.values();
     }
 
@@ -286,10 +295,8 @@ impl Ppu {
         }
 
         if self.mode() == PpuMode::PixelTransfer {
-            let scy = bus.io_registers.read(IOType::SCY.address());
-            let scx = bus.io_registers.read(IOType::SCX.address());
-            let x = (self.x as u8 - 80).wrapping_add(scx);
-            let y = self.y.wrapping_add(scy);
+            let x = self.x as u8 - 80;
+            let y = self.y;
             self.render_pixel(x, y, bus);
         }
 
@@ -313,8 +320,8 @@ impl Ppu {
         let lcdc = LcdcRegister::from_bus(bus);
         let obj_size = lcdc.obj_size();
 
-        let scan_line_filter = |y: u8| {
-            let bottom_y = y;
+        let scan_line_filter = |object_y: u8| {
+            let bottom_y = object_y;
             let top_y = bottom_y.wrapping_add(obj_size.as_u8());
             let scan_line_y = scan_line.wrapping_add(16);
             bottom_y <= scan_line_y && scan_line_y <= top_y
