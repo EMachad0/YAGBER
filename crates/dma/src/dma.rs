@@ -54,7 +54,8 @@ impl Dma {
     }
 
     pub(crate) fn on_dma_write(dma: &mut Dma, value: u8) {
-        tracing::debug!("DMA write: {}", value);
+        #[cfg(feature = "trace")]
+        tracing::trace!("OAM DMA start: {}", value);
         dma.start(value as u16 * 0x100);
     }
 }

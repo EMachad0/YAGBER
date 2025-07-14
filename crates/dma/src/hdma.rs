@@ -48,8 +48,9 @@ impl Hdma {
         let hblank_mode = value & 0x80 != 0;
         let blocks = value & 0x7F;
 
-        tracing::debug!(
-            "HDMA write: hblank_mode={} blocks={} ({} bytes)",
+        #[cfg(feature = "trace")]
+        tracing::trace!(
+            "HDMA start: hblank_mode={} blocks={} ({} bytes)",
             hblank_mode,
             blocks + 1,
             ((blocks as u16) + 1) * 0x10

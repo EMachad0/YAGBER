@@ -10,6 +10,7 @@ trace = [
     "yagber_memory/trace",
     "yagber_cpu/trace",
     "yagber_display/trace",
+    "yagber_dma/trace",
 ]
 trace-span = [
     "trace",
@@ -62,3 +63,9 @@ yagber_link_cable = { path = "crates/link_cable" }
 yagber_log = { path = "crates/log" }
 yagber_timer = { path = "crates/timer" }
 yagber_display = { path = "crates/display" }
+
+[profile.dev]
+opt-level = 1
+
+[profile.dev.package."*"]
+opt-level = 3
