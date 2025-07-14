@@ -3,7 +3,7 @@ use crate::ime::Ime;
 use crate::instructions::{ConditionCode, Instruction, InstructionType};
 use crate::registers::Registers;
 use arbitrary_int::{u2, u3};
-use yagber_memory::{Bus, InterruptType, Memory};
+use yagber_memory::{Bus, Memory};
 
 #[derive(Debug, Clone, Copy)]
 pub struct Cpu {
@@ -264,8 +264,8 @@ impl Cpu {
     }
 
     fn any_interrupt_pending(&self, bus: &mut Bus) -> bool {
-        let ei = bus.read(InterruptType::IE_ADDRESS);
-        let fi = bus.read(InterruptType::IF_ADDRESS);
+        let ei = bus.read(yagber_memory::IOType::IE.address());
+        let fi = bus.read(yagber_memory::IOType::IF.address());
         ei & fi != 0
     }
 

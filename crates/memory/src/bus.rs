@@ -1,5 +1,5 @@
 use crate::{
-    ByteRegister, InterruptType, boot_rom::BootRom, cartridge::Cartridge, cram::Cram,
+    ByteRegister, IOType, InterruptType, boot_rom::BootRom, cartridge::Cartridge, cram::Cram,
     io_registers::IOBus, memory::Memory, oam::Oam, ram::Ram, vram::Vram, wram::Wram,
 };
 
@@ -84,16 +84,16 @@ impl Bus {
     }
 
     pub fn request_interrupt(&mut self, interrupt: InterruptType) {
-        self.set_bit(InterruptType::IF_ADDRESS, interrupt.to_u8());
+        self.set_bit(IOType::IF.address(), interrupt.to_u8());
     }
 
     pub fn clear_interrupt(&mut self, interrupt: InterruptType) {
-        self.clear_bit(InterruptType::IF_ADDRESS, interrupt.to_u8());
+        self.clear_bit(IOType::IF.address(), interrupt.to_u8());
     }
 
     pub fn get_priority_interrupt(&self) -> Option<InterruptType> {
-        let ei = self.read(InterruptType::IE_ADDRESS);
-        let fi = self.read(InterruptType::IF_ADDRESS);
+        let ei = self.read(IOType::IE.address());
+        let fi = self.read(IOType::IF.address());
         let interrupts = ei & fi;
         for interrupt in 0..=4 {
             if interrupts & (1 << interrupt) != 0 {

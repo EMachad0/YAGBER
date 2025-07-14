@@ -1,4 +1,4 @@
-use crate::{IOType, io_registers::IORegister, memory::Memory};
+use crate::{IOType, io_registers::io_register::IORegister, memory::Memory};
 
 pub struct IOBus {
     data: Vec<IORegister>,
@@ -21,14 +21,35 @@ impl IOBus {
     }
 
     pub fn write(&mut self, address: u16, value: u8) {
+        #[cfg(feature = "trace")]
+        tracing::trace!(
+            "IOBus write: {:?} {:#04x} = {:#04x}",
+            IOType::from_address(address),
+            address,
+            value
+        );
         self.data[Self::virtual_address(address)].write(value);
     }
 
     pub fn write_unchecked(&mut self, address: u16, value: u8) {
+        #[cfg(feature = "trace")]
+        tracing::trace!(
+            "IOBus write_unchecked: {:?} {:#04x} = {:#04x}",
+            IOType::from_address(address),
+            address,
+            value
+        );
         self.data[Self::virtual_address(address)].write_unchecked(value);
     }
 
     pub fn write_unhooked(&mut self, address: u16, value: u8) {
+        #[cfg(feature = "trace")]
+        tracing::trace!(
+            "IOBus write_unhooked: {:?} {:#04x} = {:#04x}",
+            IOType::from_address(address),
+            address,
+            value
+        );
         self.data[Self::virtual_address(address)].write_unhooked(value);
     }
 

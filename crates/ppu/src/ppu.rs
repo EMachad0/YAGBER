@@ -305,7 +305,9 @@ impl Ppu {
             bus.request_interrupt(yagber_memory::InterruptType::VBlank);
         }
 
-        Self::set_scan_line_index(bus, self.y);
+        if self.x == 0 {
+            Self::set_scan_line_index(bus, self.y);
+        }
         Self::set_mode(bus, self.mode());
     }
 
@@ -359,8 +361,10 @@ impl Ppu {
     fn set_mode(bus: &mut Bus, mode: PpuMode) {
         let stat = bus.io_registers.read(IOType::STAT.address());
         let new_stat = (stat & !0x03) | mode.to_u8();
-        bus.io_registers
-            .write_unchecked(IOType::STAT.address(), new_stat);
+        if new_stat != stat {
+            bus.io_registers
+                .write_unchecked(IOType::STAT.address(), new_stat);
+        }
     }
 }
 

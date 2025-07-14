@@ -8,9 +8,6 @@ pub enum InterruptType {
 }
 
 impl InterruptType {
-    pub const IF_ADDRESS: u16 = 0xFF0F;
-    pub const IE_ADDRESS: u16 = 0xFFFF;
-
     pub fn from_u8(value: u8) -> Self {
         match value {
             0 => Self::VBlank,

@@ -61,11 +61,13 @@ impl Stat {
     }
 
     fn update_stat(bus: &mut Bus, ly: u8, lyc: u8) {
-        let bit_4 = if lyc == ly { 0x04 } else { 0x00 };
+        let bit_2 = if lyc == ly { 0x04 } else { 0x00 };
         let stat = bus.read(IOType::STAT.address());
-        let new_value = (stat & !0x04) | bit_4;
-        bus.io_registers
-            .write_unchecked(IOType::STAT.address(), new_value);
+        let new_stat = (stat & !0x04) | bit_2;
+        if new_stat != stat {
+            bus.io_registers
+                .write_unchecked(IOType::STAT.address(), new_stat);
+        }
     }
 }
 
@@ -94,10 +96,13 @@ impl StatInterruptDetector {
 
     pub(crate) fn on_stat_write(&mut self, bus: &mut Bus, value: u8) {
         self.tick(value);
-        if self.should_trigger_interrupt() {
-            bus.request_interrupt(InterruptType::Lcd);
-        } else {
-            bus.clear_interrupt(InterruptType::Lcd);
+        let bit = 1 << InterruptType::Lcd.to_u8();
+        let if_reg = bus.read(IOType::IF.address());
+        let value = (self.should_trigger_interrupt() as u8) * bit;
+        let new_if_reg = (if_reg & !bit) | value;
+        if new_if_reg != if_reg {
+            bus.io_registers
+                .write_unchecked(IOType::IF.address(), new_if_reg);
         }
     }
 }

@@ -137,8 +137,11 @@ impl Timer {
     }
 
     fn write_div(&mut self, ram: &mut Bus, value: u8) {
-        ram.io_registers
-            .write_unchecked(IOType::DIV.address(), value);
+        let old_div = ram.io_registers.read(IOType::DIV.address());
+        if old_div != value {
+            ram.io_registers
+                .write_unchecked(IOType::DIV.address(), value);
+        }
     }
 
     #[cfg(test)]
