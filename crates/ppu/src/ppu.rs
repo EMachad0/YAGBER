@@ -1,8 +1,10 @@
 use yagber_display::Display;
-use yagber_memory::{Bus, IOType, LcdcRegister, OpriRegister, TileFetcherMode, TileSize};
+use yagber_memory::{
+    Bus, IOType, LcdcRegister, OpriRegister, SysRegister, TileFetcherMode, TileSize,
+};
 
 use crate::{
-    models::{Object, Tile},
+    models::{FifoPixel, FifoPixelType, Object, Tile},
     ppu_mode::PpuMode,
 };
 
@@ -58,17 +60,86 @@ impl Ppu {
     }
 
     fn render_pixel(&mut self, x: u8, y: u8, bus: &Bus) {
-        self.render_background_pixel(x, y, bus);
-        self.render_object_pixel(x, y, bus);
+        let bg_pixel = self.background_pixel(x, y, bus);
+        let obj_pixel = self.object_pixel(x, y, bus);
+
+        let fifo_pixel = match (bg_pixel, obj_pixel) {
+            (Some(bg_pixel), None) => bg_pixel,
+            (None, Some(obj_pixel)) => obj_pixel,
+            (Some(bg_pixel), Some(obj_pixel)) => {
+                Self::solve_bg_obj_priority(bus, bg_pixel, obj_pixel)
+            }
+            (None, None) => return,
+        };
+
+        let scx = bus.io_registers.read(IOType::SCX.address());
+        let scy = bus.io_registers.read(IOType::SCY.address());
+        let world_x = x.wrapping_add(scx);
+        let world_y = y.wrapping_add(scy);
+        self.render_fifo_pixel(fifo_pixel, bus, world_x, world_y);
     }
 
-    fn render_background_pixel(&mut self, x: u8, y: u8, bus: &Bus) {
+    fn solve_bg_obj_priority(bus: &Bus, bg_pixel: FifoPixel, obj_pixel: FifoPixel) -> FifoPixel {
+        let lcdc = LcdcRegister::from_bus(bus);
+        if bg_pixel.colour_index() == 0
+            || !lcdc.bg_window_enabled_priority()
+            || (!bg_pixel.priority() && !obj_pixel.priority())
+        {
+            obj_pixel
+        } else {
+            bg_pixel
+        }
+    }
+
+    fn render_fifo_pixel(&mut self, pixel: FifoPixel, bus: &Bus, x: u8, y: u8) {
+        let sys = SysRegister::from_bus(bus);
+        let colour_raw = match sys.mode() {
+            yagber_memory::SysMode::Dmg => {
+                let pallet_addr = match pixel.pixel_type() {
+                    FifoPixelType::Background => IOType::BGP.address(),
+                    FifoPixelType::Object => match pixel.palette_index().value() {
+                        0 => IOType::OBP0.address(),
+                        1 => IOType::OBP1.address(),
+                        _ => panic!("Invalid palette index: {}", pixel.palette_index().value()),
+                    },
+                };
+                let pallet = bus.io_registers.read(pallet_addr);
+                let dmg_pallet = crate::models::DmgPallet::new(pallet);
+                let shade_index = dmg_pallet.colour_index(pixel.colour_index());
+                match shade_index {
+                    0 => 0x7FFF,
+                    1 => 0x56B5,
+                    2 => 0x294A,
+                    3 => 0x0000,
+                    _ => unreachable!(),
+                }
+            }
+            yagber_memory::SysMode::Cgb => {
+                let cram = match pixel.pixel_type() {
+                    FifoPixelType::Background => &bus.background_cram,
+                    FifoPixelType::Object => &bus.object_cram,
+                };
+                cram.read_colour(pixel.palette_index().value(), pixel.colour_index())
+            }
+        };
+        let colour = crate::models::Rgb555::from_u16(colour_raw);
+        let colour_rgba = crate::models::Rgba::from(colour);
+        let pixel_index = y as usize * 256 + x as usize;
+        self.frame_buffer[pixel_index] = colour_rgba.values();
+    }
+
+    fn background_pixel(&mut self, x: u8, y: u8, bus: &Bus) -> Option<FifoPixel> {
+        let sys = SysRegister::from_bus(bus);
+        let lcdc = LcdcRegister::from_bus(bus);
+        if sys.mode() == yagber_memory::SysMode::Dmg && !lcdc.bg_window_enabled_priority() {
+            return None;
+        }
+
         let scy = bus.io_registers.read(IOType::SCY.address());
         let scx = bus.io_registers.read(IOType::SCX.address());
         let x = x.wrapping_add(scx);
         let y = y.wrapping_add(scy);
 
-        let lcdc = LcdcRegister::from_bus(bus);
         let tile_fetcher_mode = lcdc.tile_data_area();
         let bg_addr_mode = lcdc.bg_tile_map_area();
         let bg_tile_map = bus.vram.tile_map(bg_addr_mode);
@@ -84,35 +155,26 @@ impl Ppu {
         let tile = crate::models::Tile::from_memory(bus, tile_address, tile_attr);
 
         let colour_index = tile.colour_index(x % 8, y % 8);
-
-        let palette_index = tile.attr.cgb_palette().value();
-        let colour_raw = bus.background_cram.read_colour(palette_index, colour_index);
-        let colour = crate::models::Rgb555::from_u16(colour_raw);
-        let colour_rgba = crate::models::Rgba::from(colour);
-
-        let pixel_index = y as usize * 256 + x as usize;
-        self.frame_buffer[pixel_index] = colour_rgba.values();
+        let palette_index = tile.attr.cgb_palette();
+        let priority = tile.attr.priority();
+        let pixel_type = FifoPixelType::Background;
+        let fifo_pixel = FifoPixel::new(colour_index, palette_index, priority, pixel_type);
+        Some(fifo_pixel)
     }
 
-    fn render_object_pixel(&mut self, x: u8, y: u8, bus: &Bus) {
+    fn object_pixel(&mut self, x: u8, y: u8, bus: &Bus) -> Option<FifoPixel> {
+        let sys = SysRegister::from_bus(bus);
         let object = self.find_priority_object(x, y, bus);
-        let Some(object) = object else {
-            return;
-        };
-
-        let colour_index = self.object_colour_index(bus, &object, x, y).unwrap();
-
-        let palette_index = object.attr().cgb_palette().value();
-        let colour_raw = bus.object_cram.read_colour(palette_index, colour_index);
-        let colour = crate::models::Rgb555::from_u16(colour_raw);
-        let colour_rgba = crate::models::Rgba::from(colour);
-
-        let scy = bus.io_registers.read(IOType::SCY.address());
-        let scx = bus.io_registers.read(IOType::SCX.address());
-        let world_x = x.wrapping_add(scx);
-        let world_y = y.wrapping_add(scy);
-        let pixel_index = world_y as usize * 256 + world_x as usize;
-        self.frame_buffer[pixel_index] = colour_rgba.values();
+        object.map(|object| {
+            let colour_index = self.object_colour_index(bus, &object, x, y).unwrap();
+            let palette_index = match sys.mode() {
+                yagber_memory::SysMode::Dmg => object.attr().dmg_palette(),
+                yagber_memory::SysMode::Cgb => object.attr().cgb_palette(),
+            };
+            let priority = object.attr().priority();
+            let pixel_type = FifoPixelType::Object;
+            FifoPixel::new(colour_index, palette_index, priority, pixel_type)
+        })
     }
 
     fn find_priority_object(&self, x: u8, y: u8, bus: &Bus) -> Option<Object> {
@@ -333,6 +395,7 @@ impl Ppu {
         oam.chunks_exact(4)
             .map(Object::from_bytes)
             .filter(|object| scan_line_filter(object.y()))
+            .take(10)
             .collect::<Vec<_>>()
     }
 
