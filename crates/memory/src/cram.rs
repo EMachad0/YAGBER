@@ -21,7 +21,7 @@ impl CramSpecification {
     }
 
     pub fn index(&self) -> usize {
-        (self.value & 0x1F) as usize
+        (self.value & 0x3F) as usize
     }
 
     pub fn auto_increment(&self) -> bool {
