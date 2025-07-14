@@ -1,13 +1,17 @@
 use yagber_display::Display;
-use yagber_memory::{Bus, IOType, LcdcRegister, TileFetcherMode};
+use yagber_memory::{Bus, IOType, LcdcRegister, OpriRegister, TileFetcherMode, TileSize};
 
-use crate::ppu_mode::PpuMode;
+use crate::{
+    models::{Object, Tile},
+    ppu_mode::PpuMode,
+};
 
 #[derive(Debug)]
 pub struct Ppu {
     x: u16, // 0-456
     y: u8,  // 0-153
     frame_buffer: [[u8; 4]; 256 * 256],
+    objects: Vec<Object>,
 }
 
 impl Ppu {
@@ -16,6 +20,7 @@ impl Ppu {
             x: 0,
             y: 0,
             frame_buffer: [[0; 4]; 256 * 256],
+            objects: Vec::new(),
         }
     }
 
@@ -29,14 +34,19 @@ impl Ppu {
             return;
         }
 
+        let just_entered_oam_scan = ppu.y < 144 && ppu.x == 0;
+        let just_entered_vblank = ppu.y == 144 && ppu.x == 0;
+
+        if just_entered_oam_scan {
+            ppu.objects = ppu.object_scan(bus, ppu.y);
+        }
+
         // Step the PPU even if there's no display, so that the scan line index is updated and interrupt is requested if necessary.
         ppu.step(bus);
 
-        let frame_just_finished = ppu.y == 144 && ppu.x == 0;
-
         // If the display component is not present, there's nowhere to render to.
         // If the ppu just finished to draw a frame
-        if has_display && frame_just_finished {
+        if has_display && just_entered_vblank {
             // Render the rest of the frame for debug purposes
             ppu.render_outer_frame(bus);
             // Render the frame to the display
@@ -48,6 +58,11 @@ impl Ppu {
     }
 
     fn render_pixel(&mut self, x: u8, y: u8, bus: &Bus) {
+        self.render_background_pixel(x, y, bus);
+        self.render_object_pixel(x, y, bus);
+    }
+
+    fn render_background_pixel(&mut self, x: u8, y: u8, bus: &Bus) {
         let lcdc = LcdcRegister::from_bus(bus);
         let tile_fetcher_mode = lcdc.tile_data_area();
         let bg_addr_mode = lcdc.bg_tile_map_area();
@@ -65,13 +80,92 @@ impl Ppu {
 
         let colour_index = tile.colour_index(x % 8, y % 8);
 
-        let palette_index = tile.attr.palette_index();
+        let palette_index = tile.attr.cgb_palette().value();
         let colour_raw = bus.background_cram.read_colour(palette_index, colour_index);
         let colour = crate::models::Rgb555::from_u16(colour_raw);
         let colour_rgba = crate::models::Rgba::from(colour);
 
         let pixel_index = y as usize * 256 + x as usize;
         self.frame_buffer[pixel_index] = colour_rgba.values();
+    }
+
+    fn render_object_pixel(&mut self, x: u8, y: u8, bus: &Bus) {
+        let object = self.find_priority_object(x, y, bus);
+        let Some(object) = object else {
+            return;
+        };
+
+        let colour_index = self.object_colour_index(bus, &object, x, y).unwrap();
+
+        let palette_index = object.attr().cgb_palette().value();
+        let colour_raw = bus.object_cram.read_colour(palette_index, colour_index);
+        let colour = crate::models::Rgb555::from_u16(colour_raw);
+        let colour_rgba = crate::models::Rgba::from(colour);
+
+        let pixel_index = y as usize * 256 + x as usize;
+        self.frame_buffer[pixel_index] = colour_rgba.values();
+    }
+
+    fn find_priority_object(&self, x: u8, y: u8, bus: &Bus) -> Option<Object> {
+        let opri = OpriRegister::from_bus(bus);
+
+        let mut priority_object = None;
+        for object in &self.objects {
+            let Some(colour_index) = self.object_colour_index(bus, object, x, y) else {
+                continue;
+            };
+
+            // If the object is transparent, skip it.
+            if colour_index == 0 {
+                continue;
+            }
+
+            priority_object = match priority_object {
+                None => Some(object),
+                Some(other_object) => match opri.mode() {
+                    yagber_memory::OpriMode::Cgb => Some(other_object),
+                    yagber_memory::OpriMode::Dmg => {
+                        if object.x() < other_object.x() {
+                            Some(object)
+                        } else {
+                            Some(other_object)
+                        }
+                    }
+                },
+            }
+        }
+        priority_object.cloned()
+    }
+
+    /// Returns the colour index of the object at the given pixel.
+    /// Returns None if the object does not intersect with the pixel.
+    fn object_colour_index(&self, bus: &Bus, object: &Object, x: u8, y: u8) -> Option<u8> {
+        let intersects = object.x() <= x + 8 && x < object.x();
+        if !intersects {
+            return None;
+        }
+
+        let lcdc = LcdcRegister::from_bus(bus);
+        let tile_index = match lcdc.obj_size() {
+            TileSize::TileSize8 => object.tile_index_8(),
+            TileSize::TileSize16 => {
+                let (tile_index_top, tile_index_bottom) = object.tile_index_16();
+                if (object.y() as u16) < (y as u16 + 8) {
+                    tile_index_top
+                } else {
+                    tile_index_bottom
+                }
+            }
+        };
+
+        let tile_y = (y + 16 - object.y()) % 8;
+        let tile_x = x + 8 - object.x();
+
+        let tile_address = 0x8000u16 + (tile_index as u16) * 16;
+        let tile = Tile::from_memory(bus, tile_address, object.attr().value());
+        let colour_index = tile.colour_index(tile_x, tile_y);
+
+        Some(colour_index)
     }
 
     fn render_outer_frame(&mut self, bus: &Bus) {
@@ -129,11 +223,12 @@ impl Ppu {
         for chunk in tiles.chunks_exact(32) {
             for y in 0..8 {
                 for tile in chunk {
-                    let palette_index = tile.attr.palette_index();
+                    let palette_index = tile.attr.cgb_palette();
                     let row = tile.get_pixel_row(y);
                     for colour_index in row {
-                        let colour_raw =
-                            bus.background_cram.read_colour(palette_index, colour_index);
+                        let colour_raw = bus
+                            .background_cram
+                            .read_colour(palette_index.value(), colour_index);
                         let colour = crate::models::Rgb555::from_u16(colour_raw);
                         let colour_rgba = crate::models::Rgba::from(colour);
                         pixels.push(colour_rgba.values());
@@ -212,6 +307,24 @@ impl Ppu {
             pixel.copy_from_slice(&self.frame_buffer[i]);
         }
         display.request_redraw();
+    }
+
+    fn object_scan(&self, bus: &Bus, scan_line: u8) -> Vec<Object> {
+        let lcdc = LcdcRegister::from_bus(bus);
+        let obj_size = lcdc.obj_size();
+
+        let scan_line_filter = |y: u8| {
+            let bottom_y = y;
+            let top_y = bottom_y.wrapping_add(obj_size.as_u8());
+            let scan_line_y = scan_line.wrapping_add(16);
+            bottom_y <= scan_line_y && scan_line_y <= top_y
+        };
+
+        let oam = bus.oam.data();
+        oam.chunks_exact(4)
+            .map(Object::from_bytes)
+            .filter(|object| scan_line_filter(object.y()))
+            .collect::<Vec<_>>()
     }
 
     pub fn enabled(bus: &Bus) -> bool {

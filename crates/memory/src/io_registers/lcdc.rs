@@ -1,6 +1,21 @@
 use crate::{Bus, IOType};
 
 #[derive(Debug, Clone, Copy)]
+pub enum TileSize {
+    TileSize8,
+    TileSize16,
+}
+
+impl TileSize {
+    pub fn as_u8(&self) -> u8 {
+        match self {
+            TileSize::TileSize8 => 8,
+            TileSize::TileSize16 => 16,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
 pub enum TileMapArea {
     /// 0x9800 - 0x9BFF
     TileMapArea0,
@@ -70,11 +85,11 @@ impl LcdcRegister {
         }
     }
 
-    pub fn obj_size(&self) -> (u8, u8) {
+    pub fn obj_size(&self) -> TileSize {
         if self.value & 0x04 == 0 {
-            (8, 8)
+            TileSize::TileSize8
         } else {
-            (8, 16)
+            TileSize::TileSize16
         }
     }
 

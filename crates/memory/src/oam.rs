@@ -40,6 +40,14 @@ impl Oam {
         let mode = stat.mode();
         bus.oam.set_accessible(mode != 2 && mode != 3);
     }
+
+    pub fn data(&self) -> Vec<u8> {
+        self.ram
+            .data_slice()
+            .iter()
+            .map(|&byte| byte.unwrap_or(0xFF))
+            .collect()
+    }
 }
 
 impl Memory for Oam {

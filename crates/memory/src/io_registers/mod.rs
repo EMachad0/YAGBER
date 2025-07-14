@@ -5,6 +5,7 @@ mod io_register;
 mod io_type;
 mod joyp;
 mod lcdc;
+mod opri;
 mod stat;
 
 pub use io_bus::IOBus;
@@ -14,5 +15,6 @@ pub use cram_register::{BCPDRegister, BCPSRegister, OCPDRegister, OCPSRegister};
 pub use div::DivRegister;
 pub use io_register::IORegister;
 pub use joyp::JoypRegister;
-pub use lcdc::{LcdcRegister, TileFetcherMode, TileMapArea};
+pub use lcdc::{LcdcRegister, TileFetcherMode, TileMapArea, TileSize};
+pub use opri::{OpriMode, OpriRegister};
 pub use stat::{Stat, StatInterruptDetector};

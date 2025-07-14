@@ -1,35 +1,5 @@
+use crate::models::attribute::TileAttr;
 use yagber_memory::Bus;
-
-pub struct TileAttr {
-    value: u8,
-}
-
-impl TileAttr {
-    pub fn new(value: u8) -> Self {
-        Self { value }
-    }
-
-    pub fn palette_index(&self) -> u8 {
-        self.value & 0x07
-    }
-
-    pub fn bank(&self) -> bool {
-        self.value & 0x08 != 0
-    }
-
-    pub fn x_flip(&self) -> bool {
-        self.value & 0x20 != 0
-    }
-
-    pub fn y_flip(&self) -> bool {
-        self.value & 0x40 != 0
-    }
-
-    #[allow(dead_code)]
-    pub fn bg_priority(&self) -> bool {
-        self.value & 0x80 != 0
-    }
-}
 
 pub struct Tile {
     pub data: [u8; 16],
@@ -41,7 +11,7 @@ impl Tile {
         let attr = TileAttr::new(attr);
 
         let mut data = [0; 16];
-        let tile_data = bus.vram.tile(attr.bank(), address);
+        let tile_data = bus.vram.tile(attr.vram_bank().value(), address);
         for (i, data) in data.iter_mut().enumerate() {
             *data = tile_data[i].unwrap();
         }
