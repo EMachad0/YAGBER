@@ -20,7 +20,7 @@ impl Object {
     }
 
     pub fn from_bytes(bytes: &[u8]) -> Self {
-        Self::new(bytes[0], bytes[1], bytes[2], bytes[3])
+        Self::new(bytes[1], bytes[0], bytes[2], bytes[3])
     }
 
     pub fn x(&self) -> u8 {
