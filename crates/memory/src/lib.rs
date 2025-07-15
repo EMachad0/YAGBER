@@ -46,7 +46,7 @@ impl yagber_app::Plugin for MemoryPlugin {
         let mut memory_bus = std::mem::take(&mut self.memory_bus).unwrap();
         let stat_interrupt_detector = io_registers::StatInterruptDetector::new();
 
-        memory_bus.io_registers.write(IOType::JOYP.address(), 0xFF);
+        memory_bus.io_registers.write(IOType::JOYP.address(), 0xCF);
 
         emulator
             .with_component(memory_bus)

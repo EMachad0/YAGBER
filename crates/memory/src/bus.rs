@@ -104,7 +104,7 @@ impl Bus {
     }
 
     pub fn booting(&self) -> bool {
-        self.io_registers.read(0xFF50) == 0
+        self.io_registers.read(IOType::BANK.address()) == 0
     }
 
     pub fn load_rom(&mut self, data: &[u8]) {
