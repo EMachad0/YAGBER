@@ -155,6 +155,10 @@ impl Ppu {
     }
 
     fn object_pixel(&mut self, x: u8, y: u8, bus: &Bus) -> Option<FifoPixel> {
+        let lcdc = LcdcRegister::from_bus(bus);
+        if !lcdc.obj_enabled() {
+            return None;
+        }
         let sys = SysRegister::from_bus(bus);
         let object = self.find_priority_object(x, y, bus);
         object.map(|object| {
