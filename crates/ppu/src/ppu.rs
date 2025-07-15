@@ -262,7 +262,7 @@ impl Ppu {
             TileSize::TileSize8 => object.tile_index_8(),
             TileSize::TileSize16 => {
                 let (tile_index_top, tile_index_bottom) = object.tile_index_16();
-                if (object.y() as u16) < (y as u16 + 8) {
+                if (y + 8) < object.y() {
                     tile_index_top
                 } else {
                     tile_index_bottom

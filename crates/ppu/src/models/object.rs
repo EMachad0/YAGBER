@@ -37,7 +37,13 @@ impl Object {
 
     pub fn tile_index_16(&self) -> (u8, u8) {
         let index = self.tile_index;
-        (index & 0xFE, index | 0x01)
+        let upper = index & 0xFE;
+        let lower = index | 0x01;
+        if self.attr().y_flip() {
+            (lower, upper)
+        } else {
+            (upper, lower)
+        }
     }
 
     pub fn attr(&self) -> &TileAttr {
