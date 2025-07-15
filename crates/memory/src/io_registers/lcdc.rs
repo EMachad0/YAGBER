@@ -49,14 +49,6 @@ impl LcdcRegister {
         self.value & 0x80 != 0
     }
 
-    // fn tile_map_area(&self, value: bool) -> (u16, u16) {
-    //     if !value {
-    //         (0x9800, 0x9BFF)
-    //     } else {
-    //         (0x9C00, 0x9FFF)
-    //     }
-    // }
-
     pub fn window_tile_map_area(&self) -> TileMapArea {
         if self.value & 0x40 != 0 {
             TileMapArea::TileMapArea1

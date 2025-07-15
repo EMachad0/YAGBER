@@ -4,7 +4,7 @@ use yagber_memory::{
 };
 
 use crate::{
-    models::{FifoPixel, FifoPixelType, Object, Tile},
+    models::{FifoPixel, FifoPixelType, Object, Tile, WindowScanLine},
     ppu_mode::PpuMode,
 };
 
@@ -18,6 +18,7 @@ pub struct Ppu {
     y: u8,  // 0-153
     frame_buffer: [[u8; 4]; FRAME_BUFFER_SIZE],
     objects: Vec<Object>,
+    window_scan_line: WindowScanLine,
 }
 
 impl Ppu {
@@ -27,6 +28,7 @@ impl Ppu {
             y: 0,
             frame_buffer: [[0; 4]; FRAME_BUFFER_SIZE],
             objects: Vec::new(),
+            window_scan_line: WindowScanLine::new(),
         }
     }
 
@@ -62,7 +64,9 @@ impl Ppu {
     }
 
     fn render_pixel(&mut self, x: u8, y: u8, bus: &Bus) {
-        let bg_pixel = self.background_pixel(x, y, bus);
+        let bg_pixel = self
+            .window_pixel(x, y, bus)
+            .or(self.background_pixel(x, y, bus));
         let obj_pixel = self.object_pixel(x, y, bus);
 
         let fifo_pixel = match (bg_pixel, obj_pixel) {
@@ -132,18 +136,59 @@ impl Ppu {
         let x = x.wrapping_add(scx);
         let y = y.wrapping_add(scy);
 
-        let tile_fetcher_mode = lcdc.tile_data_area();
-        let bg_addr_mode = lcdc.bg_tile_map_area();
-        let bg_tile_map = bus.vram.tile_map(bg_addr_mode);
-        let bg_attr_map = bus.vram.attr_map(bg_addr_mode);
-
+        let tile_map_area = lcdc.bg_tile_map_area();
         let tile_map_index = (y as usize / 8) * 32 + (x as usize / 8);
-        let tile_index = bg_tile_map[tile_map_index].expect("Tile index is missing");
+
+        let tile_fetcher_mode = lcdc.tile_data_area();
+        let tile_map = bus.vram.tile_map(tile_map_area);
+        let attr_map = bus.vram.attr_map(tile_map_area);
+
+        let tile_index = tile_map[tile_map_index].expect("Tile index is missing");
         let tile_address = match tile_fetcher_mode {
             TileFetcherMode::TileDataArea1 => 0x8000u16 + (tile_index as u16) * 16,
             TileFetcherMode::TileDataArea0 => (0x9000i32 + (tile_index as i8 as i32) * 16) as u16,
         };
-        let tile_attr = bg_attr_map[tile_map_index].expect("Tile attribute is missing");
+        let tile_attr = attr_map[tile_map_index].expect("Tile attribute is missing");
+        let tile = crate::models::Tile::from_memory(bus, tile_address, tile_attr);
+
+        let colour_index = tile.colour_index(x % 8, y % 8);
+        let palette_index = tile.attr.cgb_palette();
+        let priority = tile.attr.priority();
+        let pixel_type = FifoPixelType::Background;
+        let fifo_pixel = FifoPixel::new(colour_index, palette_index, priority, pixel_type);
+        Some(fifo_pixel)
+    }
+
+    fn window_pixel(&mut self, x: u8, y: u8, bus: &Bus) -> Option<FifoPixel> {
+        let sys = SysRegister::from_bus(bus);
+        let lcdc = LcdcRegister::from_bus(bus);
+        if sys.mode() == yagber_memory::SysMode::Dmg && !lcdc.bg_window_enabled_priority() {
+            return None;
+        }
+
+        let window_enabled = lcdc.lcd_window_enabled();
+        let wx = bus.io_registers.read(IOType::WX.address());
+        let wy = bus.io_registers.read(IOType::WY.address());
+
+        if !(window_enabled && x + 7 >= wx && y >= wy) {
+            return None;
+        }
+
+        let window_x = x + 7 - wx;
+        let window_y = self.window_scan_line.get_and_update(y);
+        let tile_map_area = lcdc.window_tile_map_area();
+        let tile_map_index = (window_y as usize / 8) * 32 + (window_x as usize / 8);
+
+        let tile_fetcher_mode = lcdc.tile_data_area();
+        let tile_map = bus.vram.tile_map(tile_map_area);
+        let attr_map = bus.vram.attr_map(tile_map_area);
+
+        let tile_index = tile_map[tile_map_index].expect("Tile index is missing");
+        let tile_address = match tile_fetcher_mode {
+            TileFetcherMode::TileDataArea1 => 0x8000u16 + (tile_index as u16) * 16,
+            TileFetcherMode::TileDataArea0 => (0x9000i32 + (tile_index as i8 as i32) * 16) as u16,
+        };
+        let tile_attr = attr_map[tile_map_index].expect("Tile attribute is missing");
         let tile = crate::models::Tile::from_memory(bus, tile_address, tile_attr);
 
         let colour_index = tile.colour_index(x % 8, y % 8);
@@ -255,6 +300,7 @@ impl Ppu {
 
         // Vblank interrupt at the start of the Vblank period.
         if self.y == 144 && self.x == 0 {
+            self.window_scan_line.reset();
             bus.request_interrupt(yagber_memory::InterruptType::VBlank);
         }
 
