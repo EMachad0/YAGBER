@@ -84,11 +84,21 @@ impl Bus {
     }
 
     pub fn request_interrupt(&mut self, interrupt: InterruptType) {
-        self.set_bit(IOType::IF.address(), interrupt.to_u8());
+        let bit = 1 << interrupt.bit();
+        let if_reg = self.read(IOType::IF.address());
+        let new_if_reg = if_reg | bit;
+        if new_if_reg != if_reg {
+            self.io_registers.write(IOType::IF.address(), new_if_reg);
+        }
     }
 
     pub fn clear_interrupt(&mut self, interrupt: InterruptType) {
-        self.clear_bit(IOType::IF.address(), interrupt.to_u8());
+        let bit = 1 << interrupt.bit();
+        let if_reg = self.read(IOType::IF.address());
+        let new_if_reg = if_reg & !bit;
+        if new_if_reg != if_reg {
+            self.io_registers.write(IOType::IF.address(), new_if_reg);
+        }
     }
 
     pub fn get_priority_interrupt(&self) -> Option<InterruptType> {

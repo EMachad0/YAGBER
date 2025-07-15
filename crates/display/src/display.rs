@@ -6,9 +6,9 @@ pub struct Display {
 }
 
 impl Display {
-    pub const WIDTH: u32 = 256;
-    pub const HEIGHT: u32 = 256;
-    pub const SCALE_FACTOR: u32 = 4;
+    pub const WIDTH: u32 = 160;
+    pub const HEIGHT: u32 = 144;
+    pub const SCALE_FACTOR: u32 = 6;
 
     pub fn new(window: Window) -> Result<Self, pixels::Error> {
         let window = std::sync::Arc::new(window);

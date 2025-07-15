@@ -8,11 +8,15 @@ use crate::{
     ppu_mode::PpuMode,
 };
 
+const FRAME_BUFFER_WIDTH: usize = 160;
+const FRAME_BUFFER_HEIGHT: usize = 144;
+const FRAME_BUFFER_SIZE: usize = FRAME_BUFFER_WIDTH * FRAME_BUFFER_HEIGHT;
+
 #[derive(Debug)]
 pub struct Ppu {
     x: u16, // 0-456
     y: u8,  // 0-153
-    frame_buffer: [[u8; 4]; 256 * 256],
+    frame_buffer: [[u8; 4]; FRAME_BUFFER_SIZE],
     objects: Vec<Object>,
 }
 
@@ -21,7 +25,7 @@ impl Ppu {
         Self {
             x: 0,
             y: 0,
-            frame_buffer: [[0; 4]; 256 * 256],
+            frame_buffer: [[0; 4]; FRAME_BUFFER_SIZE],
             objects: Vec::new(),
         }
     }
@@ -49,8 +53,6 @@ impl Ppu {
         // If the display component is not present, there's nowhere to render to.
         // If the ppu just finished to draw a frame
         if has_display && just_entered_vblank {
-            // Render the rest of the frame for debug purposes
-            ppu.render_outer_frame(bus);
             // Render the frame to the display
             let (ppu, display) = emulator
                 .get_components_mut2::<Ppu, Display>()
@@ -72,11 +74,7 @@ impl Ppu {
             (None, None) => return,
         };
 
-        let scx = bus.io_registers.read(IOType::SCX.address());
-        let scy = bus.io_registers.read(IOType::SCY.address());
-        let world_x = x.wrapping_add(scx);
-        let world_y = y.wrapping_add(scy);
-        self.render_fifo_pixel(fifo_pixel, bus, world_x, world_y);
+        self.render_fifo_pixel(fifo_pixel, bus, x, y);
     }
 
     fn solve_bg_obj_priority(bus: &Bus, bg_pixel: FifoPixel, obj_pixel: FifoPixel) -> FifoPixel {
@@ -118,7 +116,7 @@ impl Ppu {
         let colour_raw = cram.read_colour(pallet_index, colour_index);
         let colour = crate::models::Rgb555::from_u16(colour_raw);
         let colour_rgba = crate::models::Rgba::from(colour);
-        let pixel_index = y as usize * 256 + x as usize;
+        let pixel_index = y as usize * FRAME_BUFFER_WIDTH + x as usize;
         self.frame_buffer[pixel_index] = colour_rgba.values();
     }
 
@@ -233,113 +231,6 @@ impl Ppu {
         Some(colour_index)
     }
 
-    fn render_outer_frame(&mut self, bus: &Bus) {
-        let lcdc = LcdcRegister::from_bus(bus);
-        let tile_fetcher_mode = lcdc.tile_data_area();
-        let bg_addr_mode = lcdc.bg_tile_map_area();
-        let bg_tile_map = bus.vram.tile_map(bg_addr_mode);
-        let bg_attr_map = bus.vram.attr_map(bg_addr_mode);
-
-        let get_tile_addr = match tile_fetcher_mode {
-            TileFetcherMode::TileDataArea1 => |tile_index: u8| {
-                let tile_index = tile_index as u16;
-                0x8000u16 + tile_index * 16
-            },
-            TileFetcherMode::TileDataArea0 => |tile_index: u8| {
-                let tile_index = tile_index as i8 as i32;
-                (0x9000i32 + tile_index * 16) as u16
-            },
-        };
-
-        let tile_addresses = {
-            let mut addresses = [0; 32 * 32];
-            for i in 0..32 {
-                for j in 0..32 {
-                    let tile_index = bg_tile_map[i * 32 + j].expect("Tile index is missing");
-                    let tile_addr = get_tile_addr(tile_index);
-                    addresses[i * 32 + j] = tile_addr;
-                }
-            }
-            addresses
-        };
-
-        let tile_attrs = {
-            let mut attrs = [0; 32 * 32];
-            for i in 0..32 {
-                for j in 0..32 {
-                    attrs[i * 32 + j] = bg_attr_map[i * 32 + j].expect("Tile attribute is missing");
-                }
-            }
-            attrs
-        };
-
-        let tiles = {
-            (0..32 * 32)
-                .map(|i| {
-                    let tile_addr = tile_addresses[i];
-                    let tile_attr = tile_attrs[i];
-                    crate::models::Tile::from_memory(bus, tile_addr, tile_attr)
-                })
-                .collect::<Vec<_>>()
-        };
-
-        let mut pixels = Vec::with_capacity(256 * 256);
-
-        for chunk in tiles.chunks_exact(32) {
-            for y in 0..8 {
-                for tile in chunk {
-                    let palette_index = tile.attr.cgb_palette();
-                    let row = tile.get_pixel_row(y);
-                    for colour_index in row {
-                        let colour_raw = bus
-                            .background_cram
-                            .read_colour(palette_index.value(), colour_index);
-                        let colour = crate::models::Rgb555::from_u16(colour_raw);
-                        let colour_rgba = crate::models::Rgba::from(colour);
-                        pixels.push(colour_rgba.values());
-                    }
-                }
-            }
-        }
-
-        let scy = bus.io_registers.read(IOType::SCY.address());
-        let scx = bus.io_registers.read(IOType::SCX.address());
-        let left_x = scx;
-        let top_y = scy;
-        let bottom_y = top_y.wrapping_add(143);
-        let right_x = left_x.wrapping_add(159);
-
-        let frame_buffer = &mut self.frame_buffer;
-        for (i, pixel) in frame_buffer.iter_mut().enumerate() {
-            let x = (i % 256) as u8;
-            let y = (i / 256) as u8;
-            if left_x <= x && x <= right_x && top_y <= y && y <= bottom_y {
-                continue;
-            }
-            pixel.copy_from_slice(&pixels[i]);
-        }
-        Self::add_border(frame_buffer, scy, scx);
-    }
-
-    fn add_border(frame_buffer: &mut [[u8; 4]], scy: u8, scx: u8) {
-        let mut paint_pixel = |i: usize, j: usize| {
-            let y = (i + scy as usize) % 256;
-            let x = (j + scx as usize) % 256;
-            let pixel_index = y * 256 + x;
-            frame_buffer[pixel_index] = [255, 0, 0, 255];
-        };
-        for i in [0, 143] {
-            for j in 0..160 {
-                paint_pixel(i, j);
-            }
-        }
-        for j in [0, 159] {
-            for i in 0..144 {
-                paint_pixel(i, j);
-            }
-        }
-    }
-
     pub fn step(&mut self, bus: &mut Bus) {
         self.x += 1;
         if self.x >= 456 {
@@ -352,8 +243,10 @@ impl Ppu {
 
         if self.mode() == PpuMode::PixelTransfer {
             let x = self.x as u8 - 80;
-            let y = self.y;
-            self.render_pixel(x, y, bus);
+            if x < FRAME_BUFFER_WIDTH as u8 {
+                let y = self.y;
+                self.render_pixel(x, y, bus);
+            }
         }
 
         // Vblank interrupt at the start of the Vblank period.
@@ -508,7 +401,7 @@ mod test {
 
         assert!(bus.read_bit(
             IOType::IF.address(),
-            yagber_memory::InterruptType::VBlank.to_u8()
+            yagber_memory::InterruptType::VBlank.bit()
         ));
     }
 }

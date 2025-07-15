@@ -96,13 +96,8 @@ impl StatInterruptDetector {
 
     pub(crate) fn on_stat_write(&mut self, bus: &mut Bus, value: u8) {
         self.tick(value);
-        let bit = 1 << InterruptType::Lcd.to_u8();
-        let if_reg = bus.read(IOType::IF.address());
-        let value = (self.should_trigger_interrupt() as u8) * bit;
-        let new_if_reg = (if_reg & !bit) | value;
-        if new_if_reg != if_reg {
-            bus.io_registers
-                .write_unchecked(IOType::IF.address(), new_if_reg);
+        if self.should_trigger_interrupt() {
+            bus.request_interrupt(InterruptType::Lcd);
         }
     }
 }
