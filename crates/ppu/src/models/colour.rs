@@ -5,15 +5,15 @@ pub struct Rgb555 {
 
 impl Rgb555 {
     pub fn red(&self) -> u8 {
-        (self.value & 0b11111) as u8 * 8
+        (self.value & 0b11111) as u8
     }
 
     pub fn green(&self) -> u8 {
-        ((self.value >> 5) & 0b11111) as u8 * 8
+        ((self.value >> 5) & 0b11111) as u8
     }
 
     pub fn blue(&self) -> u8 {
-        ((self.value >> 10) & 0b11111) as u8 * 8
+        ((self.value >> 10) & 0b11111) as u8
     }
 
     pub fn from_u16(value: u16) -> Self {
@@ -23,9 +23,10 @@ impl Rgb555 {
 
 impl From<Rgb555> for Rgba {
     fn from(rgb555: Rgb555) -> Self {
-        let red = rgb555.red();
-        let green = rgb555.green();
-        let blue = rgb555.blue();
+        let transform = |v: u8| (v << 3) | (v >> 2);
+        let red = transform(rgb555.red());
+        let green = transform(rgb555.green());
+        let blue = transform(rgb555.blue());
         let alpha = 255;
         Self::new(red, green, blue, alpha)
     }
