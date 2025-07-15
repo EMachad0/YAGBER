@@ -43,8 +43,10 @@ impl Default for MemoryPlugin {
 
 impl yagber_app::Plugin for MemoryPlugin {
     fn init(mut self, emulator: &mut yagber_app::Emulator) {
-        let memory_bus = std::mem::take(&mut self.memory_bus).unwrap();
+        let mut memory_bus = std::mem::take(&mut self.memory_bus).unwrap();
         let stat_interrupt_detector = io_registers::StatInterruptDetector::new();
+
+        memory_bus.io_registers.write(IOType::JOYP.address(), 0xFF);
 
         emulator
             .with_component(memory_bus)

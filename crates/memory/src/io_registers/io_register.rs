@@ -47,12 +47,12 @@ impl IORegister {
     }
 
     pub fn write(&mut self, value: u8) {
-        let transformed = (self.transformer)(self.value, value);
-        if transformed.is_none() {
+        let transformed_opt = (self.transformer)(self.value, value);
+        let Some(transformed) = transformed_opt else {
             return;
-        }
+        };
 
-        self.value = transformed.unwrap();
+        self.value = transformed;
 
         for hook in self.hooks.iter() {
             hook(self.value);

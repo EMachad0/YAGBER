@@ -93,35 +93,29 @@ impl Ppu {
 
     fn render_fifo_pixel(&mut self, pixel: FifoPixel, bus: &Bus, x: u8, y: u8) {
         let sys = SysRegister::from_bus(bus);
-        let colour_raw = match sys.mode() {
+        let (pallet_index, colour_index) = match sys.mode() {
             yagber_memory::SysMode::Dmg => {
-                let pallet_addr = match pixel.pixel_type() {
+                let pallet_index = pixel.palette_index().value();
+                let dmg_pallet_addr = match pixel.pixel_type() {
                     FifoPixelType::Background => IOType::BGP.address(),
-                    FifoPixelType::Object => match pixel.palette_index().value() {
+                    FifoPixelType::Object => match pallet_index {
                         0 => IOType::OBP0.address(),
                         1 => IOType::OBP1.address(),
-                        _ => panic!("Invalid palette index: {}", pixel.palette_index().value()),
+                        _ => panic!("Invalid palette index: {}", pallet_index),
                     },
                 };
-                let pallet = bus.io_registers.read(pallet_addr);
+                let pallet = bus.io_registers.read(dmg_pallet_addr);
                 let dmg_pallet = crate::models::DmgPallet::new(pallet);
-                let shade_index = dmg_pallet.colour_index(pixel.colour_index());
-                match shade_index {
-                    0 => 0x7FFF,
-                    1 => 0x56B5,
-                    2 => 0x294A,
-                    3 => 0x0000,
-                    _ => unreachable!(),
-                }
+                let colour_index = dmg_pallet.colour_index(pixel.colour_index());
+                (pallet_index, colour_index)
             }
-            yagber_memory::SysMode::Cgb => {
-                let cram = match pixel.pixel_type() {
-                    FifoPixelType::Background => &bus.background_cram,
-                    FifoPixelType::Object => &bus.object_cram,
-                };
-                cram.read_colour(pixel.palette_index().value(), pixel.colour_index())
-            }
+            yagber_memory::SysMode::Cgb => (pixel.palette_index().value(), pixel.colour_index()),
         };
+        let cram = match pixel.pixel_type() {
+            FifoPixelType::Background => &bus.background_cram,
+            FifoPixelType::Object => &bus.object_cram,
+        };
+        let colour_raw = cram.read_colour(pallet_index, colour_index);
         let colour = crate::models::Rgb555::from_u16(colour_raw);
         let colour_rgba = crate::models::Rgba::from(colour);
         let pixel_index = y as usize * 256 + x as usize;
