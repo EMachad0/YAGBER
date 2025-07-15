@@ -382,7 +382,7 @@ impl Ppu {
             let bottom_y = object_y;
             let top_y = bottom_y.wrapping_add(obj_size.as_u8());
             let scan_line_y = scan_line.wrapping_add(16);
-            bottom_y <= scan_line_y && scan_line_y <= top_y
+            bottom_y <= scan_line_y && scan_line_y < top_y
         };
 
         let oam = bus.oam.data();
