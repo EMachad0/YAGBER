@@ -1,4 +1,4 @@
-use crate::utils::{TestResult, run_boot};
+use crate::utils::{TestError, run_boot};
 
 mod cgb_acid2;
 mod dmg_acid2;
@@ -7,7 +7,7 @@ pub fn run_emulator(
     rom: &[u8],
     out_log_path: &str,
     expected_screen_path: &str,
-) -> Acid2TestRunnerResult {
+) -> <Acid2TestRunner as yagber_app::Runner>::Result {
     let expected_screen = ExpectedScreen::from_file(expected_screen_path);
 
     // Order matters, some plugins depend on others
@@ -50,11 +50,6 @@ impl ExpectedScreen {
 
 impl yagber_app::Component for ExpectedScreen {}
 
-pub struct Acid2TestRunnerResult {
-    result: TestResult,
-    output_screen: Vec<u8>,
-}
-
 pub struct Acid2TestRunner {
     emulator: yagber::Emulator,
     expected_screen: Vec<u8>,
@@ -73,10 +68,10 @@ impl Acid2TestRunner {
         }
     }
 
-    fn run_until_result(&mut self) -> (TestResult, Vec<u8>) {
+    fn run_until_result(&mut self) -> <Acid2TestRunner as yagber_app::Runner>::Result {
         let boot_res = run_boot(&mut self.emulator);
         if let Err(result) = boot_res {
-            return (result, Vec::new());
+            return Err((result, Vec::new()));
         }
 
         for _ in 0..15 {
@@ -91,29 +86,23 @@ impl Acid2TestRunner {
             .as_flattened()
             .to_vec();
 
-        let test_result = if output_screen == self.expected_screen {
-            TestResult::Passed
+        if output_screen == self.expected_screen {
+            Ok(())
         } else {
-            TestResult::Failed
-        };
-
-        (test_result, output_screen)
+            Err((TestError::Failed, output_screen))
+        }
     }
 }
 
 impl yagber_app::Runner for Acid2TestRunner {
-    type Result = Acid2TestRunnerResult;
+    type Result = Result<(), (TestError, Vec<u8>)>;
 
     fn new(emulator: yagber::Emulator) -> Self {
         Self::new(emulator)
     }
 
     fn run(mut self) -> Self::Result {
-        let (result, output_screen) = self.run_until_result();
-        Acid2TestRunnerResult {
-            result,
-            output_screen,
-        }
+        self.run_until_result()
     }
 }
 

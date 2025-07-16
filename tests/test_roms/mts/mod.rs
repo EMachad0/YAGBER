@@ -1,12 +1,15 @@
 mod acceptance;
 
-use crate::utils::{MAX_CYCLES, TestResult};
+use crate::utils::{MAX_FRAMES, TestError};
 
 const EXPECTED_SUCCESS: &[u8] = &[3, 5, 8, 13, 21, 34];
 
-/// Run the emulator for a specified number of cycles
+/// Run the emulator for a specified number of frames
 /// and check the output buffer for "Passed" or "Failed"
-pub fn run_emulator(rom: &[u8], out_log_path: &str) -> MtsTestRunnerResult {
+pub fn run_emulator(
+    rom: &[u8],
+    out_log_path: &str,
+) -> <MtsTestRunner as yagber_app::Runner>::Result {
     yagber::Emulator::new()
         // Log must be first
         .with_plugin(yagber_log::LogPlugin::default())
@@ -25,11 +28,6 @@ pub fn run_emulator(rom: &[u8], out_log_path: &str) -> MtsTestRunnerResult {
         .run::<MtsTestRunner>()
 }
 
-pub struct MtsTestRunnerResult {
-    result: TestResult,
-    output_buffer: String,
-}
-
 pub struct MtsTestRunner {
     emulator: yagber::Emulator,
 }
@@ -39,8 +37,8 @@ impl MtsTestRunner {
         Self { emulator }
     }
 
-    pub fn run_until_result(&mut self) -> TestResult {
-        for _ in 0..MAX_CYCLES {
+    pub fn run_until_result(&mut self) -> <MtsTestRunner as yagber_app::Runner>::Result {
+        for _ in 0..MAX_FRAMES {
             self.emulator.step();
             let Some(buf) = yagber_link_cable::LinkCable::output_buffer_for(&mut self.emulator)
             else {
@@ -49,30 +47,25 @@ impl MtsTestRunner {
 
             if buf.len() == EXPECTED_SUCCESS.len() {
                 if buf == EXPECTED_SUCCESS {
-                    return TestResult::Passed;
+                    return Ok(());
                 } else {
-                    return TestResult::Failed;
+                    let output_buffer = String::from_utf8_lossy(buf).to_string();
+                    return Err((TestError::Failed, output_buffer));
                 }
             }
         }
-        TestResult::TimedOut
+        Err((TestError::TimedOut, String::new()))
     }
 }
 
 impl yagber::app::Runner for MtsTestRunner {
-    type Result = MtsTestRunnerResult;
+    type Result = Result<(), (TestError, String)>;
 
     fn new(emulator: yagber::Emulator) -> Self {
         Self::new(emulator)
     }
 
     fn run(mut self) -> Self::Result {
-        let result = self.run_until_result();
-        let output_buffer =
-            yagber_link_cable::LinkCable::output_buffer_for(&mut self.emulator).unwrap();
-        MtsTestRunnerResult {
-            result,
-            output_buffer: String::from_utf8_lossy(output_buffer).to_string(),
-        }
+        self.run_until_result()
     }
 }

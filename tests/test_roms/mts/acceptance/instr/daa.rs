@@ -12,10 +12,12 @@ fn test_mts_daa() {
     let rom = fs::read(rom_path).expect("Failed to read ROM");
 
     let status = run_emulator(&rom, &out_log_path);
+    let is_ok = status.is_ok();
 
-    assert!(
-        status.result.is_success(),
-        "Output buffer:\n{}",
-        status.output_buffer
-    );
+    if let Err((error, output_buffer)) = status {
+        println!("Error: {:?}", error);
+        println!("Output buffer:\n{}", output_buffer);
+    }
+
+    assert!(is_ok);
 }

@@ -14,11 +14,12 @@ fn test_blargg_cpu_instrs() {
     let rom = fs::read(ROM_PATH).expect("Failed to read ROM");
 
     let status = run_emulator(&rom, &out_log_path);
-    assert!(
-        status.result.is_success(),
-        "Output buffer:\n{}",
-        status.output_buffer
-    );
+    let is_ok = status.is_ok();
+    if let Err((error, output_buffer)) = status {
+        println!("Error: {:?}", error);
+        println!("Output buffer:\n{}", output_buffer);
+    }
+    assert!(is_ok);
 }
 
 fn cpu_instrs_individual_test(test_name: &str) {
@@ -33,11 +34,12 @@ fn cpu_instrs_individual_test(test_name: &str) {
 
     let status = run_emulator(&rom, out_log_path.to_str().unwrap());
 
-    assert!(
-        status.result.is_success(),
-        "Output buffer:\n{}",
-        status.output_buffer
-    );
+    let is_ok = status.is_ok();
+    if let Err((error, output_buffer)) = status {
+        println!("Error: {:?}", error);
+        println!("Output buffer:\n{}", output_buffer);
+    }
+    assert!(is_ok);
 }
 
 #[test]

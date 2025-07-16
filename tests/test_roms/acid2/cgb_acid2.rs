@@ -1,7 +1,6 @@
 use std::fs;
 
-use crate::{acid2::run_emulator, utils::TestResult};
-use pretty_assertions::assert_eq;
+use crate::acid2::run_emulator;
 
 #[test]
 fn test_cgb_acid2() {
@@ -20,9 +19,11 @@ fn test_cgb_acid2() {
 
     let status = run_emulator(&rom, &out_log_path, expected_screen_path);
 
-    if !status.result.is_success() {
-        crate::acid2::save_screen(&status.output_screen, &out_screen_path);
+    let is_ok = status.is_ok();
+    if let Err((error, output_screen)) = status {
+        println!("Error: {:?}", error);
+        crate::acid2::save_screen(&output_screen, &out_screen_path);
     }
 
-    assert_eq!(status.result, TestResult::Passed);
+    assert!(is_ok);
 }
