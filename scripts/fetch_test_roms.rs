@@ -10,6 +10,8 @@ use serde::{Deserialize, Serialize};
 use std::path::Path;
 use std::process::Command;
 
+const METADATA_VERSION: &str = "1.0.0";
+
 const TEST_ROMS_PATH: &str = "test_roms/";
 
 #[derive(Serialize, Deserialize)]
@@ -28,13 +30,15 @@ fn main() {
 
     fetch_blargg_test_roms();
     fetch_mooneye_test_roms();
+    fetch_dmg_acid2_test_roms();
+    fetch_cgb_acid2_test_roms();
 }
 
 fn fetch_blargg_test_roms() {
     let repo = "https://github.com/retrio/gb-test-roms";
     let path = format!("{}{}", TEST_ROMS_PATH, "blargg/");
     if Path::new(&path).exists() {
-        println!("Repository {} already exists at {}, SKIPPING", repo, path);
+        println!("Blargg test ROMs already exist at {}, SKIPPING", path);
         return;
     }
 
@@ -47,32 +51,12 @@ fn fetch_blargg_test_roms() {
         .expect("Failed to clone repository");
 
     // Retrieve the current commit hash so we can record the exact version.
-    let git_rev_output = Command::new("git")
-        .arg("-C")
-        .arg(&path)
-        .arg("rev-parse")
-        .arg("HEAD")
-        .output()
-        .expect("Failed to get blargg commit hash");
-
-    let commit_hash = String::from_utf8_lossy(&git_rev_output.stdout)
-        .trim()
-        .to_string();
-
-    let metadata = TestRomMetadata {
-        source: "blargg".to_string(),
-        version: commit_hash,
-        date: chrono::Utc::now().to_string(),
-        metadata_version: "1.0.0".to_string(),
-    };
-
-    let json_path = format!("{}{}", path, "version.json");
-    std::fs::write(json_path, serde_json::to_string(&metadata).unwrap())
-        .expect("Failed to write version.json file");
+    let commit_hash = get_commit_hash(&path);
+    write_metadata(&path, "blargg", &commit_hash);
 
     println!(
         "Blargg test ROMs (version {}) fetched successfully to {}",
-        metadata.version, path
+        commit_hash, path
     );
 }
 
@@ -135,19 +119,141 @@ fn fetch_mooneye_test_roms() {
     // Clean up the downloaded zip file
     std::fs::remove_file(&zip_local_path).ok();
 
-    // add a json file to the mts directory with the file version
-    let metadata = TestRomMetadata {
-        source: "mts".to_string(),
-        version: MOONEYE_VERSION.to_string(),
-        date: chrono::Utc::now().to_string(),
-        metadata_version: "1.0.0".to_string(),
-    };
-    let json_path = format!("{}{}", dest_dir, "version.json");
-    std::fs::write(json_path, serde_json::to_string(&metadata).unwrap())
-        .expect("Failed to write version.json file");
+    // Record the metadata.
+    write_metadata(&dest_dir, "mts", MOONEYE_VERSION);
 
     println!(
         "Mooneye test ROMs (version {}) fetched successfully to {}",
         MOONEYE_VERSION, dest_dir
     );
+}
+
+fn fetch_dmg_acid2_test_roms() {
+    const DMG_ACID2_VERSION: &str = "v1.0";
+
+    let repo = "https://github.com/mattcurrie/dmg-acid2";
+    let path = format!("{}{}", TEST_ROMS_PATH, "dmg-acid2/");
+    if Path::new(&path).exists() {
+        println!("DMG Acid2 test ROMs already exist at {}, SKIPPING", path);
+        return;
+    }
+
+    println!("Cloning {} into {}", repo, path);
+    Command::new("git")
+        .arg("clone")
+        .arg(repo)
+        .arg(&path)
+        .status()
+        .expect("Failed to clone repository");
+
+    // Checkout the specific version
+    Command::new("git")
+        .arg("-C")
+        .arg(&path)
+        .arg("checkout")
+        .arg(DMG_ACID2_VERSION)
+        .arg("--detach")
+        .status()
+        .expect("Failed to checkout specific version");
+
+    let rom_url = format!(
+        "{}/releases/download/{}/dmg-acid2.gb",
+        repo, DMG_ACID2_VERSION
+    );
+    let rom_local_path = format!("{}{}", path, "dmg-acid2.gb");
+
+    println!("Downloading dmg-acid2 test ROM");
+    Command::new("curl")
+        .arg("-L")
+        .arg("-o")
+        .arg(&rom_local_path)
+        .arg(&rom_url)
+        .status()
+        .expect("Failed to download dmg-acid2 test ROM");
+
+    // Record the metadata.
+    write_metadata(&path, "dmg-acid2", DMG_ACID2_VERSION);
+
+    println!(
+        "DMG Acid2 test ROM (version {}) fetched successfully to {}",
+        DMG_ACID2_VERSION, path
+    );
+}
+
+fn fetch_cgb_acid2_test_roms() {
+    const CGB_ACID2_VERSION: &str = "v1.0";
+
+    let repo = "https://github.com/mattcurrie/cgb-acid2";
+    let path = format!("{}{}", TEST_ROMS_PATH, "cgb-acid2/");
+    if Path::new(&path).exists() {
+        println!("CGB Acid2 test ROMs already exist at {}, SKIPPING", path);
+        return;
+    }
+
+    println!("Cloning {} into {}", repo, path);
+    Command::new("git")
+        .arg("clone")
+        .arg(repo)
+        .arg(&path)
+        .status()
+        .expect("Failed to clone repository");
+
+    // Checkout the specific version
+    Command::new("git")
+        .arg("-C")
+        .arg(&path)
+        .arg("checkout")
+        .arg(CGB_ACID2_VERSION)
+        .arg("--detach")
+        .status()
+        .expect("Failed to checkout specific version");
+
+    let rom_url = format!(
+        "{}/releases/download/{}/cgb-acid2.gbc",
+        repo, CGB_ACID2_VERSION
+    );
+    let rom_local_path = format!("{}{}", path, "cgb-acid2.gbc");
+
+    println!("Downloading cgb-acid2 test ROM");
+    Command::new("curl")
+        .arg("-L")
+        .arg("-o")
+        .arg(&rom_local_path)
+        .arg(&rom_url)
+        .status()
+        .expect("Failed to download cgb-acid2 test ROM");
+
+    // Record the metadata.
+    write_metadata(&path, "cgb-acid2", CGB_ACID2_VERSION);
+
+    println!(
+        "CGB Acid2 test ROM (version {}) fetched successfully to {}",
+        CGB_ACID2_VERSION, path
+    );
+}
+
+fn get_commit_hash(path: &str) -> String {
+    let git_rev_output = Command::new("git")
+        .arg("-C")
+        .arg(path)
+        .arg("rev-parse")
+        .arg("HEAD")
+        .output()
+        .expect("Failed to get commit hash");
+
+    String::from_utf8_lossy(&git_rev_output.stdout)
+        .trim()
+        .to_string()
+}
+
+fn write_metadata(path: &str, source: &str, version: &str) {
+    let metadata = TestRomMetadata {
+        source: source.to_string(),
+        version: version.to_string(),
+        date: chrono::Utc::now().to_string(),
+        metadata_version: METADATA_VERSION.to_string(),
+    };
+    let json_path = format!("{}{}", path, "version.json");
+    std::fs::write(json_path, serde_json::to_string(&metadata).unwrap())
+        .expect("Failed to write version.json file");
 }

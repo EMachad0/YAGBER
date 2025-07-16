@@ -42,6 +42,7 @@ yagber_display = { workspace = true }
 
 [dev-dependencies]
 pretty_assertions = { workspace = true }
+image = { workspace = true }
 
 [workspace.dependencies]
 anyhow = { version = "1.0.98" }
@@ -52,6 +53,7 @@ pretty_assertions = { version = "1.4.1" }
 strum = { version = "0.27.1", features = ["derive"] }
 tracing = { version = "0.1.41" }
 tracing-subscriber = { version = "0.3.19" }
+image = { version = "0.25.6" }
 
 yagber_app = { path = "crates/app" }
 yagber_cpu = { path = "crates/cpu" }

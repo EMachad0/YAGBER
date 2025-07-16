@@ -366,6 +366,16 @@ impl Ppu {
                 .write_unchecked(IOType::STAT.address(), new_stat);
         }
     }
+
+    pub fn frame_buffer(&self) -> &[[u8; 4]; FRAME_BUFFER_SIZE] {
+        &self.frame_buffer
+    }
+}
+
+impl Default for Ppu {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl yagber_app::Component for Ppu {}

@@ -2,6 +2,8 @@ mod models;
 mod ppu;
 mod ppu_mode;
 
+pub use ppu::Ppu;
+
 pub struct PpuPlugin;
 
 impl yagber_app::Plugin for PpuPlugin {
