@@ -28,8 +28,8 @@ impl Input {
         let input_key = match input.key_code {
             KeyCode::KeyZ => InputKey::A,
             KeyCode::KeyX => InputKey::B,
-            KeyCode::Enter => InputKey::Select,
-            KeyCode::Backspace => InputKey::Start,
+            KeyCode::Enter => InputKey::Start,
+            KeyCode::Backspace => InputKey::Select,
             KeyCode::ArrowUp => InputKey::Up,
             KeyCode::ArrowDown => InputKey::Down,
             KeyCode::ArrowLeft => InputKey::Left,

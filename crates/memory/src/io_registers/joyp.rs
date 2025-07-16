@@ -2,10 +2,10 @@ use crate::Bus;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SelectedButtons {
-    None = 0x00,
-    Directions = 0x10,
-    Buttons = 0x20,
-    Both = 0x30,
+    Both = 0x00,
+    Buttons = 0x10,
+    Directions = 0x20,
+    None = 0x30,
 }
 
 impl SelectedButtons {
@@ -15,10 +15,10 @@ impl SelectedButtons {
 
     pub fn from_bits(bits: u8) -> Self {
         match bits {
-            0x00 => SelectedButtons::None,
-            0x10 => SelectedButtons::Directions,
-            0x20 => SelectedButtons::Buttons,
-            0x30 => SelectedButtons::Both,
+            0x00 => SelectedButtons::Both,
+            0x10 => SelectedButtons::Buttons,
+            0x20 => SelectedButtons::Directions,
+            0x30 => SelectedButtons::None,
             _ => unreachable!(),
         }
     }
