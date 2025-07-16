@@ -7,9 +7,25 @@
 
 ### Yet Another Game Boy Emulator in Rust
 
-YAGBER is a Game Boy emulator written in Rust. It is a work in progress and is far from being fully functional.
+YAGBER is a Game Boy emulator written in Rust. It is a work in progress and not yet fully functional.
 
-Currently it does not contain a GUI, but it can be used to run test ROMs.
+Currently it only runs from the command line, no binary is provided yet.
+
+```bash
+cargo run --release --bin yagber -- --rom path/to/rom.gb
+```
+
+## Game Support
+
+Tetris from 1989 for the original Game Boy is fully functional.
+
+![Tetris](images/screenshots/tetris_intro.png)
+
+Many other games are not yet functional due to the (soon) to implemented MBC2 and above support.
+
+## Testing
+
+This emulator is tested against a set of test ROMs that were verified to work in real hardware.
 
 It passes all instruction tests from the [Blaarg's test ROMs](https://github.com/retrio/gb-test-roms).
 

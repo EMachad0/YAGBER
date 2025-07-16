@@ -151,3 +151,9 @@ Also refered as `mts`.
 | tima_reload.gb          |        |
 | tima_write_reloading.gb |        |
 | tma_write_reloading.gb  |        |
+
+### [Mattcurrie's Acid2 Test Roms](https://github.com/mattcurrie/cgb-acid2)
+| Test ROM               | Status |
+|------------------------|--------|
+| dmg-acid2.gb           | :+1:   |
+| cgb-acid2.gb           | :+1:   |
