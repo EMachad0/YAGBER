@@ -1,18 +1,16 @@
 [package]
-name = "yagber_display"
+name = "yagber_input"
 version = "0.1.0"
 edition = "2024"
 
 [features]
 default = []
 trace = ["dep:tracing"]
-trace-span = ["dep:tracing"]
-frame_marker = []
 
 [dependencies]
+smol_str = { workspace = true }
+strum = { workspace = true }
 tracing = { workspace = true, optional = true }
-winit = { version = "0.30.11" }
-pixels = { version = "0.15.0" }
 
 yagber_app = { workspace = true }
-yagber_input = { workspace = true }
+yagber_memory = { workspace = true }

@@ -70,6 +70,20 @@ impl ApplicationHandler for WinitApp {
                 #[cfg(feature = "trace")]
                 tracing::trace!("Redraw requested");
             }
+            WindowEvent::KeyboardInput { event, .. } => {
+                let Some(input_state) = self
+                    .emulator
+                    .get_component_mut::<yagber_input::InputState>()
+                else {
+                    return;
+                };
+
+                let keyboard_input = crate::input_converter::convert_keyboard_input(&event);
+                let Some(input) = yagber_input::Input::from_keyboard_input(&keyboard_input) else {
+                    return;
+                };
+                input_state.handle_input(input);
+            }
             _ => (),
         }
     }
@@ -86,11 +100,5 @@ impl ApplicationHandler for WinitApp {
         );
 
         self.emulator.step();
-
-        // if self.emulator.frame_ready() {
-        //     if let Some(display) = self.emulator.get_component::<Display>() {
-        //         display.window.request_redraw();
-        //     }
-        // }
     }
 }

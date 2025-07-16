@@ -55,7 +55,7 @@ impl IOBus {
 
     pub fn add_transformer<F>(&mut self, io: IOType, transformer: F) -> &mut Self
     where
-        F: Fn(u8, u8) -> Option<u8> + 'static,
+        F: Fn((u8, u8)) -> Option<u8> + 'static,
     {
         self.data[Self::virtual_address(io.address())].add_transformer(transformer);
         self
@@ -78,7 +78,7 @@ impl IOBus {
 
     pub fn with_transformer<F>(&mut self, io: IOType, transformer: F) -> &mut Self
     where
-        F: Fn(u8, u8) -> Option<u8> + 'static,
+        F: Fn((u8, u8)) -> Option<u8> + 'static,
     {
         self.add_transformer(io, transformer);
         self

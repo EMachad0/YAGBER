@@ -43,10 +43,8 @@ impl Default for MemoryPlugin {
 
 impl yagber_app::Plugin for MemoryPlugin {
     fn init(mut self, emulator: &mut yagber_app::Emulator) {
-        let mut memory_bus = std::mem::take(&mut self.memory_bus).unwrap();
+        let memory_bus = std::mem::take(&mut self.memory_bus).unwrap();
         let stat_interrupt_detector = io_registers::StatInterruptDetector::new();
-
-        memory_bus.io_registers.write(IOType::JOYP.address(), 0xCF);
 
         emulator
             .with_component(memory_bus)
@@ -71,7 +69,6 @@ impl yagber_app::Plugin for MemoryPlugin {
             .get_component_mut::<Bus>()
             .expect("Bus component missing")
             .io_registers
-            .with_transformer(IOType::JOYP, io_registers::JoypRegister::joyp_transformer)
             .with_hook(IOType::LY, stat_ly_hook)
             .with_hook(IOType::LYC, stat_lyc_hook)
             .with_transformer(IOType::STAT, io_registers::Stat::stat_transformer)

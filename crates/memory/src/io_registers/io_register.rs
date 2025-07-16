@@ -1,7 +1,7 @@
 use crate::Register;
 
 type BoxedReader = Box<dyn Fn(u8) -> u8>;
-type BoxedTransformer = Box<dyn Fn(u8, u8) -> Option<u8>>;
+type BoxedTransformer = Box<dyn Fn((u8, u8)) -> Option<u8>>;
 type BoxedObserver = Box<dyn Fn(u8)>;
 
 pub struct IORegister {
@@ -16,14 +16,14 @@ impl IORegister {
         Self {
             value: 0,
             reader: Box::new(|value| value),
-            transformer: Box::new(|_, value| Some(value)),
+            transformer: Box::new(|(_, value)| Some(value)),
             hooks: Vec::new(),
         }
     }
 
     pub fn add_transformer<F>(&mut self, transformer: F)
     where
-        F: Fn(u8, u8) -> Option<u8> + 'static,
+        F: Fn((u8, u8)) -> Option<u8> + 'static,
     {
         self.transformer = Box::new(transformer);
     }
@@ -47,7 +47,7 @@ impl IORegister {
     }
 
     pub fn write(&mut self, value: u8) {
-        let transformed_opt = (self.transformer)(self.value, value);
+        let transformed_opt = (self.transformer)((self.value, value));
         let Some(transformed) = transformed_opt else {
             return;
         };

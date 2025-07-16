@@ -48,7 +48,7 @@ impl Stat {
             || (self.mode_2_select() && self.mode() == 2)
     }
 
-    pub(crate) fn stat_transformer(old_value: u8, new_value: u8) -> Option<u8> {
+    pub(crate) fn stat_transformer((old_value, new_value): (u8, u8)) -> Option<u8> {
         Some((old_value & 0x07) | (new_value & !0x07))
     }
 
