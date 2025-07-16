@@ -2,6 +2,7 @@ use yagber_memory::{Bus, Memory};
 
 use crate::dest::{Destination, DestinationCollector};
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum LinkCableMode {
     Slave,
     Master,
@@ -19,11 +20,6 @@ pub struct LinkCable {
 }
 
 impl LinkCable {
-    /// Serial Transfer Data
-    const SB_ADDR: u16 = 0xFF01;
-    /// Serial Transfer Control
-    const SC_ADDR: u16 = 0xFF02;
-
     pub fn new() -> Self {
         Self {
             destinations: DestinationCollector::new(),
@@ -51,20 +47,20 @@ impl LinkCable {
     }
 
     pub fn transfer_enabled(ram: &mut Bus) -> bool {
-        ram.read_bit(Self::SC_ADDR, 7)
+        ram.read_bit(yagber_memory::IOType::SC.address(), 7)
     }
 
     pub fn clock_speed(ram: &mut Bus) -> bool {
-        ram.read_bit(Self::SC_ADDR, 1)
+        ram.read_bit(yagber_memory::IOType::SC.address(), 1)
     }
 
     pub fn read_mode(ram: &mut Bus) -> LinkCableMode {
-        let bit = ram.read_bit(Self::SC_ADDR, 0);
+        let bit = ram.read_bit(yagber_memory::IOType::SC.address(), 0);
         LinkCableMode::from_bit(bit)
     }
 
     pub fn read_data(ram: &mut Bus) -> u8 {
-        ram.read(Self::SB_ADDR)
+        ram.read(yagber_memory::IOType::SB.address())
     }
 
     pub fn on_tcycle(emulator: &mut yagber_app::Emulator) {
@@ -75,14 +71,15 @@ impl LinkCable {
     }
 
     pub fn step(&mut self, ram: &mut Bus) {
-        if Self::transfer_enabled(ram) {
+        if Self::transfer_enabled(ram) && Self::read_mode(ram) == LinkCableMode::Master {
             let data = Self::read_data(ram);
             let _result = self.destinations.write(data);
             #[cfg(feature = "trace")]
             if let Err(e) = _result {
                 tracing::error!("Failed to write to destination: {}", e);
             }
-            ram.write(Self::SC_ADDR, 0);
+            ram.write(yagber_memory::IOType::SB.address(), 0xFF);
+            ram.write(yagber_memory::IOType::SC.address(), 0);
             ram.request_interrupt(yagber_memory::InterruptType::Serial);
         }
     }
