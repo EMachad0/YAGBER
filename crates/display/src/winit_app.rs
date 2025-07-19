@@ -59,12 +59,18 @@ impl ApplicationHandler for WinitApp {
                 #[cfg(feature = "trace-span")]
                 let _span = tracing::info_span!("winit app redraw requested").entered();
 
-                let display = self.emulator.get_component_mut::<Display>();
-                if display.is_none() {
+                if !self.emulator.has_component::<Display>() {
                     return;
                 }
+                let (display, ppu) = self
+                    .emulator
+                    .get_components_mut2::<Display, yagber_ppu::Ppu>()
+                    .expect("Display and/or PPU component missing");
 
-                let display = display.unwrap();
+                let frame_buffer = ppu.frame_buffer();
+                for (i, pixel) in display.frame_buffer().chunks_exact_mut(4).enumerate() {
+                    pixel.copy_from_slice(&frame_buffer[i]);
+                }
                 display.render().unwrap();
 
                 #[cfg(feature = "trace")]
@@ -99,6 +105,19 @@ impl ApplicationHandler for WinitApp {
             frame_marker = true
         );
 
-        self.emulator.step();
+        for _ in 0..yagber_ppu::Ppu::DOTS_PER_FRAME {
+            self.emulator.step();
+
+            let ppu = self
+                .emulator
+                .get_component::<yagber_ppu::Ppu>()
+                .expect("PPU component missing");
+            if ppu.just_entered_mode(yagber_ppu::PpuMode::VBlank) {
+                self.emulator
+                    .get_component_mut::<Display>()
+                    .unwrap()
+                    .request_redraw();
+            }
+        }
     }
 }

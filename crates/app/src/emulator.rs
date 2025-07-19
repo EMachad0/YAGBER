@@ -28,20 +28,14 @@ impl Emulator {
 
     /// Step the emulator a single frame.
     pub fn step(&mut self) {
-        #[cfg(feature = "trace")]
-        tracing::trace!("Frame {}", self.cycles / 70224);
+        #[cfg(feature = "trace-span")]
+        let _step_span = tracing::info_span!("step").entered();
+        self.cycles += 1;
 
-        // A frame is 70224 dot cycles.
-        for _ in 0..70224 {
-            #[cfg(feature = "trace-span")]
-            let _step_span = tracing::info_span!("step").entered();
-            self.cycles += 1;
-
-            self.step_dot_cycle();
-            self.step_tcycle();
-            if self.is_m_cycle() {
-                self.step_mcycle();
-            }
+        self.step_dot_cycle();
+        self.step_tcycle();
+        if self.is_m_cycle() {
+            self.step_mcycle();
         }
     }
 

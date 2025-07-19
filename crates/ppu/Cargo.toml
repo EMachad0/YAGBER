@@ -8,7 +8,6 @@ tracing = { workspace = true }
 yagber_app = { workspace = true }
 yagber_clock = { workspace = true }
 yagber_memory = { workspace = true }
-yagber_display = { workspace = true }
 
 [dev-dependencies]
 pretty_assertions = { workspace = true }

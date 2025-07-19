@@ -3,6 +3,7 @@ mod ppu;
 mod ppu_mode;
 
 pub use ppu::Ppu;
+pub use ppu_mode::PpuMode;
 
 pub struct PpuPlugin;
 

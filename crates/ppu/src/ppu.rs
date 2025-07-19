@@ -1,4 +1,3 @@
-use yagber_display::Display;
 use yagber_memory::{
     Bus, IOType, LcdcRegister, OpriRegister, SysRegister, TileFetcherMode, TileSize,
 };
@@ -8,32 +7,32 @@ use crate::{
     ppu_mode::PpuMode,
 };
 
-const FRAME_BUFFER_WIDTH: usize = 160;
-const FRAME_BUFFER_HEIGHT: usize = 144;
-const FRAME_BUFFER_SIZE: usize = FRAME_BUFFER_WIDTH * FRAME_BUFFER_HEIGHT;
-
 #[derive(Debug)]
 pub struct Ppu {
     x: u16, // 0-456
     y: u8,  // 0-153
-    frame_buffer: [[u8; 4]; FRAME_BUFFER_SIZE],
+    frame_buffer: [[u8; 4]; Self::FRAME_BUFFER_SIZE],
     objects: Vec<Object>,
     window_scan_line: WindowScanLine,
 }
 
 impl Ppu {
+    pub const DOTS_PER_FRAME: u32 = 70224;
+    pub const FRAME_BUFFER_WIDTH: usize = 160;
+    pub const FRAME_BUFFER_HEIGHT: usize = 144;
+    pub const FRAME_BUFFER_SIZE: usize = Self::FRAME_BUFFER_WIDTH * Self::FRAME_BUFFER_HEIGHT;
+
     pub fn new() -> Self {
         Self {
             x: 0,
             y: 0,
-            frame_buffer: [[0; 4]; FRAME_BUFFER_SIZE],
+            frame_buffer: [[0; 4]; Self::FRAME_BUFFER_SIZE],
             objects: Vec::new(),
             window_scan_line: WindowScanLine::new(),
         }
     }
 
     pub fn on_dot_cycle(emulator: &mut yagber_app::Emulator) {
-        let has_display = emulator.has_component::<yagber_display::Display>();
         let (bus, ppu) = emulator
             .get_components_mut2::<Bus, Ppu>()
             .expect("Bus and/or PPU component missing");
@@ -42,24 +41,46 @@ impl Ppu {
             return;
         }
 
-        let just_entered_oam_scan = ppu.y < 144 && ppu.x == 0;
-        let just_entered_vblank = ppu.y == 144 && ppu.x == 0;
-
-        if just_entered_oam_scan {
-            ppu.objects = ppu.object_scan(bus, ppu.y);
-        }
-
         // Step the PPU even if there's no display, so that the scan line index is updated and interrupt is requested if necessary.
         ppu.step(bus);
+    }
 
-        // If the display component is not present, there's nowhere to render to.
-        // If the ppu just finished to draw a frame
-        if has_display && just_entered_vblank {
-            // Render the frame to the display
-            let (ppu, display) = emulator
-                .get_components_mut2::<Ppu, Display>()
-                .expect("PPU and/or Display component missing");
-            ppu.render_frame(display);
+    pub fn step(&mut self, bus: &mut Bus) {
+        self.step_scan_line();
+
+        if self.just_entered_mode(PpuMode::OamScan) {
+            self.objects = Self::object_scan(bus, self.y);
+        }
+
+        if self.mode() == PpuMode::PixelTransfer {
+            let x = self.x as u8 - 80;
+            if x < Self::FRAME_BUFFER_WIDTH as u8 {
+                let y = self.y;
+                self.render_pixel(x, y, bus);
+            }
+        }
+
+        if self.just_entered_mode(PpuMode::VBlank) {
+            self.window_scan_line.reset();
+            bus.request_interrupt(yagber_memory::InterruptType::VBlank);
+        }
+
+        if self.just_changed_scan_line() {
+            Self::set_scan_line_index(bus, self.y);
+        }
+        if self.just_changed_mode() {
+            Self::set_mode(bus, self.mode());
+        }
+    }
+
+    fn step_scan_line(&mut self) {
+        self.x += 1;
+        if self.x >= 456 {
+            self.x = 0;
+            self.y += 1;
+        }
+        if self.y >= 154 {
+            self.y = 0;
         }
     }
 
@@ -120,7 +141,7 @@ impl Ppu {
         let colour_raw = cram.read_colour(pallet_index, colour_index);
         let colour = crate::models::Rgb555::from_u16(colour_raw);
         let colour_rgba = crate::models::Rgba::from(colour);
-        let pixel_index = y as usize * FRAME_BUFFER_WIDTH + x as usize;
+        let pixel_index = y as usize * Self::FRAME_BUFFER_WIDTH + x as usize;
         self.frame_buffer[pixel_index] = colour_rgba.values();
     }
 
@@ -280,44 +301,14 @@ impl Ppu {
         Some(colour_index)
     }
 
-    pub fn step(&mut self, bus: &mut Bus) {
-        self.x += 1;
-        if self.x >= 456 {
-            self.x = 0;
-            self.y += 1;
-        }
-        if self.y >= 154 {
-            self.y = 0;
-        }
+    // fn render_frame(&self, display: &mut Display) {
+    //     for (i, pixel) in display.frame_buffer().chunks_exact_mut(4).enumerate() {
+    //         pixel.copy_from_slice(&self.frame_buffer[i]);
+    //     }
+    //     display.request_redraw();
+    // }
 
-        if self.mode() == PpuMode::PixelTransfer {
-            let x = self.x as u8 - 80;
-            if x < FRAME_BUFFER_WIDTH as u8 {
-                let y = self.y;
-                self.render_pixel(x, y, bus);
-            }
-        }
-
-        // Vblank interrupt at the start of the Vblank period.
-        if self.y == 144 && self.x == 0 {
-            self.window_scan_line.reset();
-            bus.request_interrupt(yagber_memory::InterruptType::VBlank);
-        }
-
-        if self.x == 0 {
-            Self::set_scan_line_index(bus, self.y);
-        }
-        Self::set_mode(bus, self.mode());
-    }
-
-    fn render_frame(&self, display: &mut Display) {
-        for (i, pixel) in display.frame_buffer().chunks_exact_mut(4).enumerate() {
-            pixel.copy_from_slice(&self.frame_buffer[i]);
-        }
-        display.request_redraw();
-    }
-
-    fn object_scan(&self, bus: &Bus, scan_line: u8) -> Vec<Object> {
+    fn object_scan(bus: &Bus, scan_line: u8) -> Vec<Object> {
         let lcdc = LcdcRegister::from_bus(bus);
         let obj_size = lcdc.obj_size();
 
@@ -367,8 +358,25 @@ impl Ppu {
         }
     }
 
-    pub fn frame_buffer(&self) -> &[[u8; 4]; FRAME_BUFFER_SIZE] {
+    pub fn frame_buffer(&self) -> &[[u8; 4]; Self::FRAME_BUFFER_SIZE] {
         &self.frame_buffer
+    }
+
+    pub fn just_entered_mode(&self, mode: PpuMode) -> bool {
+        match mode {
+            PpuMode::OamScan => self.y < 144 && self.x == 0,
+            PpuMode::PixelTransfer => self.y < 144 && self.x == 80,
+            PpuMode::HBlank => self.y < 144 && self.x == 252,
+            PpuMode::VBlank => self.y == 144 && self.x == 0,
+        }
+    }
+
+    pub fn just_changed_mode(&self) -> bool {
+        self.just_entered_mode(self.mode())
+    }
+
+    pub fn just_changed_scan_line(&self) -> bool {
+        self.x == 0
     }
 }
 
@@ -437,7 +445,7 @@ mod test {
         assert_eq!(ppu.y, 0);
         assert_eq!(ppu.x, 0);
 
-        for _ in 0..70224 {
+        for _ in 0..Ppu::DOTS_PER_FRAME {
             ppu.step(&mut bus);
         }
 
