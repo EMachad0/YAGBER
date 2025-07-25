@@ -98,13 +98,6 @@ impl ApplicationHandler for WinitApp {
         #[cfg(feature = "trace-span")]
         let _span = tracing::info_span!("winit app about to wait").entered();
 
-        #[cfg(feature = "frame_marker")]
-        tracing::event!(
-            tracing::Level::INFO,
-            message = "frame_marker",
-            frame_marker = true
-        );
-
         for _ in 0..yagber_ppu::Ppu::DOTS_PER_FRAME {
             self.emulator.step();
 

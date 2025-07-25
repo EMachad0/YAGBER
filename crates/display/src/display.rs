@@ -25,6 +25,13 @@ impl Display {
     }
 
     pub fn render(&mut self) -> Result<(), pixels::Error> {
+        #[cfg(feature = "frame_marker")]
+        tracing::event!(
+            tracing::Level::INFO,
+            message = "frame_marker",
+            frame_marker = true
+        );
+
         #[cfg(feature = "trace-span")]
         let _span = tracing::info_span!("display render").entered();
 
