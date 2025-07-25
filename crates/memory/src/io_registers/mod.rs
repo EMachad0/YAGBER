@@ -21,7 +21,7 @@ pub use audena::{Audena, AudioChannel};
 pub use audenv::{Aud3Ena, Audenv, EnvelopeDirection};
 pub use audlen::{Aud1Len, Aud2Len, Aud3Len, Aud4Len};
 pub use cram_register::{BCPDRegister, BCPSRegister, OCPDRegister, OCPSRegister};
-pub use div::DivRegister;
+pub use div::{DivRegister, TacClock, TacRegister};
 pub use joyp::{JoypRegister, SelectedButtons};
 pub use lcdc::{LcdcRegister, TileFetcherMode, TileMapArea, TileSize};
 pub use opri::{OpriMode, OpriRegister};

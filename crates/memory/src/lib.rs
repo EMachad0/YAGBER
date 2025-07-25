@@ -88,7 +88,6 @@ impl yagber_app::Plugin for MemoryPlugin {
             .with_hook(IOType::SVBK, wram_svbk_hook)
             .with_hook(IOType::STAT, oam_stat_hook)
             .with_hook(IOType::STAT, vram_stat_hook)
-            .with_transformer(IOType::DIV, io_registers::DivRegister::div_transformer)
             .with_transformer(IOType::VBK, io_registers::Vbk::vbk_transformer)
             .with_transformer(IOType::AUDENA, io_registers::Audena::audena_transformer)
             .with_hook(IOType::AUD1ENV, aud_1_env_hook)

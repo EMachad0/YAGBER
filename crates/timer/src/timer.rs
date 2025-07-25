@@ -28,9 +28,13 @@ impl SystemCounter {
     }
 
     /// Returns if TIMA should be incremented based on the TAC frequency.
-    pub fn tac_cycle(&mut self, bit: u8) -> bool {
-        let bit_value = (self.m_cycles & (1u16 << bit)) != 0;
+    pub fn tima_should_increment(&mut self, tac_clock: yagber_memory::TacClock) -> bool {
+        let bit_value = (self.m_cycles & tac_clock.div_mask()) != 0;
         self.tac_edge_detector.tick(bit_value)
+    }
+
+    pub fn reset(&mut self) {
+        self.m_cycles = 0;
     }
 
     #[cfg(test)]
@@ -79,77 +83,66 @@ impl Timer {
     /// Tick the timer.
     /// Represents a single M-Cycle.
     /// Meant to be called after executing the instruction.
-    pub fn tick(&mut self, ram: &mut Bus) {
+    pub fn tick(&mut self, bus: &mut Bus) {
         self.system_counter.tick();
         let div = self.system_counter.div();
-        self.write_div(ram, div);
+        self.write_div(bus, div);
 
-        let tima = self.read_tima(ram);
+        let tima = self.read_tima(bus);
         if self.tima_overflow {
-            let tma = self.read_tma(ram);
-            self.write_tima(ram, tma);
-            ram.request_interrupt(InterruptType::Timer);
+            let tma = self.read_tma(bus);
+            self.write_tima(bus, tma);
+            bus.request_interrupt(InterruptType::Timer);
             self.tima_overflow = false;
         }
 
-        let tac = self.read_tac(ram);
-        let bit = Self::get_tac_sys_bit(tac);
-        if self.tac_enabled(tac) && self.system_counter.tac_cycle(bit) {
+        let tac = yagber_memory::TacRegister::from_bus(bus);
+        let tac_clock = tac.clock_select();
+        if tac.enabled() && self.system_counter.tima_should_increment(tac_clock) {
             let tima = tima.checked_add(1).unwrap_or_else(|| {
                 self.tima_overflow = true;
                 0
             });
 
-            self.write_tima(ram, tima);
+            self.write_tima(bus, tima);
         }
     }
 
-    fn tac_enabled(&self, tac: u8) -> bool {
-        (tac & (1 << 2)) != 0
+    fn read_tima(&self, bus: &Bus) -> u8 {
+        bus.io_registers.read(IOType::TIMA.address())
     }
 
-    /// Returns the bit that is used to determine the frequency of the timer.
-    /// Cycle frequency is determined by the bit times two due to using a falling edge detector.
-    fn get_tac_sys_bit(tac: u8) -> u8 {
-        match tac & 0b11 {
-            0b00 => 7, // Every 256 M-Cycles
-            0b01 => 1, // Every 4 M-Cycles
-            0b10 => 3, // Every 16 M-Cycles
-            0b11 => 5, // Every 64 M-Cycles
-            _ => unreachable!("Invalid TAC mode: {}", tac),
-        }
+    fn read_tma(&self, bus: &Bus) -> u8 {
+        bus.io_registers.read(IOType::TMA.address())
     }
 
-    fn read_tima(&self, ram: &Bus) -> u8 {
-        ram.io_registers.read(IOType::TIMA.address())
+    fn write_tima(&mut self, bus: &mut Bus, value: u8) {
+        bus.io_registers.write(IOType::TIMA.address(), value);
     }
 
-    fn read_tma(&self, ram: &Bus) -> u8 {
-        ram.io_registers.read(IOType::TMA.address())
-    }
-
-    fn read_tac(&self, ram: &Bus) -> u8 {
-        ram.io_registers.read(IOType::TAC.address())
-    }
-
-    fn write_tima(&mut self, ram: &mut Bus, value: u8) {
-        ram.io_registers.write(IOType::TIMA.address(), value);
-    }
-
-    fn write_div(&mut self, ram: &mut Bus, value: u8) {
-        let old_div = ram.io_registers.read(IOType::DIV.address());
+    fn write_div(&mut self, bus: &mut Bus, value: u8) {
+        let old_div = bus.io_registers.read(IOType::DIV.address());
         if old_div != value {
-            ram.io_registers
-                .write_unchecked(IOType::DIV.address(), value);
+            bus.io_registers
+                .write_unhooked(IOType::DIV.address(), value);
         }
+    }
+
+    pub fn reset(&mut self) {
+        self.system_counter.reset();
+        self.tima_overflow = false;
+    }
+
+    pub(crate) fn on_div_write(&mut self, _value: u8) {
+        self.reset();
     }
 
     #[cfg(test)]
     pub(crate) fn from_cycles(cycles: u16, tac: u8) -> Self {
-        let bit = Self::get_tac_sys_bit(tac);
+        let tac_clock = yagber_memory::TacRegister::new(tac).clock_select();
         let mut system_counter = SystemCounter::from_cycles(cycles);
         // Tick the system counter to set the edge detector to the correct value
-        system_counter.tac_cycle(bit);
+        system_counter.tima_should_increment(tac_clock);
         Self {
             system_counter,
             tima_overflow: false,
