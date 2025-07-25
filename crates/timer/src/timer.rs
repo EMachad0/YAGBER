@@ -19,7 +19,10 @@ impl SystemCounter {
     }
 
     pub fn tick(&mut self) {
-        self.m_cycles = self.m_cycles.wrapping_add(1);
+        self.m_cycles += 1;
+        if self.m_cycles >= (1 << 14) {
+            self.m_cycles = 0;
+        }
     }
 
     /// Div is the visible part of the system counter.
