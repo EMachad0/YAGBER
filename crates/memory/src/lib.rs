@@ -68,6 +68,7 @@ impl yagber_app::Plugin for MemoryPlugin {
         let aud_2_env_hook = emulator.attach_component(io_registers::Audena::on_aud_2_env_write);
         let aud_4_env_hook = emulator.attach_component(io_registers::Audena::on_aud_4_env_write);
         let aud_3_ena_hook = emulator.attach_component(io_registers::Audena::on_aud_3_ena_write);
+        let emu_spd_hook = Spd::emu_spd_hook(emulator);
 
         emulator
             .get_component_mut::<Bus>()
@@ -93,6 +94,8 @@ impl yagber_app::Plugin for MemoryPlugin {
             .with_hook(IOType::AUD1ENV, aud_1_env_hook)
             .with_hook(IOType::AUD2ENV, aud_2_env_hook)
             .with_hook(IOType::AUD4ENV, aud_4_env_hook)
-            .with_hook(IOType::AUDENA, aud_3_ena_hook);
+            .with_hook(IOType::AUD3ENA, aud_3_ena_hook)
+            .with_transformer(IOType::SPD, io_registers::Spd::spd_transformer)
+            .with_hook(IOType::SPD, emu_spd_hook);
     }
 }

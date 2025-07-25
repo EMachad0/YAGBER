@@ -63,7 +63,7 @@ impl LinkCable {
         ram.read(yagber_memory::IOType::SB.address())
     }
 
-    pub fn on_tcycle(emulator: &mut yagber_app::Emulator) {
+    pub fn on_mcycle(emulator: &mut yagber_app::Emulator) {
         let (link_cable, bus) = emulator
             .get_components_mut2::<LinkCable, Bus>()
             .expect("LinkCable and/or Bus component missing");

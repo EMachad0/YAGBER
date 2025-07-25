@@ -493,13 +493,11 @@ impl Cpu {
             }
             Stop => {
                 // Speed switch
-                if bus.read_bit(0xFF4D, 0) {
-                    let current_speed = bus.read_bit(0xFF4D, 7);
-                    if current_speed {
-                        bus.clear_bit(0xFF4D, 7);
-                    } else {
-                        bus.set_bit(0xFF4D, 7);
-                    }
+                let spd = yagber_memory::Spd::from_bus(bus);
+                if spd.speed_switch_armed() {
+                    let current_speed = spd.speed_mode();
+                    let new_speed = current_speed.toggle();
+                    bus.write(yagber_memory::IOType::SPD.address(), new_speed.as_spd_bit());
                 }
             }
             // Block 0b01

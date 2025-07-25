@@ -1,5 +1,6 @@
 use crate::{
-    Component, Plugin, callback_queue::CallbackQueue, components::ComponentBus, runners::Runner,
+    Component, Plugin, SpeedMode, callback_queue::CallbackQueue, components::ComponentBus,
+    runners::Runner,
 };
 
 pub struct Emulator {
@@ -8,6 +9,7 @@ pub struct Emulator {
     tcycle_queue: CallbackQueue,
     mcycle_queue: CallbackQueue,
     dot_cycle_queue: CallbackQueue,
+    speed_mode: SpeedMode,
 }
 
 impl Emulator {
@@ -18,6 +20,7 @@ impl Emulator {
             tcycle_queue: CallbackQueue::new(),
             mcycle_queue: CallbackQueue::new(),
             dot_cycle_queue: CallbackQueue::new(),
+            speed_mode: SpeedMode::default(),
         }
         .with_default_components()
     }
@@ -36,6 +39,9 @@ impl Emulator {
         self.step_tcycle();
         if self.is_m_cycle() {
             self.step_mcycle();
+            if self.speed_mode == SpeedMode::Double {
+                self.step_mcycle();
+            }
         }
     }
 
@@ -188,6 +194,10 @@ impl Emulator {
 
     fn is_m_cycle(&self) -> bool {
         self.cycles % 4 == 0
+    }
+
+    pub fn set_speed_mode(&mut self, speed_mode: SpeedMode) {
+        self.speed_mode = speed_mode;
     }
 }
 
