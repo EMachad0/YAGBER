@@ -1,5 +1,5 @@
 [package]
-name = "yagber_cpal"
+name = "yagber_apu"
 version = "0.1.0"
 edition = "2024"
 
@@ -9,6 +9,6 @@ trace = ["dep:tracing"]
 
 [dependencies]
 tracing = { workspace = true, optional = true }
-cpal = { version = "0.16.0" }
 
 yagber_app = { workspace = true }
+yagber_memory = { workspace = true }

@@ -8,6 +8,7 @@ default = ["yagber_memory/break_on_unitialized_ram_read"]
 trace = [
     "yagber_app/trace",
     "yagber_cpal/trace",
+    "yagber_apu/trace",
     "yagber_cpu/trace",
     "yagber_display/trace",
     "yagber_dma/trace",
@@ -32,17 +33,18 @@ members = [
 
 [dependencies]
 yagber_app = { workspace = true }
-yagber_memory = { workspace = true }
+yagber_apu = { workspace = true }
+yagber_clock = { workspace = true }
 yagber_cpal = { workspace = true }
 yagber_cpu = { workspace = true }
+yagber_display = { workspace = true }
 yagber_dma = { workspace = true }
-yagber_ppu = { workspace = true }
-yagber_clock = { workspace = true }
+yagber_input = { workspace = true }
 yagber_link_cable = { workspace = true }
 yagber_log = { workspace = true }
+yagber_memory = { workspace = true }
+yagber_ppu = { workspace = true }
 yagber_timer = { workspace = true }
-yagber_display = { workspace = true }
-yagber_input = { workspace = true }
 
 [dev-dependencies]
 pretty_assertions = { workspace = true }
@@ -53,25 +55,26 @@ anyhow = { version = "1.0.98" }
 arbitrary-int = { version = "1.3.0" }
 chrono = { version = "0.4.41" }
 dotenv = { version = "0.15.0" }
+image = { version = "0.25.6" }
 pretty_assertions = { version = "1.4.1" }
 smol_str = { version = "0.2.2" }
 strum = { version = "0.27.1", features = ["derive"] }
 tracing = { version = "0.1.41" }
 tracing-subscriber = { version = "0.3.19" }
-image = { version = "0.25.6" }
 
 yagber_app = { path = "crates/app" }
+yagber_apu = { path = "crates/apu" }
+yagber_clock = { path = "crates/clock" }
 yagber_cpal = { path = "crates/cpal" }
 yagber_cpu = { path = "crates/cpu" }
+yagber_display = { path = "crates/display" }
 yagber_dma = { path = "crates/dma" }
-yagber_clock = { path = "crates/clock" }
-yagber_ppu = { path = "crates/ppu" }
-yagber_memory = { path = "crates/memory" }
+yagber_input = { path = "crates/input" }
 yagber_link_cable = { path = "crates/link_cable" }
 yagber_log = { path = "crates/log" }
+yagber_memory = { path = "crates/memory" }
+yagber_ppu = { path = "crates/ppu" }
 yagber_timer = { path = "crates/timer" }
-yagber_display = { path = "crates/display" }
-yagber_input = { path = "crates/input" }
 
 [profile.dev]
 opt-level = 1
