@@ -7,18 +7,19 @@ edition = "2024"
 default = ["yagber_memory/break_on_unitialized_ram_read"]
 trace = [
     "yagber_app/trace",
-    "yagber_memory/trace",
+    "yagber_cpal/trace",
     "yagber_cpu/trace",
     "yagber_display/trace",
     "yagber_dma/trace",
     "yagber_input/trace",
+    "yagber_memory/trace",
 ]
 trace-span = [
     "trace",
     "yagber_app/trace-span",
-    "yagber_memory/trace-span",
     "yagber_cpu/trace-span",
     "yagber_display/trace-span",
+    "yagber_memory/trace-span",
 ]
 tracing-chrome = ["trace", "trace-span", "yagber_log/tracing-chrome"]
 tracing-tracy = ["trace", "trace-span", "yagber_log/tracing-tracy", "yagber_display/frame_marker"]
@@ -32,6 +33,7 @@ members = [
 [dependencies]
 yagber_app = { workspace = true }
 yagber_memory = { workspace = true }
+yagber_cpal = { workspace = true }
 yagber_cpu = { workspace = true }
 yagber_dma = { workspace = true }
 yagber_ppu = { workspace = true }
@@ -59,6 +61,7 @@ tracing-subscriber = { version = "0.3.19" }
 image = { version = "0.25.6" }
 
 yagber_app = { path = "crates/app" }
+yagber_cpal = { path = "crates/cpal" }
 yagber_cpu = { path = "crates/cpu" }
 yagber_dma = { path = "crates/dma" }
 yagber_clock = { path = "crates/clock" }

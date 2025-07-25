@@ -19,6 +19,7 @@ fn main() {
         .with_plugin(yagber_link_cable::LinkCablePlugin::default().with_serial_output_stdout())
         .with_plugin(yagber_display::DisplayPlugin)
         .with_plugin(yagber_input::InputPlugin)
+        .with_plugin(yagber_cpal::CpalPlugin)
         // Timer must be last
         .with_plugin(yagber_timer::TimerPlugin)
         .run::<yagber_display::WinitRunner>();
