@@ -1,5 +1,4 @@
 pub use yagber_app as app;
-pub use yagber_clock as clock;
 pub use yagber_cpu as cpu;
 pub use yagber_log as log;
 pub use yagber_memory as ram;

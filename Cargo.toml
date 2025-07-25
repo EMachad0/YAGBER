@@ -34,7 +34,6 @@ members = [
 [dependencies]
 yagber_app = { workspace = true }
 yagber_apu = { workspace = true }
-yagber_clock = { workspace = true }
 yagber_cpal = { workspace = true }
 yagber_cpu = { workspace = true }
 yagber_display = { workspace = true }
@@ -64,7 +63,6 @@ tracing-subscriber = { version = "0.3.19" }
 
 yagber_app = { path = "crates/app" }
 yagber_apu = { path = "crates/apu" }
-yagber_clock = { path = "crates/clock" }
 yagber_cpal = { path = "crates/cpal" }
 yagber_cpu = { path = "crates/cpu" }
 yagber_display = { path = "crates/display" }
