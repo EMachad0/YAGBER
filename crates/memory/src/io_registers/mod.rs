@@ -1,3 +1,6 @@
+mod audena;
+mod audenv;
+mod audlen;
 mod cram_register;
 mod div;
 mod io_bus;
@@ -13,6 +16,9 @@ mod vbk;
 pub use io_bus::IOBus;
 pub use io_type::IOType;
 
+pub use audena::{Audena, AudioChannel};
+pub use audenv::{Aud3Ena, Audenv, EnvelopeDirection};
+pub use audlen::{Aud1Len, Aud2Len, Aud3Len, Aud4Len};
 pub use cram_register::{BCPDRegister, BCPSRegister, OCPDRegister, OCPSRegister};
 pub use div::DivRegister;
 pub use joyp::{JoypRegister, SelectedButtons};

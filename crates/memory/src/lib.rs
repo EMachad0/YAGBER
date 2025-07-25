@@ -64,6 +64,10 @@ impl yagber_app::Plugin for MemoryPlugin {
         let wram_svbk_hook = emulator.attach_component(wram::Wram::on_svbk_write);
         let oam_stat_hook = emulator.attach_component(oam::Oam::on_stat_write);
         let vram_stat_hook = emulator.attach_component(vram::Vram::on_stat_write);
+        let aud_1_env_hook = emulator.attach_component(io_registers::Audena::on_aud_1_env_write);
+        let aud_2_env_hook = emulator.attach_component(io_registers::Audena::on_aud_2_env_write);
+        let aud_4_env_hook = emulator.attach_component(io_registers::Audena::on_aud_4_env_write);
+        let aud_3_ena_hook = emulator.attach_component(io_registers::Audena::on_aud_3_ena_write);
 
         emulator
             .get_component_mut::<Bus>()
@@ -84,6 +88,11 @@ impl yagber_app::Plugin for MemoryPlugin {
             .with_hook(IOType::STAT, oam_stat_hook)
             .with_hook(IOType::STAT, vram_stat_hook)
             .with_transformer(IOType::DIV, io_registers::DivRegister::div_transformer)
-            .with_transformer(IOType::VBK, io_registers::Vbk::vbk_transformer);
+            .with_transformer(IOType::VBK, io_registers::Vbk::vbk_transformer)
+            .with_transformer(IOType::AUDENA, io_registers::Audena::audena_transformer)
+            .with_hook(IOType::AUD1ENV, aud_1_env_hook)
+            .with_hook(IOType::AUD2ENV, aud_2_env_hook)
+            .with_hook(IOType::AUD4ENV, aud_4_env_hook)
+            .with_hook(IOType::AUDENA, aud_3_ena_hook);
     }
 }
