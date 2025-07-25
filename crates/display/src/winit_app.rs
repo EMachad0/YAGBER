@@ -117,6 +117,8 @@ impl ApplicationHandler for WinitApp {
                     .get_component_mut::<Display>()
                     .unwrap()
                     .request_redraw();
+                // Break out of the loop so it doesn't start rendering the next frame.
+                break;
             }
         }
     }

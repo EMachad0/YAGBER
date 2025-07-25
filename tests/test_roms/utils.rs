@@ -1,4 +1,4 @@
-pub const MAX_FRAMES: u32 = 60 * 60 * 60; // frames
+pub const MAX_FRAMES: u32 = 60 * 60 * yagber_ppu::Ppu::DOTS_PER_FRAME; // frames
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum TestError {

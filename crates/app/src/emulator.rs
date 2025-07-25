@@ -26,7 +26,7 @@ impl Emulator {
         self
     }
 
-    /// Step the emulator a single frame.
+    /// Step the emulator a single dot.
     pub fn step(&mut self) {
         #[cfg(feature = "trace-span")]
         let _step_span = tracing::info_span!("step").entered();

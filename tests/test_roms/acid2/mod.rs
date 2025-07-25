@@ -3,6 +3,8 @@ use crate::utils::{TestError, run_boot};
 mod cgb_acid2;
 mod dmg_acid2;
 
+const WAIT_CYCLES: u32 = 15 * yagber_ppu::Ppu::DOTS_PER_FRAME;
+
 pub fn run_emulator(
     rom: &[u8],
     out_log_path: &str,
@@ -74,7 +76,7 @@ impl Acid2TestRunner {
             return Err((result, Vec::new()));
         }
 
-        for _ in 0..15 {
+        for _ in 0..WAIT_CYCLES {
             self.emulator.step();
         }
 
