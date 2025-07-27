@@ -15,6 +15,7 @@ fn main() {
         .with_plugin(yagber_memory::MemoryPlugin::default().with_cartridge(&rom))
         .with_plugin(yagber_cpu::CpuPlugin)
         .with_plugin(yagber_ppu::PpuPlugin)
+        .with_plugin(yagber_apu::ApuPlugin)
         .with_plugin(yagber_dma::DmaPlugin)
         .with_plugin(yagber_link_cable::LinkCablePlugin::default().with_serial_output_stdout())
         .with_plugin(yagber_display::DisplayPlugin)

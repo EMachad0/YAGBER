@@ -87,6 +87,46 @@ impl Audena {
             .write_unchecked(IOType::AUDENA.address(), new_audena);
     }
 
+    pub(crate) fn on_aud_1_high_write(bus: &mut Bus, value: u8) {
+        let aud1high = super::Aud1High::new(value);
+        if aud1high.trigger_enabled() {
+            let audena = bus.read(IOType::AUDENA.address());
+            let new_audena = audena | AudioChannel::Ch1.audena_bit();
+            bus.io_registers
+                .write_unchecked(IOType::AUDENA.address(), new_audena);
+        }
+    }
+
+    pub(crate) fn on_aud_2_high_write(bus: &mut Bus, value: u8) {
+        let aud2high = super::Aud2High::new(value);
+        if aud2high.trigger_enabled() {
+            let audena = bus.read(IOType::AUDENA.address());
+            let new_audena = audena | AudioChannel::Ch2.audena_bit();
+            bus.io_registers
+                .write_unchecked(IOType::AUDENA.address(), new_audena);
+        }
+    }
+
+    pub(crate) fn on_aud_3_high_write(bus: &mut Bus, value: u8) {
+        let aud3high = super::Aud3High::new(value);
+        if aud3high.trigger_enabled() {
+            let audena = bus.read(IOType::AUDENA.address());
+            let new_audena = audena | AudioChannel::Ch3.audena_bit();
+            bus.io_registers
+                .write_unchecked(IOType::AUDENA.address(), new_audena);
+        }
+    }
+
+    pub(crate) fn on_aud_4_go_write(bus: &mut Bus, value: u8) {
+        let aud4go = super::Aud4Go::new(value);
+        if aud4go.trigger_enabled() {
+            let audena = bus.read(IOType::AUDENA.address());
+            let new_audena = audena | AudioChannel::Ch4.audena_bit();
+            bus.io_registers
+                .write_unchecked(IOType::AUDENA.address(), new_audena);
+        }
+    }
+
     pub(crate) fn audena_transformer((old_value, new_value): (u8, u8)) -> Option<u8> {
         Some((new_value & 0x80) | (old_value & 0x0F))
     }

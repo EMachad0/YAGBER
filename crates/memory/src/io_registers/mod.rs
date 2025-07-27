@@ -1,5 +1,6 @@
 mod audena;
 mod audenv;
+mod audgo;
 mod audlen;
 mod cram_register;
 mod div;
@@ -19,7 +20,8 @@ pub use io_type::IOType;
 
 pub use audena::{Audena, AudioChannel};
 pub use audenv::{Aud3Ena, Audenv, EnvelopeDirection};
-pub use audlen::{Aud1Len, Aud2Len, Aud3Len, Aud4Len};
+pub use audgo::{Aud1High, Aud2High, Aud3High, Aud4Go};
+pub use audlen::{Aud1Len, Aud2Len, Aud3Len, Aud4Len, AudLen, WaveDuty};
 pub use cram_register::{BCPDRegister, BCPSRegister, OCPDRegister, OCPSRegister};
 pub use div::{DivRegister, TacClock, TacRegister};
 pub use joyp::{JoypRegister, SelectedButtons};
