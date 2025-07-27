@@ -30,16 +30,17 @@ impl WaveDuty {
         self as u8
     }
 
-    pub fn is_high(&self, step: u8) -> bool {
-        self.pattern()[step as usize]
+    pub fn at_step(&self, step: u8) -> u8 {
+        let pattern = self.pattern();
+        (pattern >> step) & 1
     }
 
-    pub fn pattern(&self) -> [bool; 8] {
+    pub fn pattern(&self) -> u8 {
         match self {
-            Self::Duty12_5 => [false, false, false, false, false, false, false, true],
-            Self::Duty25 => [true, false, false, false, false, false, false, true],
-            Self::Duty50 => [true, false, false, false, false, true, true, true],
-            Self::Duty75 => [false, true, true, true, true, true, true, false],
+            Self::Duty12_5 => 0b00000001,
+            Self::Duty25 => 0b10000001,
+            Self::Duty50 => 0b00001111,
+            Self::Duty75 => 0b11111100,
         }
     }
 }

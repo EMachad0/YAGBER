@@ -17,12 +17,14 @@ impl yagber_app::Plugin for ApuPlugin {
             .with_component(apu)
             .on_tcycle(apu::Apu::on_tcycle);
 
-        let apu_aud1high_hook = emulator.attach_components2(apu::Apu::on_aud_1_high_write);
+        let ch1_aud1high_hook = emulator.attach_components2(channels::Ch1::on_aud_1_high_write);
+        let ch1_aud1env_hook = emulator.attach_component(channels::Ch1::on_aud_1_env_write);
 
         emulator
             .get_component_mut::<yagber_memory::Bus>()
             .expect("Bus component not found")
             .io_registers
-            .with_hook(yagber_memory::IOType::AUD1HIGH, apu_aud1high_hook);
+            .with_hook(yagber_memory::IOType::AUD1HIGH, ch1_aud1high_hook)
+            .with_hook(yagber_memory::IOType::AUD1ENV, ch1_aud1env_hook);
     }
 }

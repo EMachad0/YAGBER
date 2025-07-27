@@ -31,7 +31,7 @@ impl DivApu {
             .expect("Apu and/or Bus component missing");
 
         if ticks == 7 {
-            // Envelope sweep
+            apu.tick_envelope(bus);
         }
 
         if ticks % 2 == 0 {

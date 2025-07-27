@@ -39,7 +39,7 @@ impl Audenv {
     }
 
     pub fn initial_volume(&self) -> u8 {
-        self.value & 0xF0
+        (self.value & 0xF0) >> 4
     }
 
     pub fn direction(&self) -> EnvelopeDirection {

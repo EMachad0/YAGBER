@@ -3,7 +3,7 @@ use crate::channels::Ch1;
 #[derive(Debug, Default)]
 pub struct Apu {
     cycles: u8,
-    ch1: Ch1,
+    pub ch1: Ch1,
 }
 
 impl Apu {
@@ -43,7 +43,7 @@ impl Apu {
         }
     }
 
-    pub fn tick_sound_length(&mut self, bus: &mut yagber_memory::Bus) {
+    pub(crate) fn tick_sound_length(&mut self, bus: &mut yagber_memory::Bus) {
         let audena_value = bus
             .io_registers
             .read(yagber_memory::IOType::AUDENA.address());
@@ -53,7 +53,7 @@ impl Apu {
         if audena.ch_enabled(yagber_memory::AudioChannel::Ch1) {
             let length_counter = self.ch1.decrement_length_counter();
             if length_counter == 0 {
-                new_audena = new_audena & !yagber_memory::AudioChannel::Ch1.audena_bit();
+                new_audena &= !yagber_memory::AudioChannel::Ch1.audena_bit();
             }
         }
 
@@ -61,10 +61,13 @@ impl Apu {
             .write(yagber_memory::IOType::AUDENA.address(), new_audena);
     }
 
-    pub(crate) fn on_aud_1_high_write(&mut self, bus: &mut yagber_memory::Bus, value: u8) {
-        let aud_1_high = yagber_memory::Aud1High::new(value);
-        if aud_1_high.trigger_enabled() {
-            self.ch1.trigger(bus);
+    pub(crate) fn tick_envelope(&mut self, bus: &mut yagber_memory::Bus) {
+        let audena = yagber_memory::Audena::from_bus(bus);
+
+        if audena.ch_enabled(yagber_memory::AudioChannel::Ch1) {
+            let audenv = yagber_memory::Audenv::ch1(bus);
+            let envelope_change = self.ch1.envelope.tick(&audenv);
+            self.ch1.change_volume(envelope_change);
         }
     }
 }
