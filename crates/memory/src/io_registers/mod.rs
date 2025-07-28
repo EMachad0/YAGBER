@@ -23,7 +23,7 @@ pub use io_bus::IOBus;
 pub use io_type::IOType;
 
 pub use audena::{Audena, AudioChannel};
-pub use audenv::{Aud3Ena, Audenv, EnvelopeDirection};
+pub use audenv::{Aud3Ena, Aud3Level, Aud3Volume, Audenv, EnvelopeDirection};
 pub use audgo::{Aud1High, Aud2High, Aud3High, Aud4Go};
 pub use audlen::{Aud1Len, Aud2Len, Aud3Len, Aud4Len, AudLen, WaveDuty};
 pub use audpoly::{Aud4Poly, LfsrMode};

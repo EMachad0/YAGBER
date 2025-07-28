@@ -79,3 +79,45 @@ impl Aud3Ena {
         self.value & 0x80 != 0
     }
 }
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Aud3Volume {
+    Mute,
+    Quarter,
+    Half,
+    Full,
+}
+
+impl Aud3Volume {
+    pub fn from_u8(value: u8) -> Self {
+        match value {
+            0b00 => Self::Mute,
+            0b01 => Self::Quarter,
+            0b10 => Self::Half,
+            0b11 => Self::Full,
+            _ => panic!("Invalid volume value: {}", value),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct Aud3Level {
+    value: u8,
+}
+
+impl Aud3Level {
+    pub fn new(value: u8) -> Self {
+        Self { value }
+    }
+
+    pub fn from_bus(bus: &Bus) -> Self {
+        Self {
+            value: bus.read(IOType::AUD3LEVEL.address()),
+        }
+    }
+
+    pub fn initial_volume(&self) -> Aud3Volume {
+        let value = ((self.value & 0xF0) >> 4) & 0b11;
+        Aud3Volume::from_u8(value)
+    }
+}
