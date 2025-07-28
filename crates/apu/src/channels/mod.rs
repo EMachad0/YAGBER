@@ -1,5 +1,5 @@
-mod ch1;
+mod pulse_channel;
 mod envelope;
 
-pub use ch1::PulseChannel;
+pub use pulse_channel::PulseChannel;
 pub use envelope::Envelope;
