@@ -7,6 +7,7 @@ pub struct Ch1 {
     length_counter: u8,
     volume: u8,
     pub envelope: Envelope,
+    pub sample: u8,
 }
 
 impl Ch1 {
@@ -19,6 +20,7 @@ impl Ch1 {
             duty_step_counter: 0,
             volume: 0,
             envelope: Envelope::new(),
+            sample: 0,
         }
     }
 
@@ -37,10 +39,10 @@ impl Ch1 {
         self.period = self.get_initial_period(bus);
 
         let duty_step = self.duty_step(bus);
-        let sample = duty_step * self.volume;
-        // TODO: create sample
 
         self.duty_step_counter = (self.duty_step_counter + 1) % 8;
+
+        self.sample = duty_step * self.volume;
     }
 
     fn duty_step(&self, bus: &yagber_memory::Bus) -> u8 {

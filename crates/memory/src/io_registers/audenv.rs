@@ -69,6 +69,12 @@ impl Aud3Ena {
         Self { value }
     }
 
+    pub fn from_bus(bus: &Bus) -> Self {
+        Self {
+            value: bus.read(IOType::AUD3ENA.address()),
+        }
+    }
+
     pub fn dac_enabled(&self) -> bool {
         self.value & 0x80 != 0
     }
