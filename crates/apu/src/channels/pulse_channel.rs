@@ -49,11 +49,11 @@ impl PulseChannel {
         }
         self.period = Self::get_initial_period(bus, self.channel);
 
-        let duty_step = self.duty_step(bus);
+        let sampler_bit = self.duty_step(bus);
 
         self.duty_step_counter = (self.duty_step_counter + 1) % 8;
 
-        self.sample = duty_step * self.volume;
+        self.sample = sampler_bit * self.volume;
     }
 
     fn duty_step(&self, bus: &yagber_memory::Bus) -> u8 {

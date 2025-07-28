@@ -1,10 +1,16 @@
-use crate::{AudioBuffer, channels::PulseChannel, high_pass_filter::HighPassFilter, sweep::Sweep};
+use crate::{
+    AudioBuffer,
+    channels::{NoiseChannel, PulseChannel},
+    high_pass_filter::HighPassFilter,
+    sweep::Sweep,
+};
 
 #[derive(Debug)]
 pub struct Apu {
     cycles: u8,
     pub ch1: PulseChannel,
     pub ch2: PulseChannel,
+    pub ch4: NoiseChannel,
     pub left_buffer: AudioBuffer,
     pub right_buffer: AudioBuffer,
     high_pass_filter: HighPassFilter,
@@ -17,6 +23,7 @@ impl Apu {
             cycles: 0,
             ch1: PulseChannel::new(yagber_memory::AudioChannel::Ch1),
             ch2: PulseChannel::new(yagber_memory::AudioChannel::Ch2),
+            ch4: NoiseChannel::new(),
             left_buffer: AudioBuffer::new(),
             right_buffer: AudioBuffer::new(),
             high_pass_filter: HighPassFilter::new(),
@@ -79,14 +86,14 @@ impl Apu {
                 yagber_memory::AudioChannel::Ch1 => self.ch1.tick(bus),
                 yagber_memory::AudioChannel::Ch2 => self.ch2.tick(bus),
                 yagber_memory::AudioChannel::Ch3 => {}
-                yagber_memory::AudioChannel::Ch4 => {}
+                yagber_memory::AudioChannel::Ch4 => self.ch4.tick(bus),
             }
         }
         let sample = match channel {
             yagber_memory::AudioChannel::Ch1 => self.ch1.sample,
             yagber_memory::AudioChannel::Ch2 => self.ch2.sample,
             yagber_memory::AudioChannel::Ch3 => 7,
-            yagber_memory::AudioChannel::Ch4 => 7,
+            yagber_memory::AudioChannel::Ch4 => self.ch4.sample,
         };
         let dac_enabled = match channel {
             yagber_memory::AudioChannel::Ch1 => yagber_memory::Audenv::ch1(bus).dac_enabled(),
@@ -107,7 +114,7 @@ impl Apu {
         ch1_sample: f32,
         ch2_sample: f32,
         _ch3_sample: f32,
-        _ch4_sample: f32,
+        ch4_sample: f32,
     ) -> (f32, f32) {
         let mut left = 0.0;
         let mut right = 0.0;
@@ -138,14 +145,14 @@ impl Apu {
         //     right += ch3_sample;
         //     right_count += 1;
         // }
-        // if audterm.ch4_left() {
-        //     left += ch4_sample;
-        //     left_count += 1;
-        // }
-        // if audterm.ch4_right() {
-        //     right += ch4_sample;
-        //     right_count += 1;
-        // }
+        if audterm.ch4_left() {
+            left += ch4_sample;
+            left_count += 1;
+        }
+        if audterm.ch4_right() {
+            right += ch4_sample;
+            right_count += 1;
+        }
 
         let left_count = left_count.max(1) as f32;
         let right_count = right_count.max(1) as f32;
@@ -190,6 +197,16 @@ impl Apu {
             }
         }
 
+        if audena.ch_enabled(yagber_memory::AudioChannel::Ch4) {
+            let aud_4_go = yagber_memory::Aud4Go::from_bus(bus);
+            if aud_4_go.length_enabled() {
+                let length_counter = self.ch4.decrement_length_counter();
+                if length_counter == 0 {
+                    new_audena &= !yagber_memory::AudioChannel::Ch4.audena_bit();
+                }
+            }
+        }
+
         bus.io_registers
             .write(yagber_memory::IOType::AUDENA.address(), new_audena);
     }
@@ -208,10 +225,22 @@ impl Apu {
             let envelope_change = self.ch2.envelope.tick(&audenv);
             self.ch2.change_volume(envelope_change);
         }
+
+        if audena.ch_enabled(yagber_memory::AudioChannel::Ch4) {
+            let audenv = yagber_memory::Audenv::ch4(bus);
+            let envelope_change = self.ch4.envelope.tick(&audenv);
+            self.ch4.change_volume(envelope_change);
+        }
     }
 }
 
 impl yagber_app::Component for Apu {}
+
+impl Default for Apu {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 
 #[cfg(test)]
 mod tests {

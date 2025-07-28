@@ -44,3 +44,9 @@ impl std::fmt::Debug for AudioBuffer {
             .finish()
     }
 }
+
+impl Default for AudioBuffer {
+    fn default() -> Self {
+        Self::new()
+    }
+}
