@@ -20,7 +20,10 @@ impl yagber_app::Plugin for CpalPlugin {
             .with_max_sample_rate();
         let config = supported_config.config();
 
-        let stream = output_stream::OutputStream::new(device, config);
+        let apu = emulator
+            .get_component_mut::<yagber_apu::Apu>()
+            .expect("Apu component not found");
+        let stream = output_stream::OutputStream::new(device, config, apu);
 
         emulator.with_component(stream);
     }

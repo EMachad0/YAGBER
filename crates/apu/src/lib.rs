@@ -1,8 +1,10 @@
 mod apu;
+mod audio_buffer;
 mod channels;
 mod divapu;
 
 pub use apu::Apu;
+pub use audio_buffer::AudioBuffer;
 
 pub struct ApuPlugin;
 

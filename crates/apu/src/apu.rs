@@ -1,11 +1,10 @@
-use crate::channels::Ch1;
+use crate::{AudioBuffer, channels::Ch1};
 
 #[derive(Debug, Default)]
 pub struct Apu {
     cycles: u8,
     pub ch1: Ch1,
-    pub left_buffer: Vec<f32>,
-    pub right_buffer: Vec<f32>,
+    pub buffer: AudioBuffer,
 }
 
 impl Apu {
@@ -13,8 +12,7 @@ impl Apu {
         Self {
             cycles: 0,
             ch1: Ch1::new(),
-            left_buffer: Vec::new(),
-            right_buffer: Vec::new(),
+            buffer: AudioBuffer::new(),
         }
     }
 
@@ -55,8 +53,7 @@ impl Apu {
         let left_sample = left_sample * audvol.left_volume() as f32;
         let right_sample = right_sample * audvol.right_volume() as f32;
 
-        self.left_buffer.push(left_sample);
-        self.right_buffer.push(right_sample);
+        self.buffer.push(left_sample, right_sample);
     }
 
     fn channel_sample(
@@ -97,9 +94,9 @@ impl Apu {
         &self,
         audterm: yagber_memory::Audterm,
         ch1_sample: f32,
-        ch2_sample: f32,
-        ch3_sample: f32,
-        ch4_sample: f32,
+        _ch2_sample: f32,
+        _ch3_sample: f32,
+        _ch4_sample: f32,
     ) -> (f32, f32) {
         let mut left = 0.0;
         let mut right = 0.0;
@@ -110,24 +107,24 @@ impl Apu {
         if audterm.ch1_right() {
             right += ch1_sample;
         }
-        if audterm.ch2_left() {
-            left += ch2_sample;
-        }
-        if audterm.ch2_right() {
-            right += ch2_sample;
-        }
-        if audterm.ch3_left() {
-            left += ch3_sample;
-        }
-        if audterm.ch3_right() {
-            right += ch3_sample;
-        }
-        if audterm.ch4_left() {
-            left += ch4_sample;
-        }
-        if audterm.ch4_right() {
-            right += ch4_sample;
-        }
+        // if audterm.ch2_left() {
+        //     left += ch2_sample;
+        // }
+        // if audterm.ch2_right() {
+        //     right += ch2_sample;
+        // }
+        // if audterm.ch3_left() {
+        //     left += ch3_sample;
+        // }
+        // if audterm.ch3_right() {
+        //     right += ch3_sample;
+        // }
+        // if audterm.ch4_left() {
+        //     left += ch4_sample;
+        // }
+        // if audterm.ch4_right() {
+        //     right += ch4_sample;
+        // }
 
         (left, right)
     }
@@ -170,3 +167,23 @@ impl Apu {
 }
 
 impl yagber_app::Component for Apu {}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_dac_transform() {
+        let mut bus = yagber_memory::Bus::new();
+        bus.io_registers
+            .write(yagber_memory::IOType::AUDENA.address(), 0xFF);
+
+        let mut apu = Apu::new();
+
+        for _ in 0..70224 {
+            apu.tick(&mut bus);
+        }
+
+        assert_eq!(apu.buffer.lock().len(), 35112);
+    }
+}

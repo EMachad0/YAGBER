@@ -12,3 +12,4 @@ tracing = { workspace = true, optional = true }
 cpal = { version = "0.16.0" }
 
 yagber_app = { workspace = true }
+yagber_apu = { workspace = true }
