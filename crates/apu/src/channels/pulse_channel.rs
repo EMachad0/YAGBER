@@ -32,7 +32,14 @@ impl PulseChannel {
         self.length_counter = self.get_initial_length_counter(bus);
         self.period = Self::get_initial_period(bus, self.channel);
         self.volume = self.get_initial_volume(bus);
-        self.envelope.set_timer(0);
+        self.duty_step_counter = 0;
+
+        let audenv = match self.channel {
+            AudioChannel::Ch1 => yagber_memory::Audenv::ch1(bus),
+            AudioChannel::Ch2 => yagber_memory::Audenv::ch2(bus),
+            _ => unreachable!(),
+        };
+        self.envelope.set_timer(audenv.sweep_pace());
     }
 
     pub fn tick(&mut self, bus: &yagber_memory::Bus) {
@@ -59,7 +66,7 @@ impl PulseChannel {
     }
 
     pub fn decrement_length_counter(&mut self) -> u8 {
-        self.length_counter = self.length_counter.wrapping_sub(1);
+        self.length_counter = self.length_counter.saturating_sub(1);
         self.length_counter
     }
 

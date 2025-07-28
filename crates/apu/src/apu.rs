@@ -173,9 +173,22 @@ impl Apu {
         let mut new_audena = audena_value;
 
         if audena.ch_enabled(yagber_memory::AudioChannel::Ch1) {
-            let length_counter = self.ch1.decrement_length_counter();
-            if length_counter == 0 {
-                new_audena &= !yagber_memory::AudioChannel::Ch1.audena_bit();
+            let aud_1_high = yagber_memory::Aud1High::from_bus(bus);
+            if aud_1_high.length_enabled() {
+                let length_counter = self.ch1.decrement_length_counter();
+                if length_counter == 0 {
+                    new_audena &= !yagber_memory::AudioChannel::Ch1.audena_bit();
+                }
+            }
+        }
+
+        if audena.ch_enabled(yagber_memory::AudioChannel::Ch2) {
+            let aud_2_high = yagber_memory::Aud2High::from_bus(bus);
+            if aud_2_high.length_enabled() {
+                let length_counter = self.ch2.decrement_length_counter();
+                if length_counter == 0 {
+                    new_audena &= !yagber_memory::AudioChannel::Ch2.audena_bit();
+                }
             }
         }
 
@@ -190,6 +203,12 @@ impl Apu {
             let audenv = yagber_memory::Audenv::ch1(bus);
             let envelope_change = self.ch1.envelope.tick(&audenv);
             self.ch1.change_volume(envelope_change);
+        }
+
+        if audena.ch_enabled(yagber_memory::AudioChannel::Ch2) {
+            let audenv = yagber_memory::Audenv::ch2(bus);
+            let envelope_change = self.ch2.envelope.tick(&audenv);
+            self.ch2.change_volume(envelope_change);
         }
     }
 }

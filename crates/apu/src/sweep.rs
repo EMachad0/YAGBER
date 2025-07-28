@@ -22,6 +22,9 @@ impl Sweep {
         self.enabled = aud_1_sweep.pace() > 0 || aud_1_sweep.step() > 0;
         self.sweep_timer = aud_1_sweep.pace();
         self.shadow_register = period;
+        if aud_1_sweep.step() == 0 {
+            return;
+        }
 
         let new_period = self.frequency_calculation(&aud_1_sweep);
         if self.overflow_check(new_period) {
@@ -38,6 +41,9 @@ impl Sweep {
             return;
         }
         let aud_1_sweep = yagber_memory::Aud1Sweep::from_bus(bus);
+        if aud_1_sweep.pace() == 0 || aud_1_sweep.step() == 0 {
+            return;
+        }
         self.sweep_timer = aud_1_sweep.pace();
 
         let new_period = self.frequency_calculation(&aud_1_sweep);
