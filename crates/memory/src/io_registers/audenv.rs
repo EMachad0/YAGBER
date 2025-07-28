@@ -92,10 +92,19 @@ impl Aud3Volume {
     pub fn from_u8(value: u8) -> Self {
         match value {
             0b00 => Self::Mute,
-            0b01 => Self::Quarter,
+            0b01 => Self::Full,
             0b10 => Self::Half,
-            0b11 => Self::Full,
+            0b11 => Self::Quarter,
             _ => panic!("Invalid volume value: {}", value),
+        }
+    }
+
+    pub fn as_shift(&self) -> u8 {
+        match self {
+            Self::Mute => 7,
+            Self::Quarter => 2,
+            Self::Half => 1,
+            Self::Full => 0,
         }
     }
 }

@@ -18,6 +18,7 @@ mod spd;
 mod stat;
 mod sys;
 mod vbk;
+mod wav_ram;
 
 pub use io_bus::IOBus;
 pub use io_type::IOType;
@@ -39,3 +40,4 @@ pub use spd::Spd;
 pub use stat::{Stat, StatInterruptDetector};
 pub use sys::{SysMode, SysRegister};
 pub use vbk::Vbk;
+pub use wav_ram::WavRam;

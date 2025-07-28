@@ -21,13 +21,14 @@ impl yagber_app::Plugin for ApuPlugin {
             .with_component(apu)
             .on_tcycle(apu::Apu::on_tcycle);
 
-        use channels::{NoiseChannel, PulseChannel};
+        use channels::{NoiseChannel, PulseChannel, WaveChannel};
         let sweep_aud1sweep_hook = emulator.attach_component(sweep::Sweep::on_aud_1_sweep_write);
         let sweep_aud1high_hook = emulator.attach_components2(sweep::Sweep::on_aud_1_high_write);
         let ch1_aud1high_hook = emulator.attach_components2(PulseChannel::on_aud_1_high_write);
         let ch1_aud1env_hook = emulator.attach_component(PulseChannel::on_aud_1_env_write);
         let ch2_aud2high_hook = emulator.attach_components2(PulseChannel::on_aud_2_high_write);
         let ch2_aud2env_hook = emulator.attach_component(PulseChannel::on_aud_2_env_write);
+        let ch3_aud3high_hook = emulator.attach_components2(WaveChannel::on_aud_3_high_write);
         let ch4_aud4go_hook = emulator.attach_components2(NoiseChannel::on_aud_4_go_write);
         let ch4_aud4env_hook = emulator.attach_component(NoiseChannel::on_aud_4_env_write);
 
@@ -41,6 +42,7 @@ impl yagber_app::Plugin for ApuPlugin {
             .with_hook(yagber_memory::IOType::AUD1ENV, ch1_aud1env_hook)
             .with_hook(yagber_memory::IOType::AUD2HIGH, ch2_aud2high_hook)
             .with_hook(yagber_memory::IOType::AUD2ENV, ch2_aud2env_hook)
+            .with_hook(yagber_memory::IOType::AUD3HIGH, ch3_aud3high_hook)
             .with_hook(yagber_memory::IOType::AUD4GO, ch4_aud4go_hook)
             .with_hook(yagber_memory::IOType::AUD4ENV, ch4_aud4env_hook);
     }

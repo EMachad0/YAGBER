@@ -4,7 +4,7 @@ use crate::{Apu, channels::Envelope};
 
 #[derive(Debug)]
 pub struct PulseChannel {
-    period: u16,
+    clock: u16,
     duty_step_counter: u8,
     length_counter: u8,
     volume: u8,
@@ -18,7 +18,7 @@ impl PulseChannel {
 
     pub fn new(channel: AudioChannel) -> Self {
         Self {
-            period: 0,
+            clock: 0,
             length_counter: 0,
             duty_step_counter: 0,
             volume: 0,
@@ -30,7 +30,7 @@ impl PulseChannel {
 
     pub fn trigger(&mut self, bus: &yagber_memory::Bus) {
         self.length_counter = self.get_initial_length_counter(bus);
-        self.period = Self::get_initial_period(bus, self.channel);
+        self.clock = Self::get_initial_period(bus, self.channel);
         self.volume = self.get_initial_volume(bus);
         self.duty_step_counter = 0;
 
@@ -43,11 +43,11 @@ impl PulseChannel {
     }
 
     pub fn tick(&mut self, bus: &yagber_memory::Bus) {
-        self.period = self.period.wrapping_sub(1);
-        if self.period != 0 {
+        self.clock = self.clock.wrapping_sub(1);
+        if self.clock != 0 {
             return;
         }
-        self.period = Self::get_initial_period(bus, self.channel);
+        self.clock = Self::get_initial_period(bus, self.channel);
 
         let sampler_bit = self.duty_step(bus);
 
@@ -74,11 +74,13 @@ impl PulseChannel {
         let high = match channel {
             AudioChannel::Ch1 => yagber_memory::Aud1High::from_bus(bus).period_high() as u16,
             AudioChannel::Ch2 => yagber_memory::Aud2High::from_bus(bus).period_high() as u16,
+            AudioChannel::Ch3 => yagber_memory::Aud3High::from_bus(bus).period_high() as u16,
             _ => unreachable!(),
         };
         let low_io_type = match channel {
             AudioChannel::Ch1 => yagber_memory::IOType::AUD1LOW,
             AudioChannel::Ch2 => yagber_memory::IOType::AUD2LOW,
+            AudioChannel::Ch3 => yagber_memory::IOType::AUD3LOW,
             _ => unreachable!(),
         };
         let low = bus.read(low_io_type.address()) as u16;
