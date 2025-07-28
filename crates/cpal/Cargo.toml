@@ -8,6 +8,7 @@ default = []
 trace = ["dep:tracing"]
 
 [dependencies]
+ringbuf = { workspace = true }
 tracing = { workspace = true, optional = true }
 cpal = { version = "0.16.0" }
 

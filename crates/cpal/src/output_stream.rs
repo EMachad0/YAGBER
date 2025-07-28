@@ -1,4 +1,5 @@
 use cpal::traits::{DeviceTrait, StreamTrait};
+use ringbuf::traits::Consumer;
 
 pub struct OutputStream {
     _stream: cpal::Stream,
@@ -12,14 +13,18 @@ impl OutputStream {
         config: cpal::StreamConfig,
         apu: &mut yagber_apu::Apu,
     ) -> Self {
-        let left_buffer = apu.left_buffer.clone();
-        let right_buffer = apu.right_buffer.clone();
+        let mut left_buffer: yagber_apu::ConsumerCache =
+            apu.left_buffer.take_consumer().expect("No left buffer");
+        let mut right_buffer: yagber_apu::ConsumerCache =
+            apu.right_buffer.take_consumer().expect("No right buffer");
         #[cfg(feature = "trace")]
         tracing::trace!("Building output stream");
         let stream = device
             .build_output_stream(
                 &config,
-                move |data, info| Self::data_callback(&left_buffer, &right_buffer, data, info),
+                move |data, info| {
+                    Self::data_callback(&mut left_buffer, &mut right_buffer, data, info)
+                },
                 Self::error_callback,
                 Self::TIMEOUT,
             )
@@ -31,15 +36,18 @@ impl OutputStream {
     }
 
     fn data_callback(
-        left_buffer: &yagber_apu::AudioBuffer,
-        right_buffer: &yagber_apu::AudioBuffer,
+        left_buffer: &mut yagber_apu::ConsumerCache,
+        right_buffer: &mut yagber_apu::ConsumerCache,
         data: &mut [f32],
         _: &cpal::OutputCallbackInfo,
     ) {
         data.fill(0.0);
         let data_points = data.len() / 2;
-        let left_samples = left_buffer.drain();
-        let right_samples = right_buffer.drain();
+        let right_samples = right_buffer.pop_iter().collect::<Vec<_>>();
+        let left_samples = left_buffer
+            .pop_iter()
+            .take(right_samples.len())
+            .collect::<Vec<_>>();
         if left_samples.len() + right_samples.len() < data.len() {
             for (i, (left, right)) in left_samples.iter().zip(right_samples.iter()).enumerate() {
                 data[i * 2] = *left;

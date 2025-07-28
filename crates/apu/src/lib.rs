@@ -6,7 +6,7 @@ mod high_pass_filter;
 mod sweep;
 
 pub use apu::Apu;
-pub use audio_buffer::AudioBuffer;
+pub use audio_buffer::{AudioBuffer, ConsumerCache, ProducerCache};
 
 pub struct ApuPlugin;
 

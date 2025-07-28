@@ -56,6 +56,7 @@ chrono = { version = "0.4.41" }
 dotenv = { version = "0.15.0" }
 image = { version = "0.25.6" }
 pretty_assertions = { version = "1.4.1" }
+ringbuf = { version = "0.4.8" }
 smol_str = { version = "0.2.2" }
 strum = { version = "0.27.1", features = ["derive"] }
 tracing = { version = "0.1.41" }

@@ -63,10 +63,8 @@ impl Apu {
 
         let (left_sample, right_sample) = self.high_pass_filter.apply(left_sample, right_sample);
 
-        let mut left_lock = self.left_buffer.lock();
-        let mut right_lock = self.right_buffer.lock();
-        left_lock.push(left_sample);
-        right_lock.push(right_sample);
+        self.left_buffer.push(left_sample);
+        self.right_buffer.push(right_sample);
     }
 
     fn channel_sample(
@@ -217,6 +215,8 @@ impl yagber_app::Component for Apu {}
 
 #[cfg(test)]
 mod tests {
+    use ringbuf::traits::Consumer;
+
     use super::*;
 
     #[test]
@@ -231,7 +231,9 @@ mod tests {
             apu.tick(&mut bus);
         }
 
-        assert_eq!(apu.left_buffer.lock().len(), 70224 / 4);
-        assert_eq!(apu.right_buffer.lock().len(), 70224 / 4);
+        let mut left_consumer = apu.left_buffer.take_consumer().unwrap();
+        let mut right_consumer = apu.right_buffer.take_consumer().unwrap();
+        assert_eq!(left_consumer.pop_iter().count(), 70224 / 4);
+        assert_eq!(right_consumer.pop_iter().count(), 70224 / 4);
     }
 }
