@@ -2,6 +2,7 @@ mod apu;
 mod audio_buffer;
 mod channels;
 mod divapu;
+mod high_pass_filter;
 
 pub use apu::Apu;
 pub use audio_buffer::AudioBuffer;

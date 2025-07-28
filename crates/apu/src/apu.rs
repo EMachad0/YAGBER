@@ -1,10 +1,11 @@
-use crate::{AudioBuffer, channels::Ch1};
+use crate::{AudioBuffer, channels::Ch1, high_pass_filter::HighPassFilter};
 
 #[derive(Debug, Default)]
 pub struct Apu {
     cycles: u8,
     pub ch1: Ch1,
     pub buffer: AudioBuffer,
+    high_pass_filter: HighPassFilter,
 }
 
 impl Apu {
@@ -13,6 +14,7 @@ impl Apu {
             cycles: 0,
             ch1: Ch1::new(),
             buffer: AudioBuffer::new(),
+            high_pass_filter: HighPassFilter::new(),
         }
     }
 
@@ -52,6 +54,8 @@ impl Apu {
         let audvol = yagber_memory::Audvol::from_bus(bus);
         let left_sample = left_sample * audvol.left_volume() as f32;
         let right_sample = right_sample * audvol.right_volume() as f32;
+
+        let (left_sample, right_sample) = self.high_pass_filter.apply(left_sample, right_sample);
 
         self.buffer.push(left_sample, right_sample);
     }
