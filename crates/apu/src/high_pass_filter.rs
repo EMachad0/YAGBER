@@ -7,7 +7,7 @@ pub struct HighPassFilter {
 }
 
 impl HighPassFilter {
-    const A: f32 = 0.999715;
+    const A: f32 = 0.995;
 
     pub fn new() -> Self {
         Self {

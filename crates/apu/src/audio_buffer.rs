@@ -1,27 +1,28 @@
-use std::{
-    collections::VecDeque,
-    sync::{Arc, Mutex},
-};
+use std::sync::{Arc, Mutex};
 
 #[derive(Debug, Default, Clone)]
 pub struct AudioBuffer {
-    pub buffer: Arc<Mutex<VecDeque<f32>>>,
+    pub buffer: Arc<Mutex<Vec<f32>>>,
 }
 
 impl AudioBuffer {
     pub fn new() -> Self {
         Self {
-            buffer: Arc::new(Mutex::new(VecDeque::new())),
+            buffer: Arc::new(Mutex::new(Vec::new())),
         }
     }
 
-    pub fn push(&self, left: f32, right: f32) {
+    pub fn push(&self, sample: f32) {
         let mut buffer = self.buffer.lock().unwrap();
-        buffer.push_back(left);
-        buffer.push_back(right);
+        buffer.push(sample);
     }
 
-    pub fn lock(&self) -> std::sync::MutexGuard<VecDeque<f32>> {
+    pub fn lock(&self) -> std::sync::MutexGuard<Vec<f32>> {
         self.buffer.lock().unwrap()
+    }
+
+    pub fn drain(&self) -> Vec<f32> {
+        let mut buffer = self.buffer.lock().unwrap();
+        buffer.drain(..).collect()
     }
 }

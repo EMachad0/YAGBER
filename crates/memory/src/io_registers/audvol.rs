@@ -23,11 +23,15 @@ impl Audvol {
         self.value & 0x08 != 0
     }
 
-    pub fn left_volume(&self) -> u8 {
-        ((self.value & 0x30) >> 4) + 1
+    pub fn left_volume(&self) -> f32 {
+        Self::volume_to_f32((self.value & 0x70) >> 4)
     }
 
-    pub fn right_volume(&self) -> u8 {
-        (self.value & 0x03) + 1
+    pub fn right_volume(&self) -> f32 {
+        Self::volume_to_f32(self.value & 0x07)
+    }
+
+    fn volume_to_f32(volume: u8) -> f32 {
+        (volume + 1) as f32 / 8.0
     }
 }

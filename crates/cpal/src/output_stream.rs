@@ -12,13 +12,14 @@ impl OutputStream {
         config: cpal::StreamConfig,
         apu: &mut yagber_apu::Apu,
     ) -> Self {
-        let buffer = apu.buffer.clone();
+        let left_buffer = apu.left_buffer.clone();
+        let right_buffer = apu.right_buffer.clone();
         #[cfg(feature = "trace")]
         tracing::trace!("Building output stream");
         let stream = device
             .build_output_stream(
                 &config,
-                move |data, info| Self::data_callback(&buffer, data, info),
+                move |data, info| Self::data_callback(&left_buffer, &right_buffer, data, info),
                 Self::error_callback,
                 Self::TIMEOUT,
             )
@@ -30,35 +31,36 @@ impl OutputStream {
     }
 
     fn data_callback(
-        buffer: &yagber_apu::AudioBuffer,
+        left_buffer: &yagber_apu::AudioBuffer,
+        right_buffer: &yagber_apu::AudioBuffer,
         data: &mut [f32],
         _: &cpal::OutputCallbackInfo,
     ) {
-        let buffer = buffer.lock().drain(..).collect::<Vec<_>>();
-        if buffer.len() < data.len() {
-            return;
-        }
+        data.fill(0.0);
         let data_points = data.len() / 2;
-        let left_samples = buffer
-            .iter()
-            .enumerate()
-            .filter_map(|(i, sample)| if i % 2 == 0 { Some(sample) } else { None })
-            .collect::<Vec<_>>();
-        let right_samples = buffer
-            .iter()
-            .enumerate()
-            .filter_map(|(i, sample)| if i % 2 == 1 { Some(sample) } else { None })
-            .collect::<Vec<_>>();
-        let samples_per_datapoint = buffer.len() / data_points;
-        for (i, (left, right)) in left_samples
-            .chunks(samples_per_datapoint)
-            .zip(right_samples.chunks(samples_per_datapoint))
-            .enumerate()
-        {
-            let left_sum = left.iter().fold(0.0, |acc, x| acc + *x);
-            let right_sum = right.iter().fold(0.0, |acc, x| acc + *x);
-            data[i * 2] = left_sum / samples_per_datapoint as f32;
-            data[i * 2 + 1] = right_sum / samples_per_datapoint as f32;
+        let left_samples = left_buffer.drain();
+        let right_samples = right_buffer.drain();
+        if left_samples.len() + right_samples.len() < data.len() {
+            for (i, (left, right)) in left_samples.iter().zip(right_samples.iter()).enumerate() {
+                data[i * 2] = *left;
+                data[i * 2 + 1] = *right;
+            }
+        } else {
+            let chunk_low = left_samples.len() / data_points;
+            let high_count = left_samples.len() % data_points;
+            let mut iter = left_samples.iter().zip(right_samples.iter());
+            for i in 0..data_points {
+                let mut left_sum = 0.0;
+                let mut right_sum = 0.0;
+                let chunk_len = chunk_low + (i < high_count) as usize;
+                for _ in 0..chunk_len {
+                    let (left, right) = iter.next().unwrap();
+                    left_sum += left;
+                    right_sum += right;
+                }
+                data[i * 2] = left_sum / chunk_len as f32;
+                data[i * 2 + 1] = right_sum / chunk_len as f32;
+            }
         }
     }
 

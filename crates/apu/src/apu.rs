@@ -4,7 +4,8 @@ use crate::{AudioBuffer, channels::Ch1, high_pass_filter::HighPassFilter};
 pub struct Apu {
     cycles: u8,
     pub ch1: Ch1,
-    pub buffer: AudioBuffer,
+    pub left_buffer: AudioBuffer,
+    pub right_buffer: AudioBuffer,
     high_pass_filter: HighPassFilter,
 }
 
@@ -13,7 +14,8 @@ impl Apu {
         Self {
             cycles: 0,
             ch1: Ch1::new(),
-            buffer: AudioBuffer::new(),
+            left_buffer: AudioBuffer::new(),
+            right_buffer: AudioBuffer::new(),
             high_pass_filter: HighPassFilter::new(),
         }
     }
@@ -52,12 +54,15 @@ impl Apu {
             self.mixer(audterm, ch1_sample, ch2_sample, ch3_sample, ch4_sample);
 
         let audvol = yagber_memory::Audvol::from_bus(bus);
-        let left_sample = left_sample * audvol.left_volume() as f32;
-        let right_sample = right_sample * audvol.right_volume() as f32;
+        let left_sample = left_sample * audvol.left_volume();
+        let right_sample = right_sample * audvol.right_volume();
 
         let (left_sample, right_sample) = self.high_pass_filter.apply(left_sample, right_sample);
 
-        self.buffer.push(left_sample, right_sample);
+        let mut left_lock = self.left_buffer.lock();
+        let mut right_lock = self.right_buffer.lock();
+        left_lock.push(left_sample);
+        right_lock.push(right_sample);
     }
 
     fn channel_sample(
@@ -104,33 +109,45 @@ impl Apu {
     ) -> (f32, f32) {
         let mut left = 0.0;
         let mut right = 0.0;
+        let mut left_count = 0;
+        let mut right_count = 0;
 
         if audterm.ch1_left() {
             left += ch1_sample;
+            left_count += 1;
         }
         if audterm.ch1_right() {
             right += ch1_sample;
+            right_count += 1;
         }
         // if audterm.ch2_left() {
         //     left += ch2_sample;
+        //     left_count += 1;
         // }
         // if audterm.ch2_right() {
         //     right += ch2_sample;
+        //     right_count += 1;
         // }
         // if audterm.ch3_left() {
         //     left += ch3_sample;
+        //     left_count += 1;
         // }
         // if audterm.ch3_right() {
         //     right += ch3_sample;
+        //     right_count += 1;
         // }
         // if audterm.ch4_left() {
         //     left += ch4_sample;
+        //     left_count += 1;
         // }
         // if audterm.ch4_right() {
         //     right += ch4_sample;
+        //     right_count += 1;
         // }
 
-        (left, right)
+        let left_count = left_count.max(1) as f32;
+        let right_count = right_count.max(1) as f32;
+        (left / left_count, right / right_count)
     }
 
     fn dac_transform(&self, sample: u8) -> f32 {
@@ -188,6 +205,7 @@ mod tests {
             apu.tick(&mut bus);
         }
 
-        assert_eq!(apu.buffer.lock().len(), 35112);
+        assert_eq!(apu.left_buffer.lock().len(), 70224 / 4);
+        assert_eq!(apu.right_buffer.lock().len(), 70224 / 4);
     }
 }
