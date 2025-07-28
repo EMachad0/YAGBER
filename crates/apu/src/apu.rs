@@ -1,22 +1,26 @@
-use crate::{AudioBuffer, channels::Ch1, high_pass_filter::HighPassFilter};
+use crate::{AudioBuffer, channels::PulseChannel, high_pass_filter::HighPassFilter, sweep::Sweep};
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct Apu {
     cycles: u8,
-    pub ch1: Ch1,
+    pub ch1: PulseChannel,
+    pub ch2: PulseChannel,
     pub left_buffer: AudioBuffer,
     pub right_buffer: AudioBuffer,
     high_pass_filter: HighPassFilter,
+    pub sweep: Sweep,
 }
 
 impl Apu {
     pub fn new() -> Self {
         Self {
             cycles: 0,
-            ch1: Ch1::new(),
+            ch1: PulseChannel::new(yagber_memory::AudioChannel::Ch1),
+            ch2: PulseChannel::new(yagber_memory::AudioChannel::Ch2),
             left_buffer: AudioBuffer::new(),
             right_buffer: AudioBuffer::new(),
             high_pass_filter: HighPassFilter::new(),
+            sweep: Sweep::new(),
         }
     }
 
@@ -75,14 +79,14 @@ impl Apu {
         if ch_enabled {
             match channel {
                 yagber_memory::AudioChannel::Ch1 => self.ch1.tick(bus),
-                yagber_memory::AudioChannel::Ch2 => {}
+                yagber_memory::AudioChannel::Ch2 => self.ch2.tick(bus),
                 yagber_memory::AudioChannel::Ch3 => {}
                 yagber_memory::AudioChannel::Ch4 => {}
             }
         }
         let sample = match channel {
             yagber_memory::AudioChannel::Ch1 => self.ch1.sample,
-            yagber_memory::AudioChannel::Ch2 => 7,
+            yagber_memory::AudioChannel::Ch2 => self.ch2.sample,
             yagber_memory::AudioChannel::Ch3 => 7,
             yagber_memory::AudioChannel::Ch4 => 7,
         };
@@ -103,7 +107,7 @@ impl Apu {
         &self,
         audterm: yagber_memory::Audterm,
         ch1_sample: f32,
-        _ch2_sample: f32,
+        ch2_sample: f32,
         _ch3_sample: f32,
         _ch4_sample: f32,
     ) -> (f32, f32) {
@@ -120,14 +124,14 @@ impl Apu {
             right += ch1_sample;
             right_count += 1;
         }
-        // if audterm.ch2_left() {
-        //     left += ch2_sample;
-        //     left_count += 1;
-        // }
-        // if audterm.ch2_right() {
-        //     right += ch2_sample;
-        //     right_count += 1;
-        // }
+        if audterm.ch2_left() {
+            left += ch2_sample;
+            left_count += 1;
+        }
+        if audterm.ch2_right() {
+            right += ch2_sample;
+            right_count += 1;
+        }
         // if audterm.ch3_left() {
         //     left += ch3_sample;
         //     left_count += 1;
@@ -147,7 +151,10 @@ impl Apu {
 
         let left_count = left_count.max(1) as f32;
         let right_count = right_count.max(1) as f32;
-        (left / left_count, right / right_count)
+        let left = left / left_count;
+        let right = right / right_count;
+
+        (left, right)
     }
 
     fn dac_transform(&self, sample: u8) -> f32 {

@@ -1,19 +1,22 @@
+use yagber_memory::AudioChannel;
+
 use crate::{Apu, channels::Envelope};
 
-#[derive(Debug, Default)]
-pub struct Ch1 {
+#[derive(Debug)]
+pub struct PulseChannel {
     period: u16,
     duty_step_counter: u8,
     length_counter: u8,
     volume: u8,
     pub envelope: Envelope,
     pub sample: u8,
+    channel: AudioChannel,
 }
 
-impl Ch1 {
+impl PulseChannel {
     const DEFAULT_LENGTH_COUNTER: u8 = 64;
 
-    pub fn new() -> Self {
+    pub fn new(channel: AudioChannel) -> Self {
         Self {
             period: 0,
             length_counter: 0,
@@ -21,12 +24,13 @@ impl Ch1 {
             volume: 0,
             envelope: Envelope::new(),
             sample: 0,
+            channel,
         }
     }
 
     pub fn trigger(&mut self, bus: &yagber_memory::Bus) {
         self.length_counter = self.get_initial_length_counter(bus);
-        self.period = self.get_initial_period(bus);
+        self.period = Self::get_initial_period(bus, self.channel);
         self.volume = self.get_initial_volume(bus);
         self.envelope.set_timer(0);
     }
@@ -36,7 +40,7 @@ impl Ch1 {
         if self.period != 0 {
             return;
         }
-        self.period = self.get_initial_period(bus);
+        self.period = Self::get_initial_period(bus, self.channel);
 
         let duty_step = self.duty_step(bus);
 
@@ -46,8 +50,11 @@ impl Ch1 {
     }
 
     fn duty_step(&self, bus: &yagber_memory::Bus) -> u8 {
-        let aud_1_len = yagber_memory::Aud1Len::from_bus(bus);
-        let wave_duty = aud_1_len.wave_duty();
+        let wave_duty = match self.channel {
+            AudioChannel::Ch1 => yagber_memory::Aud1Len::from_bus(bus).wave_duty(),
+            AudioChannel::Ch2 => yagber_memory::Aud2Len::from_bus(bus).wave_duty(),
+            _ => unreachable!(),
+        };
         wave_duty.at_step(self.duty_step_counter)
     }
 
@@ -56,16 +63,29 @@ impl Ch1 {
         self.length_counter
     }
 
-    fn get_initial_period(&self, bus: &yagber_memory::Bus) -> u16 {
-        let high = yagber_memory::Aud1High::from_bus(bus).period_high() as u16;
-        let low = bus.read(yagber_memory::IOType::AUD1LOW.address()) as u16;
+    pub(crate) fn get_initial_period(bus: &yagber_memory::Bus, channel: AudioChannel) -> u16 {
+        let high = match channel {
+            AudioChannel::Ch1 => yagber_memory::Aud1High::from_bus(bus).period_high() as u16,
+            AudioChannel::Ch2 => yagber_memory::Aud2High::from_bus(bus).period_high() as u16,
+            _ => unreachable!(),
+        };
+        let low_io_type = match channel {
+            AudioChannel::Ch1 => yagber_memory::IOType::AUD1LOW,
+            AudioChannel::Ch2 => yagber_memory::IOType::AUD2LOW,
+            _ => unreachable!(),
+        };
+        let low = bus.read(low_io_type.address()) as u16;
         let period = (high << 8) | low;
         0x800 - period
     }
 
     fn get_initial_length_counter(&self, bus: &yagber_memory::Bus) -> u8 {
         let current = self.length_counter;
-        let initial = yagber_memory::Aud1Len::from_bus(bus).timer_length();
+        let initial = match self.channel {
+            AudioChannel::Ch1 => yagber_memory::Aud1Len::from_bus(bus).timer_length(),
+            AudioChannel::Ch2 => yagber_memory::Aud2Len::from_bus(bus).timer_length(),
+            _ => unreachable!(),
+        };
         if current != 0 {
             current
         } else if initial != 0 {
@@ -76,8 +96,12 @@ impl Ch1 {
     }
 
     fn get_initial_volume(&self, bus: &yagber_memory::Bus) -> u8 {
-        let aud_1_env = yagber_memory::Audenv::ch1(bus);
-        aud_1_env.initial_volume()
+        let aud_env = match self.channel {
+            AudioChannel::Ch1 => yagber_memory::Audenv::ch1(bus),
+            AudioChannel::Ch2 => yagber_memory::Audenv::ch2(bus),
+            _ => unreachable!(),
+        };
+        aud_env.initial_volume()
     }
 
     pub fn set_volume(&mut self, value: u8) {
@@ -98,5 +122,17 @@ impl Ch1 {
     pub(crate) fn on_aud_1_env_write(apu: &mut Apu, value: u8) {
         let audenv = yagber_memory::Audenv::new(value);
         apu.ch1.set_volume(audenv.initial_volume());
+    }
+
+    pub(crate) fn on_aud_2_high_write(apu: &mut Apu, bus: &mut yagber_memory::Bus, value: u8) {
+        let aud_2_high = yagber_memory::Aud2High::new(value);
+        if aud_2_high.trigger_enabled() {
+            apu.ch2.trigger(bus);
+        }
+    }
+
+    pub(crate) fn on_aud_2_env_write(apu: &mut Apu, value: u8) {
+        let audenv = yagber_memory::Audenv::new(value);
+        apu.ch2.set_volume(audenv.initial_volume());
     }
 }

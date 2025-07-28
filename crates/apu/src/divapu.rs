@@ -39,7 +39,7 @@ impl DivApu {
         }
 
         if ticks % 4 == 0 {
-            // CH1 freq sweep
+            apu.sweep.tick(bus);
         }
     }
 
