@@ -1,12 +1,13 @@
 use crate::{
     ByteRegister, IOType, InterruptType, boot_rom::BootRom, cartridge::Cartridge, cram::Cram,
-    io_registers::IOBus, memory::Memory, oam::Oam, ram::Ram, vram::Vram, wram::Wram,
+    io_registers::IOBus, memory::Memory, oam::Oam, ram::Ram, save::NativeFileBackend, vram::Vram,
+    wram::Wram,
 };
 
 #[derive(Debug)]
 pub struct Bus {
     boot_rom: BootRom,
-    cartridge: Cartridge,
+    cartridge: Cartridge<NativeFileBackend>,
     pub io_registers: IOBus,
     hram: Ram,
     ie: ByteRegister,

@@ -1,23 +1,23 @@
 #![allow(dead_code)]
 
 use crate::{
-    Memory,
-    mbc::{Mbc, Mbc0, Mbc1},
+    mbc::{Mbc, Mbc0, Mbc1, Mbc2, Mbc3},
     ram::Ram,
+    save::{NativeFileBackend, SaveBackend},
 };
 
 #[derive(Default)]
-pub enum Cartridge {
+pub enum Cartridge<S: SaveBackend> {
     #[default]
     Empty,
     Loaded {
         mbc: Box<dyn Mbc>,
         rom: Ram,
-        ram: Ram,
+        ram: S,
     },
 }
 
-impl Cartridge {
+impl Cartridge<NativeFileBackend> {
     const ENTRY_POINT: usize = 0x0100;
     const LOGOO_ADR: usize = 0x0104;
     const TITLE_ADR: usize = 0x0134;
@@ -51,13 +51,29 @@ impl Cartridge {
         let mbc: Box<dyn Mbc> = match rom[Self::TYPE_ADR] {
             0x00 => Box::new(Mbc0::new()),
             0x01..=0x03 => Box::new(Mbc1::new(rom_bank_count, ram_bank_count)),
-            _ => panic!("Unsupported MBC type"),
+            0x05..=0x06 => Box::new(Mbc2::new()),
+            0x10..=0x13 => Box::new(Mbc3::new()),
+            _ => panic!("Unsupported MBC type: {:#X}", rom[Self::TYPE_ADR]),
         };
+
+        let ram_size = if rom[Self::TYPE_ADR] == 0x05 || rom[Self::TYPE_ADR] == 0x06 {
+            0x1FF
+        } else {
+            ram_size
+        };
+
+        let title_bytes = &rom[Self::TITLE_ADR..Self::TITLE_ADR + 11];
+        let title = String::from_utf8_lossy(title_bytes);
+        #[cfg(feature = "trace")]
+        tracing::info!("Loaded cartridge: {}", title);
+
+        let ram = NativeFileBackend::new(format!("out/{}.sav", title), ram_size)
+            .expect("Failed to open save file");
 
         Self::Loaded {
             mbc,
             rom: Ram::from_bytes(rom, 0),
-            ram: Ram::new(ram_size, 0),
+            ram,
         }
     }
 
@@ -98,7 +114,7 @@ impl Cartridge {
                     return 0xFF;
                 }
                 let address = mbc.ram_address(address);
-                ram.read_usize(address)
+                ram.read(address)
             }
         }
     }
@@ -111,7 +127,7 @@ impl Cartridge {
                     return;
                 }
                 let address = mbc.ram_address(address);
-                ram.write_usize(address, value);
+                ram.write(address, value);
             }
         }
     }
@@ -133,26 +149,12 @@ impl Cartridge {
     }
 }
 
-impl std::fmt::Debug for Cartridge {
+impl<S: SaveBackend> std::fmt::Debug for Cartridge<S> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Empty => f.write_str("Empty Cartridge"),
-            Self::Loaded { rom, ram, .. } => f
-                .debug_struct("Loaded Cartridge")
-                .field("rom_size", &rom.len())
-                .field("ram_size", &ram.len())
-                .finish(),
+            Self::Loaded { .. } => f.write_str("Loaded Cartridge"),
         }
-    }
-}
-
-impl Memory for Cartridge {
-    fn read(&self, address: u16) -> u8 {
-        self.read(address)
-    }
-
-    fn write(&mut self, address: u16, value: u8) {
-        self.write(address, value);
     }
 }
 

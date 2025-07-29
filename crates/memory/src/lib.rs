@@ -9,6 +9,7 @@ mod memory;
 mod oam;
 mod ram;
 mod register;
+mod save;
 mod vram;
 mod wram;
 

@@ -13,7 +13,7 @@ impl WavRam {
     pub fn from_bus(bus: &Bus) -> Self {
         let st = IOType::WAV.address();
         let values = [
-            bus.read(st + 0),
+            bus.read(st),
             bus.read(st + 1),
             bus.read(st + 2),
             bus.read(st + 3),
