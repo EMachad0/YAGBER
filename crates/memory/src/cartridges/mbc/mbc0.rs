@@ -1,4 +1,4 @@
-use crate::mbc::Mbc;
+use crate::cartridges::Mbc;
 
 pub struct Mbc0;
 

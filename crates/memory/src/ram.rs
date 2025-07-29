@@ -34,10 +34,6 @@ impl Ram {
         self.data[address] = Some(value);
     }
 
-    pub fn len(&self) -> usize {
-        self.data.len()
-    }
-
     pub(crate) fn data_slice(&self) -> &[Option<u8>] {
         &self.data
     }

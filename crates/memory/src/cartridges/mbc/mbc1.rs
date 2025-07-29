@@ -1,6 +1,6 @@
 use arbitrary_int::{u2, u5};
 
-use crate::mbc::Mbc;
+use crate::cartridges::Mbc;
 
 pub struct Mbc1 {
     ram_enabled: bool,

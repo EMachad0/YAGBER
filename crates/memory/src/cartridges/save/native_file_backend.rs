@@ -1,6 +1,6 @@
 use std::io::{Read, Write};
 
-use crate::save::SaveBackend;
+use crate::cartridges::save::SaveBackend;
 
 /// Save backend that stores data in a file system.
 /// To be used with native targets that support file system.
@@ -64,8 +64,14 @@ impl SaveBackend for NativeFileBackend {
     fn write(&mut self, address: usize, value: u8) {
         self.write(address, value)
     }
+}
 
-    fn flush(&mut self) -> Result<usize, std::io::Error> {
-        self.flush()
+impl Drop for NativeFileBackend {
+    fn drop(&mut self) {
+        let _result = self.flush();
+        #[cfg(feature = "trace")]
+        if let Err(e) = _result {
+            tracing::error!("Failed to flush save file: {}", e);
+        }
     }
 }

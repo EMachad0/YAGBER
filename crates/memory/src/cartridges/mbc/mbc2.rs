@@ -1,13 +1,13 @@
 use arbitrary_int::u4;
 
-use crate::mbc::Mbc;
+use crate::cartridges::Mbc;
 
-pub struct Mbc3 {
+pub struct Mbc2 {
     ram_enabled: bool,
     rom_bank_number: u4,
 }
 
-impl Mbc3 {
+impl Mbc2 {
     pub fn new() -> Self {
         Self {
             ram_enabled: false,
@@ -30,7 +30,7 @@ impl Mbc3 {
     }
 }
 
-impl Mbc for Mbc3 {
+impl Mbc for Mbc2 {
     fn rom_write(&mut self, address: u16, value: u8) {
         match address {
             0x0000..0x4000 => {
