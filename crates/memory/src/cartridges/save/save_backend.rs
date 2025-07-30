@@ -19,6 +19,12 @@ impl SaveBackendKind {
         if !mbc_info.battery_backed_ram {
             Self::Memory(MemoryBackend::new(mbc_info.ram_size))
         } else if cfg!(feature = "native") {
+            #[cfg(feature = "trace")]
+            tracing::info!(
+                "Saving to {} {:?}",
+                cartridge_header.title,
+                cartridge_header.title.as_bytes()
+            );
             Self::NativeFile(
                 NativeFileBackend::new(
                     format!("out/saves/{}.sav", cartridge_header.title),

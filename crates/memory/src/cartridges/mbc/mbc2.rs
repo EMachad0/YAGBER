@@ -42,6 +42,7 @@ impl Mbc for Mbc2 {
                     self.rom_bank_number = u4::from_u8(rom_bank_number);
                 }
             }
+            0x4000..0x8000 => {}
             _ => unreachable!("Invalid address for MBC2 write: {:#X}", address),
         }
     }

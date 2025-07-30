@@ -65,7 +65,12 @@ impl CartridgeHeader {
 
     fn title_from_rom(rom: &[u8]) -> String {
         let title = &rom[Self::TITLE_ADR..Self::TITLE_ADR + 15];
-        String::from_utf8_lossy(title).to_string()
+        let title = title
+            .iter()
+            .take_while(|b| b.is_ascii_alphanumeric())
+            .cloned()
+            .collect::<Vec<_>>();
+        String::from_utf8(title).unwrap()
     }
 
     fn cgb_flag_from_rom(rom: &[u8]) -> u8 {

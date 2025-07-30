@@ -1,4 +1,4 @@
-use std::io::{Read, Write};
+use std::{io::Read, os::unix::fs::FileExt};
 
 use crate::cartridges::save::SaveBackend;
 
@@ -15,6 +15,10 @@ pub struct NativeFileBackend {
 impl NativeFileBackend {
     pub fn new(path: impl Into<std::path::PathBuf>, size: usize) -> Result<Self, std::io::Error> {
         let path = path.into();
+
+        if let Some(parent) = path.parent() {
+            std::fs::create_dir_all(parent)?;
+        }
 
         let mut file = std::fs::OpenOptions::new()
             .read(true)
@@ -48,7 +52,7 @@ impl NativeFileBackend {
     fn flush(&mut self) -> Result<usize, std::io::Error> {
         if self.dirty {
             self.dirty = false;
-            self.file.write_all(&self.buffer)?;
+            self.file.write_all_at(&self.buffer, 0)?;
             Ok(self.size)
         } else {
             Ok(0)

@@ -69,7 +69,7 @@ impl CartridgeMbcInfo {
                 battery_backed_ram: false,
             },
             0x06 => Self {
-                mbc_type: MbcType::Mbc3,
+                mbc_type: MbcType::Mbc2,
                 rom_bank_count,
                 rom_size,
                 ram_bank_count,
