@@ -42,33 +42,12 @@ impl OutputStream {
         _: &cpal::OutputCallbackInfo,
     ) {
         data.fill(0.0);
-        let data_points = data.len() / 2;
-        let right_samples = right_buffer.pop_iter().collect::<Vec<_>>();
-        let left_samples = left_buffer
-            .pop_iter()
-            .take(right_samples.len())
-            .collect::<Vec<_>>();
-        if left_samples.len() + right_samples.len() < data.len() {
-            for (i, (left, right)) in left_samples.iter().zip(right_samples.iter()).enumerate() {
-                data[i * 2] = *left;
-                data[i * 2 + 1] = *right;
-            }
-        } else {
-            let chunk_low = left_samples.len() / data_points;
-            let high_count = left_samples.len() % data_points;
-            let mut iter = left_samples.iter().zip(right_samples.iter());
-            for i in 0..data_points {
-                let mut left_sum = 0.0;
-                let mut right_sum = 0.0;
-                let chunk_len = chunk_low + (i < high_count) as usize;
-                for _ in 0..chunk_len {
-                    let (left, right) = iter.next().unwrap();
-                    left_sum += left;
-                    right_sum += right;
-                }
-                data[i * 2] = left_sum / chunk_len as f32;
-                data[i * 2 + 1] = right_sum / chunk_len as f32;
-            }
+        let frames = data.len() / 2;
+        for i in 0..frames {
+            let l = left_buffer.try_pop().unwrap_or(0.0);
+            let r = right_buffer.try_pop().unwrap_or(0.0);
+            data[i * 2] = l;
+            data[i * 2 + 1] = r;
         }
     }
 

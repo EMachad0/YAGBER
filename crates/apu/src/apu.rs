@@ -7,7 +7,10 @@ use crate::{
 
 #[derive(Debug)]
 pub struct Apu {
-    cycles: u8,
+    channel_step_accumulator: u8,
+    sampler_accumulator: u32,
+    sample_rate_hz: u32,
+    tcycles_per_sample: u32,
     pub ch1: PulseChannel,
     pub ch2: PulseChannel,
     pub ch3: WaveChannel,
@@ -19,16 +22,24 @@ pub struct Apu {
 }
 
 impl Apu {
+    const DEFAULT_SAMPLE_RATE_HZ: u32 = 48_000;
+
     pub fn new() -> Self {
+        let sample_rate_hz = Self::DEFAULT_SAMPLE_RATE_HZ;
+        let tcycles_per_sample = yagber_app::Emulator::TARGET_DOT_FREQ_HZ / sample_rate_hz;
+
         Self {
-            cycles: 0,
+            channel_step_accumulator: 0,
+            sampler_accumulator: 0,
+            sample_rate_hz,
+            tcycles_per_sample,
             ch1: PulseChannel::new(yagber_memory::AudioChannel::Ch1),
             ch2: PulseChannel::new(yagber_memory::AudioChannel::Ch2),
             ch3: WaveChannel::new(),
             ch4: NoiseChannel::new(),
             left_buffer: AudioBuffer::new(),
             right_buffer: AudioBuffer::new(),
-            high_pass_filter: HighPassFilter::new(),
+            high_pass_filter: HighPassFilter::new(sample_rate_hz),
             sweep: Sweep::new(),
         }
     }
@@ -49,38 +60,40 @@ impl Apu {
             return;
         }
 
-        self.cycles += 1;
-        if self.cycles == 4 {
-            self.cycles = 0;
+        self.channel_step_accumulator += 1;
+        if self.channel_step_accumulator >= 4 {
+            self.channel_step_accumulator -= 4;
+            self.channel_tick(bus, yagber_memory::AudioChannel::Ch1);
+            self.channel_tick(bus, yagber_memory::AudioChannel::Ch2);
+            self.channel_tick(bus, yagber_memory::AudioChannel::Ch3);
+            self.channel_tick(bus, yagber_memory::AudioChannel::Ch4);
         }
-        if self.cycles != 0 {
-            return;
+
+        self.sampler_accumulator += 1;
+        while self.sampler_accumulator >= self.tcycles_per_sample {
+            self.sampler_accumulator -= self.tcycles_per_sample;
+
+            let ch1 = self.get_channel_sample(bus, yagber_memory::AudioChannel::Ch1);
+            let ch2 = self.get_channel_sample(bus, yagber_memory::AudioChannel::Ch2);
+            let ch3 = self.get_channel_sample(bus, yagber_memory::AudioChannel::Ch3);
+            let ch4 = self.get_channel_sample(bus, yagber_memory::AudioChannel::Ch4);
+
+            let audterm = yagber_memory::Audterm::from_bus(bus);
+            let (mut left_sample, mut right_sample) = self.mixer(audterm, ch1, ch2, ch3, ch4);
+
+            let audvol = yagber_memory::Audvol::from_bus(bus);
+            left_sample *= audvol.left_volume();
+            right_sample *= audvol.right_volume();
+
+            let (left_sample, right_sample) =
+                self.high_pass_filter.apply(left_sample, right_sample);
+
+            self.left_buffer.push(left_sample);
+            self.right_buffer.push(right_sample);
         }
-
-        let ch1_sample = self.channel_sample(bus, yagber_memory::AudioChannel::Ch1);
-        let ch2_sample = self.channel_sample(bus, yagber_memory::AudioChannel::Ch2);
-        let ch3_sample = self.channel_sample(bus, yagber_memory::AudioChannel::Ch3);
-        let ch4_sample = self.channel_sample(bus, yagber_memory::AudioChannel::Ch4);
-
-        let audterm = yagber_memory::Audterm::from_bus(bus);
-        let (left_sample, right_sample) =
-            self.mixer(audterm, ch1_sample, ch2_sample, ch3_sample, ch4_sample);
-
-        let audvol = yagber_memory::Audvol::from_bus(bus);
-        let left_sample = left_sample * audvol.left_volume();
-        let right_sample = right_sample * audvol.right_volume();
-
-        let (left_sample, right_sample) = self.high_pass_filter.apply(left_sample, right_sample);
-
-        self.left_buffer.push(left_sample);
-        self.right_buffer.push(right_sample);
     }
 
-    fn channel_sample(
-        &mut self,
-        bus: &mut yagber_memory::Bus,
-        channel: yagber_memory::AudioChannel,
-    ) -> f32 {
+    fn channel_tick(&mut self, bus: &mut yagber_memory::Bus, channel: yagber_memory::AudioChannel) {
         let audena = yagber_memory::Audena::from_bus(bus);
         let ch_enabled = audena.ch_enabled(channel);
         if ch_enabled {
@@ -90,23 +103,6 @@ impl Apu {
                 yagber_memory::AudioChannel::Ch3 => self.ch3.tick(bus),
                 yagber_memory::AudioChannel::Ch4 => self.ch4.tick(bus),
             }
-        }
-        let sample = match channel {
-            yagber_memory::AudioChannel::Ch1 => self.ch1.sample,
-            yagber_memory::AudioChannel::Ch2 => self.ch2.sample,
-            yagber_memory::AudioChannel::Ch3 => self.ch3.sample,
-            yagber_memory::AudioChannel::Ch4 => self.ch4.sample,
-        };
-        let dac_enabled = match channel {
-            yagber_memory::AudioChannel::Ch1 => yagber_memory::Audenv::ch1(bus).dac_enabled(),
-            yagber_memory::AudioChannel::Ch2 => yagber_memory::Audenv::ch2(bus).dac_enabled(),
-            yagber_memory::AudioChannel::Ch3 => yagber_memory::Aud3Ena::from_bus(bus).dac_enabled(),
-            yagber_memory::AudioChannel::Ch4 => yagber_memory::Audenv::ch4(bus).dac_enabled(),
-        };
-        if !dac_enabled {
-            0.0
-        } else {
-            self.dac_transform(sample)
         }
     }
 
@@ -170,6 +166,37 @@ impl Apu {
         let sample = sample / 15.0;
         let sample = 1.0 - sample;
         sample * 2.0 - 1.0
+    }
+
+    fn get_channel_sample(
+        &self,
+        bus: &mut yagber_memory::Bus,
+        channel: yagber_memory::AudioChannel,
+    ) -> f32 {
+        let raw_sample = match channel {
+            yagber_memory::AudioChannel::Ch1 => self.ch1.sample,
+            yagber_memory::AudioChannel::Ch2 => self.ch2.sample,
+            yagber_memory::AudioChannel::Ch3 => self.ch3.sample,
+            yagber_memory::AudioChannel::Ch4 => self.ch4.sample,
+        };
+        let dac_enabled = match channel {
+            yagber_memory::AudioChannel::Ch1 => yagber_memory::Audenv::ch1(bus).dac_enabled(),
+            yagber_memory::AudioChannel::Ch2 => yagber_memory::Audenv::ch2(bus).dac_enabled(),
+            yagber_memory::AudioChannel::Ch3 => yagber_memory::Aud3Ena::from_bus(bus).dac_enabled(),
+            yagber_memory::AudioChannel::Ch4 => yagber_memory::Audenv::ch4(bus).dac_enabled(),
+        };
+        if dac_enabled {
+            self.dac_transform(raw_sample)
+        } else {
+            0.0
+        }
+    }
+
+    pub fn set_sample_rate(&mut self, sample_rate_hz: u32) {
+        self.sample_rate_hz = sample_rate_hz.max(1);
+        let cycles_per_second = yagber_app::Emulator::TARGET_DOT_FREQ_HZ;
+        self.tcycles_per_sample = cycles_per_second / self.sample_rate_hz;
+        self.high_pass_filter.set_sample_rate(self.sample_rate_hz);
     }
 
     pub(crate) fn tick_sound_length(&mut self, bus: &mut yagber_memory::Bus) {
@@ -267,6 +294,7 @@ mod tests {
             .write(yagber_memory::IOType::AUDENA.address(), 0xFF);
 
         let mut apu = Apu::new();
+        apu.set_sample_rate(1_048_576);
 
         for _ in 0..70224 {
             apu.tick(&mut bus);

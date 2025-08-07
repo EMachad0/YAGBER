@@ -13,6 +13,9 @@ pub struct Emulator {
 }
 
 impl Emulator {
+    pub const TARGET_DOT_FREQ_HZ: u32 = 4_194_304;
+    pub const NANOS_PER_DOT: u64 = 1_000_000_000 / Emulator::TARGET_DOT_FREQ_HZ as u64;
+
     pub fn new() -> Self {
         Self {
             cycles: 0,

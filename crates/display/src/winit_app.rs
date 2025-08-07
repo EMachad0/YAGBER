@@ -1,3 +1,4 @@
+use std::time::Instant;
 use winit::{application::ApplicationHandler, dpi::LogicalSize, window::WindowAttributes};
 use yagber_app::Emulator;
 
@@ -5,11 +6,15 @@ use crate::display::Display;
 
 pub struct WinitApp {
     emulator: Emulator,
+    last_instant: Instant,
 }
 
 impl WinitApp {
     pub fn new(emulator: Emulator) -> Self {
-        Self { emulator }
+        Self {
+            emulator,
+            last_instant: Instant::now(),
+        }
     }
 
     pub fn window_attributes() -> WindowAttributes {
@@ -36,6 +41,9 @@ impl ApplicationHandler for WinitApp {
             let display = Display::new(window).expect("Failed to create display");
             self.emulator.with_component(display);
         }
+
+        // Reset timing on resume
+        self.last_instant = Instant::now();
     }
 
     fn window_event(
@@ -98,20 +106,28 @@ impl ApplicationHandler for WinitApp {
         #[cfg(feature = "trace-span")]
         let _span = tracing::info_span!("winit app about to wait").entered();
 
-        for _ in 0..yagber_ppu::Ppu::DOTS_PER_FRAME {
-            self.emulator.step();
+        let now = Instant::now();
+        let elapsed = now.saturating_duration_since(self.last_instant);
+        let dots_to_run =
+            (elapsed.as_secs_f64() * Emulator::TARGET_DOT_FREQ_HZ as f64).floor() as u64;
 
-            let ppu = self
-                .emulator
-                .get_component::<yagber_ppu::Ppu>()
-                .expect("PPU component missing");
-            if ppu.just_entered_mode(yagber_ppu::PpuMode::VBlank) {
-                self.emulator
-                    .get_component_mut::<Display>()
-                    .unwrap()
-                    .request_redraw();
-                // Break out of the loop so it doesn't start rendering the next frame.
-                break;
+        if dots_to_run > 0 {
+            let advanced_ns = dots_to_run * Emulator::NANOS_PER_DOT;
+            self.last_instant += std::time::Duration::from_nanos(advanced_ns);
+
+            for _ in 0..dots_to_run {
+                self.emulator.step();
+
+                let ppu = self
+                    .emulator
+                    .get_component::<yagber_ppu::Ppu>()
+                    .expect("PPU component missing");
+                if ppu.just_entered_mode(yagber_ppu::PpuMode::VBlank) {
+                    self.emulator
+                        .get_component_mut::<Display>()
+                        .unwrap()
+                        .request_redraw();
+                }
             }
         }
     }
