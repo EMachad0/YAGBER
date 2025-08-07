@@ -10,7 +10,7 @@ Some of them can be automatically downloaded by running the `fetch_test_roms.sh`
 To run the tests, use the following command:
 
 ```bash
-cargo test --release
+cargo test --workspace --release
 ```
 
 This will run all tests in the `tests` directory. The tests are organized into subdirectories based on the type of test.
