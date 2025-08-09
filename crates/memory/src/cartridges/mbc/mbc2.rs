@@ -1,6 +1,6 @@
 use arbitrary_int::u4;
 
-use crate::cartridges::Mbc;
+use crate::cartridges::{ExternalRamAddress, Mbc};
 
 pub struct Mbc2 {
     ram_enabled: bool,
@@ -25,8 +25,9 @@ impl Mbc2 {
         (bank * 0x4000) | (offset & 0x3FFF)
     }
 
-    fn ram_address(&self, address: u16) -> usize {
-        (address & 0x1FF) as usize
+    fn ram_address(&self, address: u16) -> ExternalRamAddress {
+        let address = address & 0x1FF;
+        ExternalRamAddress::ExternalRam(address as usize)
     }
 }
 
@@ -55,7 +56,7 @@ impl Mbc for Mbc2 {
         }
     }
 
-    fn ram_address(&self, address: u16) -> usize {
+    fn ram_address(&self, address: u16) -> ExternalRamAddress {
         self.ram_address(address)
     }
 

@@ -47,7 +47,8 @@ impl yagber_app::Plugin for MemoryPlugin {
 
         emulator
             .with_component(memory_bus)
-            .with_component(stat_interrupt_detector);
+            .with_component(stat_interrupt_detector)
+            .on_tcycle(Bus::on_tcycle);
 
         let stat_ly_hook = emulator.attach_component(io_registers::Stat::on_ly_write);
         let stat_lyc_hook = emulator.attach_component(io_registers::Stat::on_lyc_write);

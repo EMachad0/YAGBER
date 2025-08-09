@@ -6,13 +6,13 @@ pub use mbc0::Mbc0;
 pub use mbc1::Mbc1;
 pub use mbc2::Mbc2;
 
-use crate::cartridges::cartridge_mbc_info::{CartridgeMbcInfo, MbcType};
+use crate::cartridges::{cartridge_mbc_info::{CartridgeMbcInfo, MbcType}, ExternalRamAddress};
 
 pub trait Mbc {
     fn ram_enabled(&self) -> bool;
     fn rom_write(&mut self, address: u16, value: u8);
     fn rom_address(&self, address: u16) -> usize;
-    fn ram_address(&self, address: u16) -> usize;
+    fn ram_address(&self, address: u16) -> ExternalRamAddress;
 }
 
 pub enum MbcKind {
@@ -57,7 +57,7 @@ impl Mbc for MbcKind {
         }
     }
 
-    fn ram_address(&self, address: u16) -> usize {
+    fn ram_address(&self, address: u16) -> ExternalRamAddress {
         match self {
             MbcKind::Mbc0(mbc) => mbc.ram_address(address),
             MbcKind::Mbc1(mbc) => mbc.ram_address(address),

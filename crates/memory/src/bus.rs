@@ -135,6 +135,14 @@ impl Bus {
     pub fn write_rom(&mut self, address: u16, value: u8) {
         self.cartridge.write(address, value);
     }
+
+    pub(crate) fn on_tcycle(emulator: &mut yagber_app::Emulator) {
+        emulator.get_component_mut::<Self>().unwrap().tick();
+    }
+
+    fn tick(&mut self) {
+        self.cartridge.tick();
+    }
 }
 
 impl Default for Bus {

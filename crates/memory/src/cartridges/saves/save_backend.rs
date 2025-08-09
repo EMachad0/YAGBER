@@ -16,7 +16,7 @@ pub enum SaveBackendKind {
 
 impl SaveBackendKind {
     pub fn new(cartridge_header: &CartridgeHeader, mbc_info: &CartridgeMbcInfo) -> Self {
-        if !mbc_info.battery_backed_ram {
+        if !mbc_info.includes_battery {
             Self::Memory(MemoryBackend)
         } else if cfg!(feature = "native") {
             #[cfg(feature = "trace")]

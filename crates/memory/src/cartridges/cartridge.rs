@@ -1,6 +1,9 @@
 use crate::{
     cartridges::{
-        cartridge_mbc_info::CartridgeMbcInfo, mbc::MbcKind, saves::{Save, SaveBackend, SaveBackendKind}, CartridgeHeader, Mbc
+        CartridgeHeader, Mbc, Rtc,
+        cartridge_mbc_info::CartridgeMbcInfo,
+        mbc::MbcKind,
+        saves::{Save, SaveBackend, SaveBackendKind},
     },
     ram::Ram,
 };
@@ -12,7 +15,8 @@ pub enum Cartridge {
     Loaded {
         mbc: MbcKind,
         rom: Ram,
-        ram: Ram,
+        ram: Option<Ram>,
+        rtc: Option<Rtc>,
         save_backend: SaveBackendKind,
     },
 }
@@ -22,20 +26,43 @@ impl Cartridge {
         let header = CartridgeHeader::new(rom);
         let mbc_info = CartridgeMbcInfo::new(&header);
 
+        #[cfg(feature = "trace")]
+        tracing::debug!("{mbc_info:?}");
+
         // Check if the ROM size is valid
         if rom.len() < mbc_info.rom_size {
             panic!("ROM size is smaller than expected");
         }
 
         let mut save_backend = SaveBackendKind::new(&header, &mbc_info);
-        let mut save = save_backend.read();
-        save.data.resize(mbc_info.ram_size, 0);
+        let save = save_backend.read();
 
         let mbc = MbcKind::new(&mbc_info);
         let rom = Ram::from_bytes(rom, 0);
-        let ram = Ram::from_bytes(&save.data, 0);
+        let ram = if mbc_info.includes_ram {
+            let mut save_data = save.data.unwrap_or_default();
+            save_data.resize(mbc_info.ram_size, 0);
+            Some(Ram::from_bytes(&save_data, 0))
+        } else {
+            None
+        };
+        let rtc = if mbc_info.includes_timer {
+            let now_seconds = chrono::Utc::now().timestamp();
+            let seconds_since_save = now_seconds - save.timestamp;
+            let mut rtc_registers = save.rtc_registers.unwrap_or_default();
+            rtc_registers.advance_by(seconds_since_save as u64);
+            Some(Rtc::from_registers(rtc_registers))
+        } else {
+            None
+        };
 
-        Self::Loaded { mbc, rom, ram, save_backend }
+        Self::Loaded {
+            mbc,
+            rom,
+            ram,
+            rtc,
+            save_backend,
+        }
     }
 
     pub fn empty() -> Self {
@@ -74,8 +101,13 @@ impl Cartridge {
                 if !mbc.ram_enabled() {
                     return 0xFF;
                 }
-                let address = mbc.ram_address(address);
-                ram.read_usize(address)
+                match mbc.ram_address(address) {
+                    super::ExternalRamAddress::ExternalRam(address) => match ram {
+                        Some(ram) => ram.read_usize(address),
+                        None => 0xFF,
+                    },
+                    super::ExternalRamAddress::Rtc(_rtc_register_kind) => todo!(),
+                }
             }
         }
     }
@@ -87,8 +119,14 @@ impl Cartridge {
                 if !mbc.ram_enabled() {
                     return;
                 }
-                let address = mbc.ram_address(address);
-                ram.write_usize(address, value);
+                match mbc.ram_address(address) {
+                    super::ExternalRamAddress::ExternalRam(address) => {
+                        if let Some(ram) = ram {
+                            ram.write_usize(address, value);
+                        }
+                    }
+                    super::ExternalRamAddress::Rtc(_rtc_register_kind) => todo!(),
+                }
             }
         }
     }
@@ -108,17 +146,41 @@ impl Cartridge {
             _ => panic!("Invalid address: {address:#X}"),
         }
     }
+
+    pub fn tick(&mut self) {
+        let Cartridge::Loaded { rtc, .. } = self else {
+            return;
+        };
+
+        if let Some(rtc) = rtc {
+            rtc.tick();
+        }
+    }
 }
 
 impl Drop for Cartridge {
     fn drop(&mut self) {
         match self {
-            Cartridge::Empty => {},
-            Cartridge::Loaded { ram, save_backend, .. } => {
+            Cartridge::Empty => {}
+            Cartridge::Loaded {
+                ram,
+                rtc,
+                save_backend,
+                ..
+            } => {
                 let timestamp = chrono::Utc::now().timestamp();
-                let save = Save { data: ram.to_vec(), timestamp  };
+                let data = ram.as_ref().map(|r| r.to_vec());
+                let rtc_registers = rtc.as_mut().map(|rtc| {
+                    rtc.tick();
+                    rtc.registers
+                });
+                let save = Save {
+                    data,
+                    rtc_registers,
+                    timestamp,
+                };
                 save_backend.write(&save);
-            },
+            }
         }
     }
 }

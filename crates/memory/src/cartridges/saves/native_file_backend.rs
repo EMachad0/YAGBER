@@ -35,8 +35,6 @@ impl SaveBackend for NativeFileBackend {
     fn read(&mut self) -> Save {
         let mut bytes = Vec::new();
         let _ = self.file.read_to_end(&mut bytes);
-        #[cfg(feature = "trace")]
-        tracing::debug!("{bytes:?}");
         serde_json::from_slice(&bytes).unwrap_or_else(|_e| {
             #[cfg(feature = "trace")]
             tracing::error!("Unable to parse save file into save: {_e}");

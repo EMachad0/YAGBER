@@ -2,8 +2,9 @@ use crate::cartridges::cartridge_header::CartridgeHeader;
 
 const MBC2_RAM_SIZE: usize = 0x200; // 512B
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 pub enum MbcType {
+    #[default]
     Mbc0,
     Mbc1,
     Mbc2,
@@ -18,14 +19,18 @@ pub enum MbcType {
     PocketCamera,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Default, Clone, Copy)]
 pub struct CartridgeMbcInfo {
     pub mbc_type: MbcType,
     pub rom_bank_count: usize,
     pub rom_size: usize,
     pub ram_bank_count: usize,
     pub ram_size: usize,
-    pub battery_backed_ram: bool,
+    pub includes_ram: bool,
+    pub includes_battery: bool,
+    pub includes_timer: bool,
+    #[allow(dead_code)]
+    pub includes_rumble: bool,
 }
 
 impl CartridgeMbcInfo {
@@ -42,15 +47,24 @@ impl CartridgeMbcInfo {
                 rom_size,
                 ram_bank_count,
                 ram_size,
-                battery_backed_ram: false,
+                ..Default::default()
             },
-            0x01 | 0x02 => Self {
+            0x01 => Self {
                 mbc_type: MbcType::Mbc1,
                 rom_bank_count,
                 rom_size,
                 ram_bank_count,
                 ram_size,
-                battery_backed_ram: false,
+                ..Default::default()
+            },
+            0x02 => Self {
+                mbc_type: MbcType::Mbc1,
+                rom_bank_count,
+                rom_size,
+                ram_bank_count,
+                ram_size,
+                includes_ram: true,
+                ..Default::default()
             },
             0x03 => Self {
                 mbc_type: MbcType::Mbc1,
@@ -58,7 +72,9 @@ impl CartridgeMbcInfo {
                 rom_size,
                 ram_bank_count,
                 ram_size,
-                battery_backed_ram: true,
+                includes_ram: true,
+                includes_battery: true,
+                ..Default::default()
             },
             0x05 => Self {
                 mbc_type: MbcType::Mbc2,
@@ -66,7 +82,8 @@ impl CartridgeMbcInfo {
                 rom_size,
                 ram_bank_count,
                 ram_size: MBC2_RAM_SIZE,
-                battery_backed_ram: false,
+                includes_ram: true,
+                ..Default::default()
             },
             0x06 => Self {
                 mbc_type: MbcType::Mbc2,
@@ -74,15 +91,26 @@ impl CartridgeMbcInfo {
                 rom_size,
                 ram_bank_count,
                 ram_size: MBC2_RAM_SIZE,
-                battery_backed_ram: true,
+                includes_ram: true,
+                includes_battery: true,
+                ..Default::default()
             },
-            0x0B | 0x0C => Self {
+            0x0B => Self {
                 mbc_type: MbcType::Mmm01,
                 rom_bank_count,
                 rom_size,
                 ram_bank_count,
                 ram_size,
-                battery_backed_ram: false,
+                ..Default::default()
+            },
+            0x0C => Self {
+                mbc_type: MbcType::Mmm01,
+                rom_bank_count,
+                rom_size,
+                ram_bank_count,
+                ram_size,
+                includes_ram: true,
+                ..Default::default()
             },
             0x0D => Self {
                 mbc_type: MbcType::Mmm01,
@@ -90,7 +118,9 @@ impl CartridgeMbcInfo {
                 rom_size,
                 ram_bank_count,
                 ram_size,
-                battery_backed_ram: true,
+                includes_ram: true,
+                includes_battery: true,
+                ..Default::default()
             },
             0x0F => Self {
                 mbc_type: MbcType::Mbc3,
@@ -98,7 +128,9 @@ impl CartridgeMbcInfo {
                 rom_size,
                 ram_bank_count,
                 ram_size,
-                battery_backed_ram: true,
+                includes_battery: true,
+                includes_timer: true,
+                ..Default::default()
             },
             0x10 => Self {
                 mbc_type: MbcType::Mbc3,
@@ -106,15 +138,27 @@ impl CartridgeMbcInfo {
                 rom_size,
                 ram_bank_count,
                 ram_size,
-                battery_backed_ram: true,
+                includes_ram: true,
+                includes_battery: true,
+                includes_timer: true,
+                ..Default::default()
             },
-            0x11 | 0x12 => Self {
+            0x11 => Self {
                 mbc_type: MbcType::Mbc3,
                 rom_bank_count,
                 rom_size,
                 ram_bank_count,
                 ram_size,
-                battery_backed_ram: false,
+                ..Default::default()
+            },
+            0x12 => Self {
+                mbc_type: MbcType::Mbc3,
+                rom_bank_count,
+                rom_size,
+                ram_bank_count,
+                ram_size,
+                includes_ram: true,
+                ..Default::default()
             },
             0x13 => Self {
                 mbc_type: MbcType::Mbc3,
@@ -122,7 +166,9 @@ impl CartridgeMbcInfo {
                 rom_size,
                 ram_bank_count,
                 ram_size,
-                battery_backed_ram: true,
+                includes_ram: true,
+                includes_battery: true,
+                ..Default::default()
             },
             0x19 => Self {
                 mbc_type: MbcType::Mbc5,
@@ -130,7 +176,7 @@ impl CartridgeMbcInfo {
                 rom_size,
                 ram_bank_count,
                 ram_size,
-                battery_backed_ram: false,
+                ..Default::default()
             },
             0x1A => Self {
                 mbc_type: MbcType::Mbc5,
@@ -138,7 +184,8 @@ impl CartridgeMbcInfo {
                 rom_size,
                 ram_bank_count,
                 ram_size,
-                battery_backed_ram: false,
+                includes_ram: true,
+                ..Default::default()
             },
             0x1B => Self {
                 mbc_type: MbcType::Mbc5,
@@ -146,7 +193,9 @@ impl CartridgeMbcInfo {
                 rom_size,
                 ram_bank_count,
                 ram_size,
-                battery_backed_ram: true,
+                includes_ram: true,
+                includes_battery: true,
+                ..Default::default()
             },
             0x1C => Self {
                 mbc_type: MbcType::Mbc5,
@@ -154,7 +203,8 @@ impl CartridgeMbcInfo {
                 rom_size,
                 ram_bank_count,
                 ram_size,
-                battery_backed_ram: false,
+                includes_rumble: true,
+                ..Default::default()
             },
             0x1D => Self {
                 mbc_type: MbcType::Mbc5,
@@ -162,7 +212,9 @@ impl CartridgeMbcInfo {
                 rom_size,
                 ram_bank_count,
                 ram_size,
-                battery_backed_ram: false,
+                includes_ram: true,
+                includes_rumble: true,
+                ..Default::default()
             },
             0x1E => Self {
                 mbc_type: MbcType::Mbc5,
@@ -170,7 +222,10 @@ impl CartridgeMbcInfo {
                 rom_size,
                 ram_bank_count,
                 ram_size,
-                battery_backed_ram: true,
+                includes_ram: true,
+                includes_battery: true,
+                includes_rumble: true,
+                ..Default::default()
             },
             0x20 => Self {
                 mbc_type: MbcType::Mbc6,
@@ -178,7 +233,7 @@ impl CartridgeMbcInfo {
                 rom_size,
                 ram_bank_count,
                 ram_size,
-                battery_backed_ram: false,
+                ..Default::default()
             },
             0x22 => Self {
                 mbc_type: MbcType::Mbc7,
@@ -186,7 +241,10 @@ impl CartridgeMbcInfo {
                 rom_size,
                 ram_bank_count,
                 ram_size,
-                battery_backed_ram: true,
+                includes_ram: true,
+                includes_battery: true,
+                includes_rumble: true,
+                ..Default::default()
             },
             0xFC => Self {
                 mbc_type: MbcType::PocketCamera,
@@ -194,7 +252,7 @@ impl CartridgeMbcInfo {
                 rom_size,
                 ram_bank_count,
                 ram_size,
-                battery_backed_ram: false,
+                ..Default::default()
             },
             0xFD => Self {
                 mbc_type: MbcType::Tama5,
@@ -202,7 +260,7 @@ impl CartridgeMbcInfo {
                 rom_size,
                 ram_bank_count,
                 ram_size,
-                battery_backed_ram: false,
+                ..Default::default()
             },
             0xFE => Self {
                 mbc_type: MbcType::HuC3,
@@ -210,7 +268,7 @@ impl CartridgeMbcInfo {
                 rom_size,
                 ram_bank_count,
                 ram_size,
-                battery_backed_ram: false,
+                ..Default::default()
             },
             0xFF => Self {
                 mbc_type: MbcType::HuC1,
@@ -218,7 +276,9 @@ impl CartridgeMbcInfo {
                 rom_size,
                 ram_bank_count,
                 ram_size,
-                battery_backed_ram: true,
+                includes_ram: true,
+                includes_battery: true,
+                ..Default::default()
             },
             _ => panic!("Invalid cartridge type code: {}", header.type_code),
         }
