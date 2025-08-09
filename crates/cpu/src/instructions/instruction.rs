@@ -284,25 +284,25 @@ impl std::fmt::Debug for Instruction {
             dbg.field("cb_prefix", &self.cb_prefix);
         }
         if let Some(imm8) = self.imm8 {
-            dbg.field("imm8", &format_args!("0x{:02X}", imm8));
+            dbg.field("imm8", &format_args!("0x{imm8:02X}"));
         }
         if let Some(imm16) = self.imm16 {
-            dbg.field("imm16", &format_args!("0x{:04X}", imm16));
+            dbg.field("imm16", &format_args!("0x{imm16:04X}"));
         }
         if let Some(r8) = self.r8() {
-            dbg.field("r8", &format_args!("0x{:02X}", r8));
+            dbg.field("r8", &format_args!("0x{r8:02X}"));
         }
         if let Some(r16) = self.r16() {
-            dbg.field("r16", &format_args!("0x{:02X}", r16));
+            dbg.field("r16", &format_args!("0x{r16:02X}"));
         }
         if let Some(cond) = self.cond() {
-            dbg.field("cond", &format_args!("{:?}", cond));
+            dbg.field("cond", &format_args!("{cond:?}"));
         }
         if let Some(b3) = self.b3() {
-            dbg.field("b3", &format_args!("0x{:02X}", b3));
+            dbg.field("b3", &format_args!("0x{b3:02X}"));
         }
         if let Some(tgt3) = self.tgt3() {
-            dbg.field("tgt3", &format_args!("0x{:02X}", tgt3));
+            dbg.field("tgt3", &format_args!("0x{tgt3:02X}"));
         }
 
         dbg.finish_non_exhaustive()

@@ -97,7 +97,7 @@ impl Cartridge {
         match address {
             0x0000..=0x7FFF => self.read_rom(address),
             0xA000..=0xBFFF => self.read_ram(address),
-            _ => panic!("Invalid address: {:#X}", address),
+            _ => panic!("Invalid address: {address:#X}"),
         }
     }
 
@@ -105,7 +105,7 @@ impl Cartridge {
         match address {
             0x0000..=0x7FFF => self.write_rom(address, value),
             0xA000..=0xBFFF => self.write_ram(address, value),
-            _ => panic!("Invalid address: {:#X}", address),
+            _ => panic!("Invalid address: {address:#X}"),
         }
     }
 }

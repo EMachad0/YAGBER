@@ -18,7 +18,7 @@ impl Audenv {
 
     pub fn from_bus(bus: &Bus, io_type: IOType) -> Self {
         if !matches!(io_type, IOType::AUD1ENV | IOType::AUD2ENV | IOType::AUD4ENV) {
-            panic!("Invalid IO type for Audenv: {:?}", io_type);
+            panic!("Invalid IO type for Audenv: {io_type:?}");
         }
 
         Self {
@@ -95,7 +95,7 @@ impl Aud3Volume {
             0b01 => Self::Full,
             0b10 => Self::Half,
             0b11 => Self::Quarter,
-            _ => panic!("Invalid volume value: {}", value),
+            _ => panic!("Invalid volume value: {value}"),
         }
     }
 

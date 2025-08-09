@@ -22,7 +22,7 @@ impl WaveDuty {
             0b01 => Self::Duty25,
             0b10 => Self::Duty50,
             0b11 => Self::Duty75,
-            _ => panic!("Invalid wave duty value: {}", value),
+            _ => panic!("Invalid wave duty value: {value}"),
         }
     }
 
@@ -57,7 +57,7 @@ impl PulseAudLen {
 
     pub fn from_bus(bus: &Bus, io_type: IOType) -> Self {
         if !matches!(io_type, IOType::AUD1LEN | IOType::AUD2LEN) {
-            panic!("Invalid IO type for PulseAudLen: {:?}", io_type);
+            panic!("Invalid IO type for PulseAudLen: {io_type:?}");
         }
 
         Self::new(bus.read(io_type.address()))

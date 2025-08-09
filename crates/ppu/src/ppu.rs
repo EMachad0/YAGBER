@@ -124,7 +124,7 @@ impl Ppu {
                     FifoPixelType::Object => match pallet_index {
                         0 => IOType::OBP0.address(),
                         1 => IOType::OBP1.address(),
-                        _ => panic!("Invalid palette index: {}", pallet_index),
+                        _ => panic!("Invalid palette index: {pallet_index}"),
                     },
                 };
                 let pallet = bus.io_registers.read(dmg_pallet_addr);

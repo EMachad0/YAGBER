@@ -30,7 +30,7 @@ impl BootRom {
 
     pub fn read(&self, address: usize) -> u8 {
         if cfg!(feature = "break_on_unitialized_ram_read") && self.data[address].is_none() {
-            panic!("Uninitialized ROM read at address: {:#X}", address);
+            panic!("Uninitialized ROM read at address: {address:#X}");
         }
         self.data[address].unwrap_or_default()
     }

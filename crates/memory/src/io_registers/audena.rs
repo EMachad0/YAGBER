@@ -15,7 +15,7 @@ impl AudioChannel {
             1 => Self::Ch2,
             2 => Self::Ch3,
             3 => Self::Ch4,
-            _ => panic!("Invalid audio channel index: {}", index),
+            _ => panic!("Invalid audio channel index: {index}"),
         }
     }
 

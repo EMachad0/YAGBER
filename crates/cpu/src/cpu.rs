@@ -1,4 +1,4 @@
-use crate::alu::{Alu8, Alu16};
+use crate::alu::{Alu16, Alu8};
 use crate::ime::Ime;
 use crate::instructions::{ConditionCode, Instruction, InstructionType};
 use crate::registers::Registers;

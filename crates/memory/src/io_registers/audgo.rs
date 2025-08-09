@@ -15,7 +15,7 @@ impl AudHigh {
             io_type,
             IOType::AUD1HIGH | IOType::AUD2HIGH | IOType::AUD3HIGH
         ) {
-            panic!("Invalid IO type for AudHigh: {:?}", io_type);
+            panic!("Invalid IO type for AudHigh: {io_type:?}");
         }
         Self::new(bus.read(io_type.address()))
     }

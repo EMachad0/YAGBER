@@ -297,7 +297,7 @@ impl InstructionType {
         } else if opcode == 0xFB {
             InstructionType::Ei
         } else {
-            panic!("Unimplemented opcode: 0x{:02X}", opcode);
+            panic!("Unimplemented opcode: 0x{opcode:02X}");
         }
     }
 

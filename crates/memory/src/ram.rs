@@ -24,7 +24,7 @@ impl Ram {
     pub fn read_usize(&self, address: usize) -> u8 {
         let uaddress = address.wrapping_sub(self.offset);
         if cfg!(feature = "break_on_unitialized_ram_read") && self.data[uaddress].is_none() {
-            panic!("Uninitialized RAM read at address: {:#X}", address);
+            panic!("Uninitialized RAM read at address: {address:#X}");
         }
         self.data[uaddress].unwrap_or(0xFF)
     }
