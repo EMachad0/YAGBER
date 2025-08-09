@@ -12,8 +12,8 @@ fn test_dmg_acid2() {
         "Expected screen not found!"
     );
 
-    let out_log_path = format!("out/{}.log", rom_path);
-    let out_screen_path = format!("out/{}.png", rom_path);
+    let out_log_path = format!("out/{rom_path}.log");
+    let out_screen_path = format!("out/{rom_path}.png");
 
     let rom = fs::read(rom_path).expect("Failed to read ROM");
 
@@ -21,7 +21,7 @@ fn test_dmg_acid2() {
 
     let is_ok = status.is_ok();
     if let Err((error, output_screen)) = status {
-        println!("Error: {:?}", error);
+        println!("Error: {error:?}");
         crate::acid2::save_screen(&output_screen, &out_screen_path);
     }
 

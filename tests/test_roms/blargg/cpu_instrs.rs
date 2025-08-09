@@ -9,15 +9,15 @@ const INDV_ROM_PATH: &str = "test_roms/blargg/cpu_instrs/individual/";
 fn test_blargg_cpu_instrs() {
     assert!(fs::metadata(ROM_PATH).is_ok(), "Test ROM not found!");
 
-    let out_log_path = format!("out/{}.log", ROM_PATH);
+    let out_log_path = format!("out/{ROM_PATH}.log");
 
     let rom = fs::read(ROM_PATH).expect("Failed to read ROM");
 
     let status = run_emulator(&rom, &out_log_path);
     let is_ok = status.is_ok();
     if let Err((error, output_buffer)) = status {
-        println!("Error: {:?}", error);
-        println!("Output buffer:\n{}", output_buffer);
+        println!("Error: {error:?}");
+        println!("Output buffer:\n{output_buffer}");
     }
     assert!(is_ok);
 }
@@ -36,8 +36,8 @@ fn cpu_instrs_individual_test(test_name: &str) {
 
     let is_ok = status.is_ok();
     if let Err((error, output_buffer)) = status {
-        println!("Error: {:?}", error);
-        println!("Output buffer:\n{}", output_buffer);
+        println!("Error: {error:?}");
+        println!("Output buffer:\n{output_buffer}");
     }
     assert!(is_ok);
 }
