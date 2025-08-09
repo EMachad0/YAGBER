@@ -37,6 +37,10 @@ impl Ram {
     pub(crate) fn data_slice(&self) -> &[Option<u8>] {
         &self.data
     }
+
+    pub fn to_vec(&self) -> Vec<u8> {
+        self.data.to_vec().iter().map(|v| v.unwrap_or_default()).collect()
+    }
 }
 
 impl Memory for Ram {

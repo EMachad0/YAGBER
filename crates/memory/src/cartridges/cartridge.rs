@@ -1,11 +1,6 @@
-#![allow(dead_code)]
-
 use crate::{
     cartridges::{
-        CartridgeHeader, Mbc,
-        cartridge_mbc_info::CartridgeMbcInfo,
-        mbc::MbcKind,
-        saves::{SaveBackend, SaveBackendKind},
+        cartridge_mbc_info::CartridgeMbcInfo, mbc::MbcKind, saves::{Save, SaveBackend, SaveBackendKind}, CartridgeHeader, Mbc
     },
     ram::Ram,
 };
@@ -17,7 +12,8 @@ pub enum Cartridge {
     Loaded {
         mbc: MbcKind,
         rom: Ram,
-        ram: SaveBackendKind,
+        ram: Ram,
+        save_backend: SaveBackendKind,
     },
 }
 
@@ -31,11 +27,15 @@ impl Cartridge {
             panic!("ROM size is smaller than expected");
         }
 
+        let mut save_backend = SaveBackendKind::new(&header, &mbc_info);
+        let mut save = save_backend.read();
+        save.data.resize(mbc_info.ram_size, 0);
+
         let mbc = MbcKind::new(&mbc_info);
         let rom = Ram::from_bytes(rom, 0);
-        let ram = SaveBackendKind::new(&header, &mbc_info);
+        let ram = Ram::from_bytes(&save.data, 0);
 
-        Self::Loaded { mbc, rom, ram }
+        Self::Loaded { mbc, rom, ram, save_backend }
     }
 
     pub fn empty() -> Self {
@@ -75,7 +75,7 @@ impl Cartridge {
                     return 0xFF;
                 }
                 let address = mbc.ram_address(address);
-                ram.read(address)
+                ram.read_usize(address)
             }
         }
     }
@@ -88,7 +88,7 @@ impl Cartridge {
                     return;
                 }
                 let address = mbc.ram_address(address);
-                ram.write(address, value);
+                ram.write_usize(address, value);
             }
         }
     }
@@ -106,6 +106,19 @@ impl Cartridge {
             0x0000..=0x7FFF => self.write_rom(address, value),
             0xA000..=0xBFFF => self.write_ram(address, value),
             _ => panic!("Invalid address: {address:#X}"),
+        }
+    }
+}
+
+impl Drop for Cartridge {
+    fn drop(&mut self) {
+        match self {
+            Cartridge::Empty => {},
+            Cartridge::Loaded { ram, save_backend, .. } => {
+                let timestamp = chrono::Utc::now().timestamp();
+                let save = Save { data: ram.to_vec(), timestamp  };
+                save_backend.write(&save);
+            },
         }
     }
 }

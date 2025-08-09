@@ -1,12 +1,12 @@
 use crate::cartridges::{
     CartridgeHeader,
     cartridge_mbc_info::CartridgeMbcInfo,
-    saves::{MemoryBackend, NativeFileBackend},
+    saves::{MemoryBackend, NativeFileBackend, save::Save},
 };
 
 pub trait SaveBackend {
-    fn read(&self, address: usize) -> u8;
-    fn write(&mut self, address: usize, value: u8);
+    fn read(&mut self) -> Save;
+    fn write(&mut self, save: &Save);
 }
 
 pub enum SaveBackendKind {
@@ -17,21 +17,12 @@ pub enum SaveBackendKind {
 impl SaveBackendKind {
     pub fn new(cartridge_header: &CartridgeHeader, mbc_info: &CartridgeMbcInfo) -> Self {
         if !mbc_info.battery_backed_ram {
-            Self::Memory(MemoryBackend::new(mbc_info.ram_size))
+            Self::Memory(MemoryBackend)
         } else if cfg!(feature = "native") {
             #[cfg(feature = "trace")]
-            tracing::info!(
-                "Saving to {} {:?}",
-                cartridge_header.title,
-                cartridge_header.title.as_bytes()
-            );
-            Self::NativeFile(
-                NativeFileBackend::new(
-                    format!("out/saves/{}.sav", cartridge_header.title),
-                    mbc_info.ram_size,
-                )
-                .unwrap(),
-            )
+            tracing::info!("Saving to {}", cartridge_header.title,);
+            let path = format!("out/saves/{}.sav", cartridge_header.title);
+            Self::NativeFile(NativeFileBackend::new(path).unwrap())
         } else {
             panic!("Battery backed RAM is not supported on this platform");
         }
@@ -39,17 +30,17 @@ impl SaveBackendKind {
 }
 
 impl SaveBackend for SaveBackendKind {
-    fn read(&self, address: usize) -> u8 {
+    fn read(&mut self) -> Save {
         match self {
-            SaveBackendKind::Memory(backend) => backend.read(address),
-            SaveBackendKind::NativeFile(backend) => backend.read(address),
+            SaveBackendKind::Memory(memory_backend) => memory_backend.read(),
+            SaveBackendKind::NativeFile(native_file_backend) => native_file_backend.read(),
         }
     }
 
-    fn write(&mut self, address: usize, value: u8) {
+    fn write(&mut self, save: &Save) {
         match self {
-            SaveBackendKind::Memory(backend) => backend.write(address, value),
-            SaveBackendKind::NativeFile(backend) => backend.write(address, value),
+            SaveBackendKind::Memory(memory_backend) => memory_backend.write(save),
+            SaveBackendKind::NativeFile(native_file_backend) => native_file_backend.write(save),
         }
     }
 }
