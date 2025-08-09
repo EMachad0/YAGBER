@@ -5,7 +5,7 @@ use crate::{
         CartridgeHeader, Mbc,
         cartridge_mbc_info::CartridgeMbcInfo,
         mbc::MbcKind,
-        save::{SaveBackend, SaveBackendKind},
+        saves::{SaveBackend, SaveBackendKind},
     },
     ram::Ram,
 };

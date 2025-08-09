@@ -2,7 +2,7 @@ mod cartridge;
 mod cartridge_header;
 mod cartridge_mbc_info;
 mod mbc;
-mod save;
+mod saves;
 
 pub use cartridge::Cartridge;
 pub use cartridge_header::CartridgeHeader;

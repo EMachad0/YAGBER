@@ -1,6 +1,6 @@
 use std::{io::Read, os::unix::fs::FileExt};
 
-use crate::cartridges::save::SaveBackend;
+use crate::cartridges::saves::SaveBackend;
 
 /// Save backend that stores data in a file system.
 /// To be used with native targets that support file system.

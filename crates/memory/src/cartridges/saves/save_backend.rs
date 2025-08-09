@@ -1,7 +1,7 @@
 use crate::cartridges::{
     CartridgeHeader,
     cartridge_mbc_info::CartridgeMbcInfo,
-    save::{MemoryBackend, NativeFileBackend},
+    saves::{MemoryBackend, NativeFileBackend},
 };
 
 pub trait SaveBackend {
