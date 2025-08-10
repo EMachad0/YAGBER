@@ -71,10 +71,14 @@ impl RtcRegisters {
         let total_days = (total_hours / 24) + (self.days() as u64);
 
         self.days_low = (total_days & 0xFF) as u8;
-        self.days_high |= ((total_days >> 8) & 1) as u8;
+        let day_bit_8 = ((total_days >> 8) & 0x01) as u8;
+
+        let halt_bit = self.days_high & (1 << 6);
+        let mut carry_bit = self.days_high & (1 << 7);
         if total_days > 0x1FF {
-            self.days_high |= 1 << 7;
+            carry_bit = 1 << 7;
         }
+        self.days_high = (day_bit_8) | halt_bit | carry_bit;
     }
 
     pub fn days(&self) -> u16 {

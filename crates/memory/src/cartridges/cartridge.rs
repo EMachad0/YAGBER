@@ -49,8 +49,15 @@ impl Cartridge {
         let rtc = if mbc_info.includes_timer {
             let now_seconds = chrono::Utc::now().timestamp();
             let seconds_since_save = now_seconds - save.timestamp;
-            let mut rtc_registers = save.rtc_registers.unwrap_or_default();
-            rtc_registers.advance_by(seconds_since_save as u64);
+            let rtc_registers = match save.rtc_registers {
+                Some(mut regs) => {
+                    if seconds_since_save > 0 && !regs.halted() {
+                        regs.advance_by(seconds_since_save as u64);
+                    }
+                    regs
+                }
+                None => crate::cartridges::rtc::RtcRegisters::default(),
+            };
             Some(Rtc::from_registers(rtc_registers))
         } else {
             None
