@@ -1,10 +1,12 @@
 mod mbc0;
 mod mbc1;
 mod mbc2;
+mod mbc3;
 
 pub use mbc0::Mbc0;
 pub use mbc1::Mbc1;
 pub use mbc2::Mbc2;
+pub use mbc3::Mbc3;
 
 use crate::cartridges::{cartridge_mbc_info::{CartridgeMbcInfo, MbcType}, ExternalRamAddress};
 
@@ -19,6 +21,7 @@ pub enum MbcKind {
     Mbc0(Mbc0),
     Mbc1(Mbc1),
     Mbc2(Mbc2),
+    Mbc3(Mbc3),
 }
 
 impl MbcKind {
@@ -27,6 +30,7 @@ impl MbcKind {
             MbcType::Mbc0 => MbcKind::Mbc0(Mbc0::new()),
             MbcType::Mbc1 => MbcKind::Mbc1(Mbc1::new(info.rom_bank_count, info.ram_bank_count)),
             MbcType::Mbc2 => MbcKind::Mbc2(Mbc2::new()),
+            MbcType::Mbc3 => MbcKind::Mbc3(Mbc3::new()),
             _ => unimplemented!("Unsupported MBC type: {:?}", info.mbc_type),
         }
     }
@@ -38,6 +42,7 @@ impl Mbc for MbcKind {
             MbcKind::Mbc0(mbc) => mbc.ram_enabled(),
             MbcKind::Mbc1(mbc) => mbc.ram_enabled(),
             MbcKind::Mbc2(mbc) => mbc.ram_enabled(),
+            MbcKind::Mbc3(mbc) => mbc.ram_enabled(),
         }
     }
 
@@ -46,6 +51,7 @@ impl Mbc for MbcKind {
             MbcKind::Mbc0(mbc) => mbc.rom_write(address, value),
             MbcKind::Mbc1(mbc) => mbc.rom_write(address, value),
             MbcKind::Mbc2(mbc) => mbc.rom_write(address, value),
+            MbcKind::Mbc3(mbc) => mbc.rom_write(address, value),
         }
     }
 
@@ -54,6 +60,7 @@ impl Mbc for MbcKind {
             MbcKind::Mbc0(mbc) => mbc.rom_address(address),
             MbcKind::Mbc1(mbc) => mbc.rom_address(address),
             MbcKind::Mbc2(mbc) => mbc.rom_address(address),
+            MbcKind::Mbc3(mbc) => mbc.rom_address(address),
         }
     }
 
@@ -62,6 +69,7 @@ impl Mbc for MbcKind {
             MbcKind::Mbc0(mbc) => mbc.ram_address(address),
             MbcKind::Mbc1(mbc) => mbc.ram_address(address),
             MbcKind::Mbc2(mbc) => mbc.ram_address(address),
+            MbcKind::Mbc3(mbc) => mbc.ram_address(address),
         }
     }
 }
