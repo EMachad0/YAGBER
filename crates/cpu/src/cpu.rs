@@ -236,21 +236,10 @@ impl Cpu {
 
     fn stack_push(&mut self, bus: &mut Bus, value: u16) {
         self.sp = self.sp.wrapping_sub(2);
-        // Game Boy stack must stay in WRAM/echo region (0xC000–0xFDFF)
-        if self.sp < 0xC000 {
-            panic!(
-                "Stack overflow! SP went into invalid memory: {:#06X}",
-                self.sp
-            );
-        }
         bus.write_u16(self.sp, value);
     }
 
     fn stack_pop(&mut self, bus: &mut Bus) -> u16 {
-        // optionally guard underflow on pop
-        if self.sp > 0xFFFE {
-            panic!("Stack underflow! SP is already at {:#06X}", self.sp);
-        }
         let value = bus.read_u16(self.sp);
         self.sp = self.sp.wrapping_add(2);
         value

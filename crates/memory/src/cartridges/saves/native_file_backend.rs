@@ -45,8 +45,6 @@ impl SaveBackend for NativeFileBackend {
     fn write(&mut self, save: &super::save::Save) {
         let mut buf = Vec::new();
         if cfg!(debug_assertions) {
-            #[cfg(feature = "trace")]
-            tracing::debug!("Saving pretty");
             serde_json::to_writer_pretty(&mut buf, save)
         } else {
             serde_json::to_writer(&mut buf, save)
