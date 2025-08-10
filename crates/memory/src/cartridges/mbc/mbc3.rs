@@ -67,10 +67,11 @@ impl Mbc for Mbc3 {
                 self.rom_bank_number = u7::from_u8(value & 0x7F);
             }
             0x4000..=0x5FFF => {
-                self.ram_bank_number = u4::from_u8(value & 0x03);
+                // MBC3: 0x00-0x03 = RAM banks, 0x08-0x0C = RTC registers
+                self.ram_bank_number = u4::from_u8(value & 0x0F);
             }
             0x6000..=0x7FFF => {
-                // Latch clock data - Not implemented
+                // Latch clock data is handled in cartridge level
             }
             _ => unreachable!("Invalid address for MBC3 write: {address:#X}"),
         }

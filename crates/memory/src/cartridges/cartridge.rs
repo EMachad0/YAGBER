@@ -86,7 +86,14 @@ impl Cartridge {
     pub fn write_rom(&mut self, address: u16, value: u8) {
         match self {
             Self::Empty => (),
-            Self::Loaded { mbc, .. } => mbc.rom_write(address, value),
+            Self::Loaded { mbc, rtc, .. } => {
+                if (0x6000..=0x7FFF).contains(&address) {
+                    if let Some(rtc) = rtc.as_mut() {
+                        rtc.latch_write(value);
+                    }
+                }
+                mbc.rom_write(address, value)
+            }
         }
     }
 
@@ -97,7 +104,7 @@ impl Cartridge {
                 tracing::warn!("Reading from empty cartridge RAM");
                 0xFF
             }
-            Self::Loaded { mbc, ram, .. } => {
+            Self::Loaded { mbc, ram, rtc, .. } => {
                 if !mbc.ram_enabled() {
                     return 0xFF;
                 }
@@ -106,7 +113,12 @@ impl Cartridge {
                         Some(ram) => ram.read_usize(address),
                         None => 0xFF,
                     },
-                    super::ExternalRamAddress::Rtc(_rtc_register_kind) => todo!(),
+                    super::ExternalRamAddress::Rtc(rtc_register_kind) => {
+                        match rtc.as_ref() {
+                            Some(rtc_ref) => rtc_ref.read_register(rtc_register_kind),
+                            None => 0xFF,
+                        }
+                    }
                 }
             }
         }
@@ -115,7 +127,7 @@ impl Cartridge {
     pub fn write_ram(&mut self, address: u16, value: u8) {
         match self {
             Self::Empty => (),
-            Self::Loaded { mbc, ram, .. } => {
+            Self::Loaded { mbc, ram, rtc, .. } => {
                 if !mbc.ram_enabled() {
                     return;
                 }
@@ -125,7 +137,12 @@ impl Cartridge {
                             ram.write_usize(address, value);
                         }
                     }
-                    super::ExternalRamAddress::Rtc(_rtc_register_kind) => todo!(),
+                    super::ExternalRamAddress::Rtc(rtc_register_kind) => {
+                        if let Some(rtc) = rtc {
+                            rtc.tick();
+                            rtc.write_register(rtc_register_kind, value);
+                        }
+                    }
                 }
             }
         }
