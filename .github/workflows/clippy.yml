@@ -14,6 +14,11 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Install system dependencies (Linux)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y pkg-config libasound2-dev
+
       - name: Install Rust toolchain with Clippy
         uses: dtolnay/rust-toolchain@stable
         with:
@@ -21,4 +26,4 @@ jobs:
 
       - name: Run cargo clippy
         run: |
-          cargo clippy --workspace --all-targets
+          cargo clippy --workspace --locked --all-targets
