@@ -1,9 +1,6 @@
 use crate::{
     cartridges::{
-        CartridgeHeader, Mbc, Rtc,
-        cartridge_mbc_info::CartridgeMbcInfo,
-        mbc::MbcKind,
-        saves::{Save, SaveBackend, SaveBackendKind},
+        cartridge_mbc_info::CartridgeMbcInfo, external_ram_address::MbcDeviceUpdate, mbc::MbcKind, saves::{Save, SaveBackend, SaveBackendKind}, CartridgeHeader, Mbc, Rtc
     },
     ram::Ram,
 };
@@ -94,12 +91,19 @@ impl Cartridge {
         match self {
             Self::Empty => (),
             Self::Loaded { mbc, rtc, .. } => {
-                if (0x6000..=0x7FFF).contains(&address) {
-                    if let Some(rtc) = rtc.as_mut() {
-                        rtc.latch_write(value);
+                let mbc_device_update = mbc.rom_write(address, value);
+                if let Some(update) = mbc_device_update {
+                    match update {
+                        MbcDeviceUpdate::RtcLatch => {
+                            if let Some(rtc_ref) = rtc {
+                                rtc_ref.latch_write(value);
+                            }
+                        }
+                        MbcDeviceUpdate::RumbleMotor(_state) => {
+                            // unimplemented!()
+                        }
                     }
                 }
-                mbc.rom_write(address, value)
             }
         }
     }
@@ -120,12 +124,10 @@ impl Cartridge {
                         Some(ram) => ram.read_usize(address),
                         None => 0xFF,
                     },
-                    super::ExternalRamAddress::Rtc(rtc_register_kind) => {
-                        match rtc.as_ref() {
-                            Some(rtc_ref) => rtc_ref.read_register(rtc_register_kind),
-                            None => 0xFF,
-                        }
-                    }
+                    super::ExternalRamAddress::Rtc(rtc_register_kind) => match rtc.as_ref() {
+                        Some(rtc_ref) => rtc_ref.read_register(rtc_register_kind),
+                        None => 0xFF,
+                    },
                 }
             }
         }

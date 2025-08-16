@@ -1,6 +1,6 @@
 use arbitrary_int::{u2, u5};
 
-use crate::cartridges::{ExternalRamAddress, Mbc};
+use crate::cartridges::{external_ram_address::MbcDeviceUpdate, ExternalRamAddress, Mbc};
 
 pub struct Mbc1 {
     ram_enabled: bool,
@@ -66,7 +66,7 @@ impl Mbc1 {
 }
 
 impl Mbc for Mbc1 {
-    fn rom_write(&mut self, address: u16, value: u8) {
+    fn rom_write(&mut self, address: u16, value: u8) -> Option<MbcDeviceUpdate> {
         match address {
             0x0000..=0x1FFF => {
                 // Enable or disable RAM
@@ -88,6 +88,7 @@ impl Mbc for Mbc1 {
             }
             _ => unreachable!("Invalid address for MBC1 write: {:#X}", address),
         }
+        None
     }
 
     fn rom_address(&self, address: u16) -> usize {

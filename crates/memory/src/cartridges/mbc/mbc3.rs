@@ -1,6 +1,6 @@
 use arbitrary_int::{u4, u7};
 
-use crate::cartridges::{ExternalRamAddress, Mbc};
+use crate::cartridges::{external_ram_address::MbcDeviceUpdate, ExternalRamAddress, Mbc};
 
 pub struct Mbc3 {
     ram_enabled: bool,
@@ -58,7 +58,7 @@ impl Mbc3 {
 }
 
 impl Mbc for Mbc3 {
-    fn rom_write(&mut self, address: u16, value: u8) {
+    fn rom_write(&mut self, address: u16, value: u8) -> Option<MbcDeviceUpdate> {
         match address {
             0x0000..=0x1FFF => {
                 self.ram_enabled = (value & 0x0A) == 0x0A;
@@ -71,10 +71,11 @@ impl Mbc for Mbc3 {
                 self.ram_bank_number = u4::from_u8(value & 0x0F);
             }
             0x6000..=0x7FFF => {
-                // Latch clock data is handled in cartridge level
+                return Some(MbcDeviceUpdate::RtcLatch);
             }
             _ => unreachable!("Invalid address for MBC3 write: {address:#X}"),
         }
+        None
     }
 
     fn rom_address(&self, address: u16) -> usize {

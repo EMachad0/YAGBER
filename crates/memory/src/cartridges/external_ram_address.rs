@@ -8,3 +8,9 @@ pub enum ExternalRamAddress {
     Rtc(RtcRegisterKind),
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum MbcDeviceUpdate {
+    RtcLatch,
+    RumbleMotor(bool),
+}
+
