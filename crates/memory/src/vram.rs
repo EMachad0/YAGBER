@@ -15,7 +15,7 @@ impl Vram {
     pub fn new() -> Self {
         // Initialise VRAM with 0xFF just like on real hardware after power-up
         // so that early reads (e.g. during boot ROM execution) don't
-        // trigger the `break_on_unitialized_ram_read` debug assertion.
+        // trigger the `warn_on_unitialized_ram_read` debug assertion.
         let blank = vec![0xFF; Self::SIZE];
         Self {
             ram: [

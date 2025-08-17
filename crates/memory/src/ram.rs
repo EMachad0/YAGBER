@@ -23,8 +23,9 @@ impl Ram {
 
     pub fn read_usize(&self, address: usize) -> u8 {
         let uaddress = address.wrapping_sub(self.offset);
-        if cfg!(feature = "break_on_unitialized_ram_read") && self.data[uaddress].is_none() {
-            panic!("Uninitialized RAM read at address: {address:#X}");
+        if cfg!(feature = "warn_on_unitialized_ram_read") && self.data[uaddress].is_none() {
+            #[cfg(feature = "trace")]
+            tracing::warn!("Uninitialized RAM read at address: {address:#X}");
         }
         self.data[uaddress].unwrap_or(0xFF)
     }

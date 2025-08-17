@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [features]
-default = ["yagber_memory/break_on_unitialized_ram_read"]
+default = ["yagber_memory/warn_on_unitialized_ram_read"]
 trace = [
     "yagber_app/trace",
     "yagber_cpal/trace",

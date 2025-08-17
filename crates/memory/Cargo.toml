@@ -5,7 +5,7 @@ edition = "2024"
 
 [features]
 default = ["native"]
-break_on_unitialized_ram_read = []
+warn_on_unitialized_ram_read = []
 trace = ["dep:tracing"]
 trace-span = ["dep:tracing"]
 native = ["dep:memmap2"]
