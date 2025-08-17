@@ -1,9 +1,9 @@
 use crate::{key_state::KeyState, physical_input};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, strum::EnumCount)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum InputKey {
-    A,
-    B,
+    ButtonA,
+    ButtonB,
     Select,
     Start,
     Up,
@@ -13,12 +13,12 @@ pub enum InputKey {
 }
 
 #[derive(Debug, Clone, Copy)]
-pub struct Input {
+pub struct InputEvent {
     pub input_key: InputKey,
     pub state: KeyState,
 }
 
-impl Input {
+impl InputEvent {
     pub fn new(input_key: InputKey, state: KeyState) -> Self {
         Self { input_key, state }
     }
@@ -26,8 +26,8 @@ impl Input {
     pub fn from_keyboard_input(input: &physical_input::keyboard::KeyboardInput) -> Option<Self> {
         use physical_input::keyboard::KeyCode;
         let input_key = match input.key_code {
-            KeyCode::KeyZ => InputKey::A,
-            KeyCode::KeyX => InputKey::B,
+            KeyCode::KeyZ => InputKey::ButtonA,
+            KeyCode::KeyX => InputKey::ButtonB,
             KeyCode::Enter => InputKey::Start,
             KeyCode::Backspace => InputKey::Select,
             KeyCode::ArrowUp => InputKey::Up,
