@@ -12,16 +12,14 @@ YAGBER is a Game Boy emulator written in Rust. It is a work in progress and not 
 Currently it only runs from the command line, no binary is provided yet.
 
 ```bash
-cargo run --release --bin yagber -- --rom path/to/rom.gb
+cargo run --release path/to/rom.gb
 ```
 
 ## Game Support
 
-Tetris from 1989 for the original Game Boy is fully functional.
+YAGBER supports cartridges without MBCs(Memory Bank Controllers) or with MBCs 1, 2, 3 or 5. This account to the vast majority of oficially released game boy color games but there are other exotic games that use other MBCs types and thus are not yet supported.
 
-![Tetris](images/screenshots/tetris_intro.png)
-
-Many other games are not yet functional due to the (soon) to implemented MBC2 and above support.
+See [docs/compatibility.md](docs/compatibility.md) for more information, including a list with imcompatible games.
 
 ## Testing
 
