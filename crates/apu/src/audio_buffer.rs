@@ -14,14 +14,23 @@ pub struct AudioBuffer {
 }
 
 impl AudioBuffer {
-    const CAPACITY: usize = 1 << 16;
+    /// Creates an audio buffer with a fixed number of samples capacity.
+    pub fn new_with_capacity(capacity_samples: usize) -> Self {
+        let (producer, consumer) = ringbuf::HeapRb::<f32>::new(capacity_samples).split();
+        Self { producer, consumer: Some(consumer) }
+    }
 
+    /// Creates an audio buffer sized for `seconds` of audio at `sample_rate_hz`.
+    pub fn new_with_seconds_at_rate(sample_rate_hz: u32, seconds: u32) -> Self {
+        let seconds = seconds.max(1);
+        let capacity = sample_rate_hz.saturating_mul(seconds) as usize;
+        Self::new_with_capacity(capacity)
+    }
+
+    /// Legacy constructor with a default capacity.
     pub fn new() -> Self {
-        let (producer, consumer) = ringbuf::HeapRb::<f32>::new(Self::CAPACITY).split();
-        Self {
-            producer,
-            consumer: Some(consumer),
-        }
+        // Default to ~1 second at 48kHz for legacy callers.
+        Self::new_with_capacity(48_000)
     }
 
     pub fn push(&mut self, sample: f32) {

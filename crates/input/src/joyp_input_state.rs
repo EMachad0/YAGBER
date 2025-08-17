@@ -45,13 +45,11 @@ impl JoypInputState {
         }
     }
 
-    pub(crate) fn on_tcycle(emulator: &mut yagber_app::Emulator) {
+    pub(crate) fn on_mcycle(emulator: &mut yagber_app::Emulator) {
         let (event_queue, joyp_input_state) = emulator
             .get_components_mut2::<InputEventQueue, JoypInputState>()
             .expect("JoypInputState and InputEventQueue must be initialized");
         while let Some(event) = event_queue.pop_event::<Self>() {
-            // #[cfg(feature = "trace")]
-            // tracing::debug!("joyp_input: {event:?}");
             joyp_input_state.handle_input(event);
         }
     }

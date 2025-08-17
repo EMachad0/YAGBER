@@ -37,8 +37,8 @@ impl Apu {
             ch2: PulseChannel::new(yagber_memory::AudioChannel::Ch2),
             ch3: WaveChannel::new(),
             ch4: NoiseChannel::new(),
-            left_buffer: AudioBuffer::new(),
-            right_buffer: AudioBuffer::new(),
+            left_buffer: AudioBuffer::new_with_seconds_at_rate(sample_rate_hz, 3),
+            right_buffer: AudioBuffer::new_with_seconds_at_rate(sample_rate_hz, 3),
             high_pass_filter: HighPassFilter::new(sample_rate_hz),
             sweep: Sweep::new(),
         }
@@ -193,10 +193,22 @@ impl Apu {
     }
 
     pub fn set_sample_rate(&mut self, sample_rate_hz: u32) {
+        #[cfg(feature = "trace")]
+        tracing::trace!("Setting APU sample rate to: {sample_rate_hz} Hz");
         self.sample_rate_hz = sample_rate_hz.max(1);
         let cycles_per_second = yagber_app::Emulator::TARGET_DOT_FREQ_HZ;
         self.tcycles_per_sample = cycles_per_second / self.sample_rate_hz;
         self.high_pass_filter.set_sample_rate(self.sample_rate_hz);
+
+        // Resize buffers to ~3 seconds at the new rate if the audio backend
+        // hasn't taken ownership of the consumers yet. This avoids breaking
+        // an already running stream.
+        if self.left_buffer.consumer.is_some() {
+            self.left_buffer = AudioBuffer::new_with_seconds_at_rate(self.sample_rate_hz, 3);
+        }
+        if self.right_buffer.consumer.is_some() {
+            self.right_buffer = AudioBuffer::new_with_seconds_at_rate(self.sample_rate_hz, 3);
+        }
     }
 
     pub(crate) fn tick_sound_length(&mut self, bus: &mut yagber_memory::Bus) {

@@ -17,7 +17,7 @@ impl yagber_app::Plugin for InputPlugin {
         emulator
             .with_component(input_event_queue::InputEventQueue::default())
             .with_component(joyp_input_state::JoypInputState::new())
-            .on_tcycle(joyp_input_state::JoypInputState::on_tcycle);
+            .on_mcycle(joyp_input_state::JoypInputState::on_mcycle);
 
         emulator
             .get_component_mut::<input_event_queue::InputEventQueue>()
