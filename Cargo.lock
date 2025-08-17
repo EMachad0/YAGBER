@@ -3861,7 +3861,6 @@ version = "0.1.0"
 dependencies = [
  "arbitrary-int",
  "chrono",
- "memmap2",
  "serde",
  "serde_json",
  "strum",
