@@ -1,4 +1,4 @@
-use std::collections::{HashMap, VecDeque};
+use std::collections::VecDeque;
 
 use crate::InputEvent;
 
@@ -52,7 +52,7 @@ impl Default for InnerQueue {
 
 #[derive(Debug, Default, Clone)]
 pub struct InputEventQueue {
-    queues: HashMap<EventQueueKey, InnerQueue>,
+    queues: ahash::AHashMap<EventQueueKey, InnerQueue>,
 }
 
 impl InputEventQueue {

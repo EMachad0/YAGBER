@@ -1,15 +1,13 @@
-use std::collections::HashMap;
-
 use crate::components::Component;
 
 pub struct ComponentBus {
-    components: HashMap<std::any::TypeId, Box<dyn Component>>,
+    components: ahash::AHashMap<std::any::TypeId, Box<dyn Component>>,
 }
 
 impl ComponentBus {
     pub fn new() -> Self {
         Self {
-            components: HashMap::new(),
+            components: Default::default(),
         }
     }
 

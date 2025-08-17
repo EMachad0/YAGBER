@@ -3923,6 +3923,7 @@ dependencies = [
 name = "yagber_app"
 version = "0.1.0"
 dependencies = [
+ "ahash",
  "tracing",
 ]
 
@@ -3983,6 +3984,7 @@ dependencies = [
 name = "yagber_input"
 version = "0.1.0"
 dependencies = [
+ "ahash",
  "smol_str",
  "strum",
  "tracing",

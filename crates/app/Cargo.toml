@@ -9,4 +9,5 @@ trace = ["dep:tracing"]
 trace-span = ["dep:tracing"]
 
 [dependencies]
+ahash = { workspace = true }
 tracing = { workspace = true, optional = true }
