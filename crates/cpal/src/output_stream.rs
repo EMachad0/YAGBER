@@ -19,11 +19,18 @@ impl OutputStream {
             apu.right_buffer.take_consumer().expect("No right buffer");
         #[cfg(feature = "trace")]
         tracing::trace!("Building output stream");
+        let sample_rate_hz = config.sample_rate.0 as usize;
         let stream = device
             .build_output_stream(
                 &config,
                 move |data, info| {
-                    Self::data_callback(&mut left_buffer, &mut right_buffer, data, info)
+                    Self::data_callback(
+                        &mut left_buffer,
+                        &mut right_buffer,
+                        data,
+                        sample_rate_hz,
+                        info,
+                    )
                 },
                 Self::error_callback,
                 Self::TIMEOUT,
@@ -39,15 +46,29 @@ impl OutputStream {
         left_buffer: &mut yagber_apu::ConsumerCache,
         right_buffer: &mut yagber_apu::ConsumerCache,
         data: &mut [f32],
+        sample_rate_hz: usize,
         _: &cpal::OutputCallbackInfo,
     ) {
         data.fill(0.0);
         let frames = data.len() / 2;
+
+        // Fill current callback frames from the buffer.
         for i in 0..frames {
             let l = left_buffer.try_pop().unwrap_or(0.0);
             let r = right_buffer.try_pop().unwrap_or(0.0);
             data[i * 2] = l;
             data[i * 2 + 1] = r;
+        }
+
+        // After producing current audio, drop up to ~100ms of the oldest
+        // samples (in lockstep L/R) to catch up and keep latency bounded.
+        let max_latency_samples = sample_rate_hz / 10; // ~100ms worth
+        for _ in 0..max_latency_samples {
+            let l = left_buffer.try_pop();
+            let r = right_buffer.try_pop();
+            if l.is_none() || r.is_none() {
+                break;
+            }
         }
     }
 

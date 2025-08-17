@@ -8,7 +8,7 @@ use crate::{
 #[derive(Debug)]
 pub struct Apu {
     channel_step_accumulator: u8,
-    sampler_accumulator: u32,
+    sampler_accumulator: u64,
     sample_rate_hz: u32,
     tcycles_per_sample: u32,
     pub ch1: PulseChannel,
@@ -69,9 +69,15 @@ impl Apu {
             self.channel_tick(bus, yagber_memory::AudioChannel::Ch4);
         }
 
-        self.sampler_accumulator += 1;
-        while self.sampler_accumulator >= self.tcycles_per_sample {
-            self.sampler_accumulator -= self.tcycles_per_sample;
+        // Sample at an accurate fractional rate using a phase accumulator.
+        // Add sample_rate every T-cycle; emit a sample whenever the accumulator
+        // reaches the system dot frequency.
+        self.sampler_accumulator = self
+            .sampler_accumulator
+            .saturating_add(self.sample_rate_hz as u64);
+        let threshold = yagber_app::Emulator::TARGET_DOT_FREQ_HZ as u64;
+        while self.sampler_accumulator >= threshold {
+            self.sampler_accumulator -= threshold;
 
             let ch1 = self.get_channel_sample(bus, yagber_memory::AudioChannel::Ch1);
             let ch2 = self.get_channel_sample(bus, yagber_memory::AudioChannel::Ch2);
