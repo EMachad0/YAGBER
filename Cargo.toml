@@ -25,6 +25,11 @@ trace-span = [
 tracing-chrome = ["trace", "trace-span", "yagber_log/tracing-chrome"]
 tracing-tracy = ["trace", "trace-span", "yagber_log/tracing-tracy", "yagber_display/frame_marker"]
 
+[[bench]]
+name = "emulator"
+harness = false
+path = "benches/emulator_bench.rs"
+
 [workspace]
 members = [
     # Official components of this emulator
@@ -48,6 +53,7 @@ yagber_timer = { workspace = true }
 [dev-dependencies]
 pretty_assertions = { workspace = true }
 image = { workspace = true }
+criterion = { version = "0.7.0" }
 
 [workspace.dependencies]
 anyhow = { version = "1.0.98" }
