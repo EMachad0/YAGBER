@@ -1,10 +1,10 @@
-mod input;
+mod input_event;
 mod input_event_queue;
 mod joyp_input_state;
 mod key_state;
 mod physical_input;
 
-pub use input::{InputEvent, InputKey};
+pub use input_event::InputEvent;
 pub use input_event_queue::InputEventQueue;
 pub use joyp_input_state::JoypInputState;
 pub use key_state::KeyState;

@@ -1,9 +1,6 @@
 use strum::EnumCount;
 
-use crate::{
-    input::{InputEvent, InputKey},
-    key_state::KeyState, InputEventQueue,
-};
+use crate::{InputEventQueue, input_event::InputEvent, key_state::KeyState};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, EnumCount)]
 pub enum JoypKey {
@@ -18,18 +15,38 @@ pub enum JoypKey {
 }
 
 impl JoypKey {
-    pub fn from_input_key(input_key: InputKey) -> Option<Self> {
-        match input_key {
-            InputKey::ButtonA => Some(JoypKey::ButtonA),
-            InputKey::ButtonB => Some(JoypKey::ButtonB),
-            InputKey::Select => Some(JoypKey::Select),
-            InputKey::Start => Some(JoypKey::Start),
-            InputKey::Up => Some(JoypKey::Up),
-            InputKey::Down => Some(JoypKey::Down),
-            InputKey::Left => Some(JoypKey::Left),
-            InputKey::Right => Some(JoypKey::Right),
-            // _ => None,
+    pub fn from_input_event(input_event: InputEvent) -> Option<Self> {
+        match input_event {
+            InputEvent::Keyboard(keyboard_input) => {
+                match keyboard_input.key_code {
+                    crate::keyboard::KeyCode::KeyZ => Some(JoypKey::ButtonA),
+                    crate::keyboard::KeyCode::KeyX => Some(JoypKey::ButtonB),
+                    crate::keyboard::KeyCode::Backspace => Some(JoypKey::Select),
+                    crate::keyboard::KeyCode::Enter => Some(JoypKey::Start),
+                    crate::keyboard::KeyCode::ArrowUp => Some(JoypKey::Up),
+                    crate::keyboard::KeyCode::ArrowDown => Some(JoypKey::Down),
+                    crate::keyboard::KeyCode::ArrowLeft => Some(JoypKey::Left),
+                    crate::keyboard::KeyCode::ArrowRight => Some(JoypKey::Right),
+                    _ => None,
+                }
+            }
         }
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct JoypEvent {
+    pub key: JoypKey,
+    pub state: KeyState,
+}
+
+impl JoypEvent {
+    pub fn from_input_event(input_event: InputEvent) -> Option<Self> {
+        let key = JoypKey::from_input_event(input_event.clone())?;
+        let state = match input_event {
+            InputEvent::Keyboard(keyboard_input) => keyboard_input.state,
+        };
+        Some(Self { key, state })
     }
 }
 
@@ -55,15 +72,16 @@ impl JoypInputState {
     }
 
     fn handle_input(&mut self, input: InputEvent) {
-        #[cfg(feature = "trace")]
-        tracing::trace!("Joyp Input: {:?}", input);
-
-        let joyp_key = JoypKey::from_input_key(input.input_key);
-        let Some(joyp_key) = joyp_key else {
+        let joyp_event = JoypEvent::from_input_event(input);
+        let Some(joyp_event) = joyp_event else {
             return;
         };
 
-        *self.key_state_mut(joyp_key) = input.state;
+        #[cfg(feature = "trace")]
+        tracing::trace!("Joyp Input: {:?}", joyp_event);
+
+        let joyp_key = joyp_event.key;
+        *self.key_state_mut(joyp_key) = joyp_event.state;
     }
 
     fn key_state(&self, key: JoypKey) -> &KeyState {

@@ -69,6 +69,9 @@ use smol_str::SmolStr;
 
 use crate::key_state::KeyState;
 
+/// A keyboard input event.
+///
+/// This event is the translated version of the `WindowEvent::KeyboardInput` from the `winit` crate.
 #[derive(Debug, Clone)]
 pub struct KeyboardInput {
     /// The physical key code of the key.

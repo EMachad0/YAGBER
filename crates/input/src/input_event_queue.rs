@@ -19,7 +19,6 @@ impl EventQueueKey {
 
 #[derive(Debug, Clone)]
 struct InnerQueue {
-    // This will hold the actual events
     events: VecDeque<InputEvent>,
 }
 
@@ -63,7 +62,7 @@ impl InputEventQueue {
 
     pub fn push_event(&mut self, event: InputEvent) {
         for queue in self.queues.values_mut() {
-            queue.push_event(event);
+            queue.push_event(event.clone());
         }
     }
 

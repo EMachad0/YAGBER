@@ -93,10 +93,7 @@ impl ApplicationHandler for WinitApp {
                 };
 
                 let keyboard_input = crate::input_converter::convert_keyboard_input(&event);
-                let Some(input_event) = yagber_input::InputEvent::from_keyboard_input(&keyboard_input) else {
-                    return;
-                };
-                input_event_queue.push_event(input_event);
+                input_event_queue.push_event(yagber_input::InputEvent::Keyboard(keyboard_input));
             }
             _ => (),
         }
