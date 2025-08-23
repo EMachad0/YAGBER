@@ -4,12 +4,28 @@ use crate::{
 };
 
 pub struct Emulator {
-    cycles: u64,
+    /// Total number of cycles since the start of emulation.
+    /// emulation cycles continue to increment even when the emulator is paused.
+    emulation_cycles: u64,
+    /// Total number of dot cycles since the start of emulation.
+    dot_cycles: u64,
+    /// State
     components: ComponentBus,
+    /// Callback that are called every t cycle.
     tcycle_queue: CallbackQueue,
+    /// Callback that are called every m cycle.
+    /// One m cycle is 4 t cycles.
     mcycle_queue: CallbackQueue,
+    /// Callback that are called every dot cycle.
+    /// dot cycles are not influenced by speed mode.
     dot_cycle_queue: CallbackQueue,
+    /// Callbacks that are called every 1/60 second.
+    /// tied to emulation cycles thus not influenced by pauses.
+    fixed_step_queue: CallbackQueue,
+    /// CGB speed mode.
     speed_mode: SpeedMode,
+    /// Whether the emulator is paused.
+    paused: bool,
 }
 
 impl Emulator {
@@ -18,25 +34,32 @@ impl Emulator {
 
     pub fn new() -> Self {
         Self {
-            cycles: 0,
-            components: ComponentBus::new(),
-            tcycle_queue: CallbackQueue::new(),
-            mcycle_queue: CallbackQueue::new(),
-            dot_cycle_queue: CallbackQueue::new(),
+            emulation_cycles: 0,
+            dot_cycles: 0,
+            components: ComponentBus::default(),
+            tcycle_queue: CallbackQueue::default(),
+            mcycle_queue: CallbackQueue::default(),
+            dot_cycle_queue: CallbackQueue::default(),
+            fixed_step_queue: CallbackQueue::default(),
             speed_mode: SpeedMode::default(),
+            paused: false,
         }
-        .with_default_components()
-    }
-
-    fn with_default_components(self) -> Self {
-        self
     }
 
     /// Step the emulator a single dot.
     pub fn step(&mut self) {
+        self.emulation_cycles = self.emulation_cycles.wrapping_add(1);
+        if self.emulation_cycles % (Emulator::TARGET_DOT_FREQ_HZ as u64 / 60) == 0 {
+            self.step_fixed_step();
+        }
+
+        if self.paused {
+            return;
+        }
+
         #[cfg(feature = "trace-span")]
         let _step_span = tracing::info_span!("step").entered();
-        self.cycles += 1;
+        self.dot_cycles = self.dot_cycles.wrapping_add(1);
 
         self.step_dot_cycle();
         self.step_tcycle();
@@ -50,7 +73,6 @@ impl Emulator {
 
     fn step_tcycle(&mut self) {
         let emulator_ptr = self as *mut Emulator;
-
         let callbacks = self.tcycle_queue.callbacks();
         for callback in callbacks {
             callback(unsafe { &mut *emulator_ptr });
@@ -59,7 +81,6 @@ impl Emulator {
 
     fn step_mcycle(&mut self) {
         let emulator_ptr = self as *mut Emulator;
-
         let callbacks = self.mcycle_queue.callbacks();
         for callback in callbacks {
             callback(unsafe { &mut *emulator_ptr });
@@ -68,8 +89,15 @@ impl Emulator {
 
     fn step_dot_cycle(&mut self) {
         let emulator_ptr = self as *mut Emulator;
-
         let callbacks = self.dot_cycle_queue.callbacks();
+        for callback in callbacks {
+            callback(unsafe { &mut *emulator_ptr });
+        }
+    }
+
+    fn step_fixed_step(&mut self) {
+        let emulator_ptr = self as *mut Emulator;
+        let callbacks = self.fixed_step_queue.callbacks();
         for callback in callbacks {
             callback(unsafe { &mut *emulator_ptr });
         }
@@ -117,6 +145,21 @@ impl Emulator {
             callback(emulator)
         };
         self.dot_cycle_queue.add_callback(callback);
+        self
+    }
+
+    pub fn on_fixed_step<F>(&mut self, callback: F) -> &mut Self
+    where
+        F: Fn(&mut Emulator) + Send + Sync + 'static,
+    {
+        #[cfg(feature = "trace-span")]
+        let callback_name = std::any::type_name::<F>();
+        #[cfg(feature = "trace-span")]
+        let callback = move |emulator: &mut Emulator| {
+            let _span = tracing::info_span!("dot_cycle", %callback_name).entered();
+            callback(emulator)
+        };
+        self.fixed_step_queue.add_callback(callback);
         self
     }
 
@@ -192,15 +235,25 @@ impl Emulator {
     }
 
     pub fn get_cycles(&self) -> u64 {
-        self.cycles
+        self.dot_cycles
     }
 
     fn is_m_cycle(&self) -> bool {
-        self.cycles % 4 == 0
+        self.dot_cycles % 4 == 0
     }
 
     pub fn set_speed_mode(&mut self, speed_mode: SpeedMode) {
         self.speed_mode = speed_mode;
+    }
+
+    pub fn handle_control_event(&mut self, event: crate::EmulationControlEvent) {
+        #[cfg(feature = "trace")]
+        tracing::trace!("Emulation Control Event: {:?}", event);
+        match event {
+            crate::EmulationControlEvent::Pause => self.paused = true,
+            crate::EmulationControlEvent::Resume => self.paused = false,
+            crate::EmulationControlEvent::TogglePause => self.paused = !self.paused,
+        }
     }
 }
 
@@ -213,7 +266,7 @@ impl Default for Emulator {
 impl std::fmt::Debug for Emulator {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Emulator")
-            .field("cycles", &self.cycles)
+            .field("cycles", &self.dot_cycles)
             .finish()
     }
 }

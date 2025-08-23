@@ -1,3 +1,4 @@
+mod emulation_control;
 mod input_event;
 mod input_event_queue;
 mod joyp_input_state;
@@ -17,12 +18,14 @@ impl yagber_app::Plugin for InputPlugin {
         emulator
             .with_component(input_event_queue::InputEventQueue::default())
             .with_component(joyp_input_state::JoypInputState::new())
-            .on_mcycle(joyp_input_state::JoypInputState::on_mcycle);
+            .on_fixed_step(joyp_input_state::JoypInputState::on_mcycle)
+            .on_fixed_step(emulation_control::EmulationControl::on_mcycle);
 
         emulator
             .get_component_mut::<input_event_queue::InputEventQueue>()
             .unwrap()
-            .add_observer::<joyp_input_state::JoypInputState>();
+            .with_observer::<joyp_input_state::JoypInputState>()
+            .with_observer::<emulation_control::EmulationControl>();
 
         let joyp_transformer =
             emulator.attach_component(joyp_input_state::JoypInputState::joyp_transformer);

@@ -60,6 +60,11 @@ impl InputEventQueue {
         self.queues.entry(key).or_default();
     }
 
+    pub fn with_observer<T: 'static>(&mut self) -> &mut Self {
+        self.add_observer::<T>();
+        self
+    }
+
     pub fn push_event(&mut self, event: InputEvent) {
         for queue in self.queues.values_mut() {
             queue.push_event(event.clone());

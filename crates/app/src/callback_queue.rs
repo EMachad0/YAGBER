@@ -24,3 +24,9 @@ impl CallbackQueue {
         &self.callbacks
     }
 }
+
+impl Default for CallbackQueue {
+    fn default() -> Self {
+        Self::new()
+    }
+}
