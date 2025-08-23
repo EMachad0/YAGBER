@@ -5,15 +5,26 @@
 [![Clippy](https://img.shields.io/github/actions/workflow/status/EMachad0/YAGBER/clippy.yml)](https://github.com/EMachad0/YAGBER/actions/workflows/clippy.yml)
 [![License](https://img.shields.io/github/license/EMachad0/YAGBER)](https://github.com/EMachad0/YAGBER/blob/main/LICENSE)
 
-### Yet Another Game Boy Emulator in Rust
+## Yet Another Game Boy Emulator in Rust
 
-YAGBER is a Game Boy emulator written in Rust. It is a work in progress and not yet fully functional.
+YAGBER is a Game Boy emulator written in Rust.
 
 Currently it only runs from the command line, no binary is provided yet.
 
 ```bash
 cargo run --release path/to/rom.gb
 ```
+
+## Demos
+> Boot Gif
+
+<img src="./images/screenshots/boot.gif" width="400">
+
+> YouTube Demos
+
+[![Tetris](https://img.youtube.com/vi/0j8q8r7bTNw/0.jpg)](https://youtu.be/0j8q8r7bTNw)
+
+[![Pokemon Yellow](https://img.youtube.com/vi/pWixMjAkd6k/0.jpg)](https://youtu.be/pWixMjAkd6k)
 
 ## Game Support
 
