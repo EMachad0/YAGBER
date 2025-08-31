@@ -1,7 +1,7 @@
 mod display;
+mod input_converter;
 mod winit_app;
 mod winit_runner;
-mod input_converter;
 
 pub use display::Display;
 pub use winit_runner::WinitRunner;

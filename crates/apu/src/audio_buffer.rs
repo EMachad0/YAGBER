@@ -17,7 +17,10 @@ impl AudioBuffer {
     /// Creates an audio buffer with a fixed number of samples capacity.
     pub fn new_with_capacity(capacity_samples: usize) -> Self {
         let (producer, consumer) = ringbuf::HeapRb::<f32>::new(capacity_samples).split();
-        Self { producer, consumer: Some(consumer) }
+        Self {
+            producer,
+            consumer: Some(consumer),
+        }
     }
 
     /// Creates an audio buffer sized for `seconds` of audio at `sample_rate_hz`.

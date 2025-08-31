@@ -17,19 +17,17 @@ pub enum JoypKey {
 impl JoypKey {
     pub fn from_input_event(input_event: InputEvent) -> Option<Self> {
         match input_event {
-            InputEvent::Keyboard(keyboard_input) => {
-                match keyboard_input.key_code {
-                    crate::keyboard::KeyCode::KeyZ => Some(JoypKey::ButtonA),
-                    crate::keyboard::KeyCode::KeyX => Some(JoypKey::ButtonB),
-                    crate::keyboard::KeyCode::Backspace => Some(JoypKey::Select),
-                    crate::keyboard::KeyCode::Enter => Some(JoypKey::Start),
-                    crate::keyboard::KeyCode::ArrowUp => Some(JoypKey::Up),
-                    crate::keyboard::KeyCode::ArrowDown => Some(JoypKey::Down),
-                    crate::keyboard::KeyCode::ArrowLeft => Some(JoypKey::Left),
-                    crate::keyboard::KeyCode::ArrowRight => Some(JoypKey::Right),
-                    _ => None,
-                }
-            }
+            InputEvent::Keyboard(keyboard_input) => match keyboard_input.key_code {
+                crate::keyboard::KeyCode::KeyZ => Some(JoypKey::ButtonA),
+                crate::keyboard::KeyCode::KeyX => Some(JoypKey::ButtonB),
+                crate::keyboard::KeyCode::Backspace => Some(JoypKey::Select),
+                crate::keyboard::KeyCode::Enter => Some(JoypKey::Start),
+                crate::keyboard::KeyCode::ArrowUp => Some(JoypKey::Up),
+                crate::keyboard::KeyCode::ArrowDown => Some(JoypKey::Down),
+                crate::keyboard::KeyCode::ArrowLeft => Some(JoypKey::Left),
+                crate::keyboard::KeyCode::ArrowRight => Some(JoypKey::Right),
+                _ => None,
+            },
         }
     }
 }

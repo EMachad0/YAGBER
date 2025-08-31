@@ -10,7 +10,11 @@ pub use mbc2::Mbc2;
 pub use mbc3::Mbc3;
 pub use mbc5::Mbc5;
 
-use crate::cartridges::{cartridge_mbc_info::{CartridgeMbcInfo, MbcType}, external_ram_address::MbcDeviceUpdate, ExternalRamAddress};
+use crate::cartridges::{
+    ExternalRamAddress,
+    cartridge_mbc_info::{CartridgeMbcInfo, MbcType},
+    external_ram_address::MbcDeviceUpdate,
+};
 
 pub trait Mbc {
     fn ram_enabled(&self) -> bool;

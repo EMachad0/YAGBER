@@ -1,6 +1,6 @@
 use arbitrary_int::{u4, u7};
 
-use crate::cartridges::{external_ram_address::MbcDeviceUpdate, ExternalRamAddress, Mbc};
+use crate::cartridges::{ExternalRamAddress, Mbc, external_ram_address::MbcDeviceUpdate};
 
 pub struct Mbc3 {
     ram_enabled: bool,
@@ -48,7 +48,7 @@ impl Mbc3 {
                 0x0A => Hours,
                 0x0B => DaysLow,
                 0x0C => DaysHigh,
-                _ => unreachable!()
+                _ => unreachable!(),
             };
             ExternalRamAddress::Rtc(register)
         } else {

@@ -1,4 +1,4 @@
-use crate::cartridges::{external_ram_address::MbcDeviceUpdate, ExternalRamAddress, Mbc};
+use crate::cartridges::{ExternalRamAddress, Mbc, external_ram_address::MbcDeviceUpdate};
 
 pub struct Mbc0;
 

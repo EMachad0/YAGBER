@@ -34,7 +34,7 @@ impl InnerQueue {
             let _dropped_event = self.events.pop_front();
             #[cfg(feature = "trace")]
             tracing::warn!("Event queue is full, dropping event: {_dropped_event:?}");
-        } 
+        }
         self.events.push_back(event);
     }
 

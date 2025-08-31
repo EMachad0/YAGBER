@@ -13,4 +13,3 @@ pub enum MbcDeviceUpdate {
     RtcLatch,
     RumbleMotor(bool),
 }
-

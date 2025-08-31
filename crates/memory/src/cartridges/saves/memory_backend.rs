@@ -1,4 +1,4 @@
-use crate::cartridges::saves::{save::Save, SaveBackend};
+use crate::cartridges::saves::{SaveBackend, save::Save};
 
 #[derive(Default)]
 pub struct MemoryBackend;

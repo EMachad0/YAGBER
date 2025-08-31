@@ -40,7 +40,11 @@ impl Ram {
     }
 
     pub fn to_vec(&self) -> Vec<u8> {
-        self.data.to_vec().iter().map(|v| v.unwrap_or_default()).collect()
+        self.data
+            .to_vec()
+            .iter()
+            .map(|v| v.unwrap_or_default())
+            .collect()
     }
 }
 

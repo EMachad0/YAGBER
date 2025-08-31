@@ -1,6 +1,6 @@
 use arbitrary_int::{u2, u5};
 
-use crate::cartridges::{external_ram_address::MbcDeviceUpdate, ExternalRamAddress, Mbc};
+use crate::cartridges::{ExternalRamAddress, Mbc, external_ram_address::MbcDeviceUpdate};
 
 pub struct Mbc1 {
     ram_enabled: bool,

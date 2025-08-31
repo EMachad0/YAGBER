@@ -11,26 +11,26 @@ pub enum IOType {
     TAC,
     IF,
     AUD1SWEEP, // NR10
-    AUD1LEN, // NR11
-    AUD1ENV, // NR12
-    AUD1LOW, // NR13
-    AUD1HIGH, // NR14
-    AUD2LEN, // NR21
-    AUD2ENV, // NR22
-    AUD2LOW, // NR23
-    AUD2HIGH, // NR24
-    AUD3ENA, // NR30
-    AUD3LEN, // NR31
+    AUD1LEN,   // NR11
+    AUD1ENV,   // NR12
+    AUD1LOW,   // NR13
+    AUD1HIGH,  // NR14
+    AUD2LEN,   // NR21
+    AUD2ENV,   // NR22
+    AUD2LOW,   // NR23
+    AUD2HIGH,  // NR24
+    AUD3ENA,   // NR30
+    AUD3LEN,   // NR31
     AUD3LEVEL, // NR32
-    AUD3LOW, // NR33
-    AUD3HIGH, // NR34
-    AUD4LEN, // NR41
-    AUD4ENV, // NR42
-    AUD4POLY, // NR43
-    AUD4GO, // NR44
-    AUDVOL, // NR50
-    AUDTERM, // NR51
-    AUDENA, // NR52
+    AUD3LOW,   // NR33
+    AUD3HIGH,  // NR34
+    AUD4LEN,   // NR41
+    AUD4ENV,   // NR42
+    AUD4POLY,  // NR43
+    AUD4GO,    // NR44
+    AUDVOL,    // NR50
+    AUDTERM,   // NR51
+    AUDENA,    // NR52
     // TODO: Wave is actually 16 bytes long
     WAV,
     LCDC,

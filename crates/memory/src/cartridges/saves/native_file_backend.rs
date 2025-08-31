@@ -1,6 +1,6 @@
 use std::{io::Read, os::unix::fs::FileExt};
 
-use crate::cartridges::saves::{save::Save, SaveBackend};
+use crate::cartridges::saves::{SaveBackend, save::Save};
 
 /// Save backend that stores data in a file system.
 /// To be used with native targets that support file system.
@@ -24,10 +24,7 @@ impl NativeFileBackend {
             .truncate(false)
             .open(&path)?;
 
-        Ok(Self {
-            _path: path,
-            file,
-        })
+        Ok(Self { _path: path, file })
     }
 }
 
@@ -48,9 +45,14 @@ impl SaveBackend for NativeFileBackend {
             serde_json::to_writer_pretty(&mut buf, save)
         } else {
             serde_json::to_writer(&mut buf, save)
-        }.expect("failed to serialize save");
+        }
+        .expect("failed to serialize save");
 
-        self.file.set_len(buf.len() as u64).expect("Unable to write file");
-        self.file.write_all_at(&buf, 0).expect("Unable to write file")
+        self.file
+            .set_len(buf.len() as u64)
+            .expect("Unable to write file");
+        self.file
+            .write_all_at(&buf, 0)
+            .expect("Unable to write file")
     }
 }

@@ -1,6 +1,10 @@
 use crate::{
     cartridges::{
-        cartridge_mbc_info::CartridgeMbcInfo, external_ram_address::MbcDeviceUpdate, mbc::MbcKind, saves::{Save, SaveBackend, SaveBackendKind}, CartridgeHeader, Mbc, Rtc
+        CartridgeHeader, Mbc, Rtc,
+        cartridge_mbc_info::CartridgeMbcInfo,
+        external_ram_address::MbcDeviceUpdate,
+        mbc::MbcKind,
+        saves::{Save, SaveBackend, SaveBackendKind},
     },
     ram::Ram,
 };
