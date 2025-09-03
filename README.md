@@ -20,7 +20,7 @@ cargo run --release path/to/rom.gb
 
 <img src="./images/screenshots/boot.gif" width="400">
 
-> YouTube Demos
+> Video Demos (Click to go to Youtube)
 
 [![Tetris](https://img.youtube.com/vi/0j8q8r7bTNw/0.jpg)](https://youtu.be/0j8q8r7bTNw)
 
